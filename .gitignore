@@ -1,0 +1,7 @@
+# Directories
+output/
+geometries/brain-meshes
+
+# Files
+.cache
+__pycache__

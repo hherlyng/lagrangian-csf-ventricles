@@ -1,0 +1,14 @@
+name: lagrangian-csf-env
+channels:
+  - conda-forge
+dependencies:
+  - python
+  - fenics-dolfinx
+  - adios4dolfinx
+  - scifem
+  - numpy
+  - matplotlib
+  - git
+  - mpich
+  - colormaps
+  - conda-ecosystem-user-package-isolation
