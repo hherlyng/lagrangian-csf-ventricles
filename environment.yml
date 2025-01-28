@@ -8,6 +8,7 @@ dependencies:
   - scifem
   - numpy
   - matplotlib
+  - pyvista
   - git
   - mpich
   - colormaps
