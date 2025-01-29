@@ -1,6 +1,6 @@
 # Directories
 output/
-geometries/brain-meshes
+geometries/ventricles-meshes
 
 # Files
 .cache

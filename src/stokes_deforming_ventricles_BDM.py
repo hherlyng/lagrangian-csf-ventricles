@@ -79,21 +79,6 @@ A_respiratory = baseline_pressure*1/3
 # A_cardiac = 12.3 # Amplitude of cardiac cycle pulsations pressure [from Liu, Baledent et al. 2024]
 # A_respiratory = 9.5 # # Amplitude of respiratory cycle pulsations pressure [from Liu, Baledent et al. 2024]
 
-# Pressure expression class
-class PressureBC:
-    def __init__(self):
-        self.t = 0
-        self.A_1 = A_cardiac
-        self.T_1 = T_cardiac
-        self.A_2 = A_respiratory
-        self.T_2 = T_respiratory
-
-    def __call__(self, x):
-        cardiac_term = self.A_1*np.cos(2*np.pi*self.t/self.T_1)
-        respiratory_term = self.A_2*np.cos(2*np.pi*self.t/self.T_2)
-        total = cardiac_term + respiratory_term
-        return total*np.ones(x.shape[1])
-
 # Choroid plexus BC
 chp_area = assemble_scalar(1*ds(choroid_plexus_tags)) # The area of the choroid plexus boundary
 # v_in = 0.31e-6 # Volumetric flux through ventricles from Vinje et al. [m^3/s]
@@ -209,9 +194,6 @@ def stabilization(u: ufl.TrialFunction, v: ufl.TestFunction, consistent: bool=Tr
 
 beta = dfx.fem.Constant(mesh, dfx.default_scalar_type(10.0)) # Noslip penalty parameter
 
-p_bc = dfx.fem.Function(Q)
-p_bc_expr = PressureBC()
-
 # Tangential traction BC
 tau_val = 7.89e-3 # Tangential traction force density [Pa]
 tau = dfx.fem.Constant(mesh, dfx.default_scalar_type(tau_val))
@@ -231,7 +213,6 @@ a11 = dfx.fem.Constant(mesh, dfx.default_scalar_type(0.0))*inner(p, q)*J*dx
 
 L0 = inner(zero, v)*J*dx \
 #    + inner(Tangent(v, n), tangent_traction_dorsal(n))*J*ds(cilia_tags) \
-#    + inner(p_bc*n, v)*ds(CANAL_OUT)
 L1 = inner(dfx.fem.Function(Q), q)*J*dx
 
 a = dfx.fem.form([[a00, a01], [a10, a11]])
@@ -348,7 +329,6 @@ if __name__=='__main__':
         # Interpolate BC expressions into BC functions
         # u_wall.interpolate(u_wall_expr)
         # v_wall.interpolate(v_wall_expr)
-        # p_bc.interpolate(p_bc_expr)
         
         # ale_problem.solve() # Solve the mesh motion problem
         uh_, ph_ = solve_stokes() # Solve the Stokes equations
