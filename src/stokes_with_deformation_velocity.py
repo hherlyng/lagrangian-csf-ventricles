@@ -10,6 +10,7 @@ from scifem    import assemble_scalar
 from mpi4py    import MPI
 from petsc4py  import PETSc
 from basix.ufl import element
+from utilities.fem import stabilization, tangent, eps
 from dolfinx.fem.petsc import LinearProblem
 
 print = PETSc.Sys.Print
@@ -80,20 +81,6 @@ class ChoroidPlexusFlux:
                                              np.ones(x.shape[1]),
                                    self.sign*np.ones(x.shape[1])))
 
-# Operators for BDM interior facet stabilization terms
-# NOTE: these are the jump operators from Krauss, Zikatonov paper.
-# Jump is just a difference and it preserves the rank 
-Jump = lambda arg: arg('+') - arg('-')
-
-# Average uses dot with normal and AGAIN MINUS; it reduces the rank
-Avg = lambda arg, n: .5*(dot(arg('+'), n('+')) - dot(arg('-'), n('-')))
-
-# Action of (1 - n x n) on a vector yields the tangential component
-Tangent = lambda v, n: v - n*dot(v, n)
-
-# Symmetric gradient
-Eps = lambda arg: sym(grad(arg))
-
 n = ufl.FacetNormal(mesh)
 
 vec_el  = element("Lagrange", mesh.basix_cell(), 2, shape=(mesh.geometry.dim,))
@@ -103,70 +90,40 @@ dg_el  = element("DG", mesh.basix_cell(), 0)
 dg_vec_el = element("DG", mesh.basix_cell(), 1, shape=(mesh.geometry.dim,))
 V = dfx.fem.functionspace(mesh, bdm_el)
 Q = dfx.fem.functionspace(mesh, dg_el)
+DG_vec = dfx.fem.functionspace(mesh, dg_vec_el)
 v_zero = dfx.fem.Function(V)
 
 u, v = ufl.TrialFunction(V), ufl.TestFunction(V)
 p, q = ufl.TrialFunction(Q), ufl.TestFunction(Q)
 
 
-mu = 7e-4 #[kg/(m*s)] #*1e-2 # Dynamic viscosity [kg/(cm*s)]
-BDM_penalty = 25
-
-def stabilization(u: ufl.TrialFunction, v: ufl.TestFunction, consistent: bool=True):
-    """ Displacement/Flux Stabilization term from Krauss et al paper. 
-
-    Parameters
-    ----------
-    u : ufl.TrialFunction
-        The finite element trial function.
-    
-    v : ufl.TestFunction
-        The finite element test function.
-    
-    consistent : bool
-        Add symmetric gradient terms to the form if True.
-
-    Returns
-    -------
-    ufl.Coefficient
-        Stabilization term for the bilinear form.
-    """
-
-    hA = ufl.avg(ufl.CellDiameter(mesh)) # Facet normal vector and average cell diameter
-    dS = ufl.Measure('dS', domain=mesh) # Interior facet integral measure
-
-    if consistent: # Add symmetrization terms
-        return (-inner(Avg(2*mu*Eps(u), n), Jump(Tangent(v, n)))*dS
-                -inner(Avg(2*mu*Eps(v), n), Jump(Tangent(u, n)))*dS
-                + 2*mu*(BDM_penalty/hA)*inner(Jump(Tangent(u, n)), Jump(Tangent(v, n)))*dS)
-
-    # For preconditioning
-    return 2*mu*(BDM_penalty/hA)*inner(Jump(Tangent(u, n)), Jump(Tangent(v, n)))*dS
-
-beta = dfx.fem.Constant(mesh, dfx.default_scalar_type(10.0)) # Noslip penalty parameter
+mu = dfx.fem.Constant(mesh, dfx.default_scalar_type(7e-4)) #[kg/(m*s)] #*1e-2 # Dynamic viscosity [kg/(cm*s)]
+penalty = dfx.fem.Constant(mesh, dfx.default_scalar_type(25.0))
 
 # Tangential traction BC
 tau_val = 7.89e-3*1e-2 # Tangential traction force density [Pa]
-tau = dfx.fem.Constant(mesh, dfx.default_scalar_type(tau_val))
-tau_vec   = tau*ufl.as_vector((0, 1, -1)) # Stress vector to be projected tangentially onto the mesh
-tangent_traction_dorsal = lambda n: Tangent(tau_vec, n) # Use the tau expression to define the tangent traction vector
+tau = dfx.fem.Function(V)
+tau_input = dfx.fem.Function(DG_vec)
+cilia_direction_filename = '../output/checkpoints/cilia-direction-vectors/mesh-coarse/'
+a4d.read_function(filename=cilia_direction_filename, u=tau_input)
+tau.interpolate(tau_input)
 
 # ds_ = ds(noslip_bdry_tags)
 # Stokes problem in reference domain accounting for the deformation
-a00 = (2*mu*inner(Eps(u), Eps(v))*dx # Viscous dissipation
-      + stabilization(u, v) # BDM stabilization
+a00 = (2*mu*inner(eps(u), eps(v))*dx # Viscous dissipation
+      + stabilization(u, v, mu, penalty) # BDM stabilization
       - mu*inner(dot(grad(u).T, n), v)*(ds(CANAL_OUT)+ds(LATERAL_APERTURES)) # Parallel flow at inlet/outlet
-    #   + beta*dot(Tangent(u, n), Tangent(v, n))*J*ds_ # Weakly enforce zero tangential velocity
       )
 a01 = inner(p, div(v))*dx
 a10 = inner(q, div(u))*dx
 a11 = dfx.fem.Constant(mesh, dfx.default_scalar_type(0.0))*inner(p, q)*dx
 
 L0 = inner(v_zero, v)*dx \
-   + inner(Tangent(v, n), tangent_traction_dorsal(n))*ds(cilia_tags)
+   + inner(tau_val*tangent(tau, n), tangent(v, n))*ds(cilia_tags)
 L1 = inner(dfx.fem.Function(Q), q)*dx
 
-a = dfx.fem.form([[a00, a01], [a10, a11]])
+a = dfx.fem.form([[a00, a01],
+                  [a10, a11]])
 L = dfx.fem.form([L0, L1])
 
 # Set choroid plexus inflow velocity BC strongly
@@ -251,9 +208,9 @@ if __name__=='__main__':
     ph = dfx.fem.Function(dfx.fem.functionspace(mesh, dg_el)); ph.name = 'ph' # Pressure
     vh = dfx.fem.Function(dfx.fem.functionspace(mesh, vec_el)); # Deformation velocity
 
-    velocity_output_filename = f"../output/deforming-mesh-{mesh_prefix}/BDM_chp_velocity.pvd"
+    velocity_output_filename = f"../output/deforming-mesh-{mesh_prefix}/BDM_chp+cilia+defo_velocity.pvd"
     velocity_output = dfx.io.VTKFile(comm, velocity_output_filename, "w")
-    pressure_output_filename = f"../output/deforming-mesh-{mesh_prefix}/BDM_chp_pressure.pvd"
+    pressure_output_filename = f"../output/deforming-mesh-{mesh_prefix}/BDM_chp+cilia+defo_pressure.pvd"
     pressure_output = dfx.io.VTKFile(comm, pressure_output_filename, "w")
     vh_input_filename = f"../output/checkpoints/deforming-mesh-{mesh_prefix}/deformation_velocity/"
 
@@ -269,7 +226,7 @@ if __name__=='__main__':
         uh.interpolate(uh_)
         ph.interpolate(ph_)
 
-        # Add deformation velocity to uh
+        # # Add deformation velocity to uh
         a4d.read_function(filename=vh_input_filename, u=vh, time=t)
         uh.x.array[:] += vh.x.array.copy()
 
