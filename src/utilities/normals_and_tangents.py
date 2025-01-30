@@ -3,7 +3,6 @@
 # SPDX-License-Identifier:    MIT
 
 import ufl
-import meshio
 
 import numpy   as np
 import dolfinx as dfx
@@ -11,6 +10,7 @@ import dolfinx as dfx
 from mpi4py   import MPI
 from petsc4py import PETSc
 
+from basix.ufl import element
 from dolfinx.fem.petsc     import assemble_matrix, assemble_vector, apply_lifting, set_bc
 from dolfinx.cpp.fem.petsc import insert_diagonal
 
@@ -121,7 +121,7 @@ def facet_vector_approximation(V: dfx.fem.FunctionSpace,
     pattern.insert_diagonal(deac_blocks)
     pattern.finalize()
     u_0 = dfx.fem.Function(V)
-    u_0.vector.set(0)
+    u_0.x.petsc_vec.set(0)
     bc_deac = dfx.fem.dirichletbc(u_0, deac_blocks)
 
     # Create the matrix
@@ -158,8 +158,8 @@ def facet_vector_approximation(V: dfx.fem.FunctionSpace,
     solver.setOperators(A)
 
     # Solve the linear system and perform ghost update.
-    solver.solve(b, nh.vector)
-    nh.vector.ghostUpdate(addv=PETSc.InsertMode.INSERT, mode=PETSc.ScatterMode.FORWARD)
+    solver.solve(b, nh.x.petsc_vec)
+    nh.x.petsc_vec.ghostUpdate(addv=PETSc.InsertMode.INSERT, mode=PETSc.ScatterMode.FORWARD)
 
     # Normalize the vectors to get the unit facet normal/tangent vector.
     nh_norm = ufl.sqrt(ufl.inner(nh, nh)) # Norm of facet vector
@@ -236,7 +236,7 @@ if __name__ == '__main__':
         ft_id = SUBSET # Set the meshtags id for which we will approximate the facet vectors
     
     # Create a DG1 space for the facet vectors to be approximated.
-    DG1 = ufl.VectorElement(family='Discontinuous Lagrange', cell=mesh.ufl_cell(), degree=1)
+    DG1 = element("DG", cell=mesh.ufl_cell(), degree=1, shape=(mesh.geometry.dim,))
     space = dfx.fem.FunctionSpace(mesh=mesh, element=DG1)
 
     # Compute the facet vector approximation.

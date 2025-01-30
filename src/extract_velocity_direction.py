@@ -12,7 +12,7 @@ from dolfinx.fem.petsc import LinearProblem
 Tangent = lambda v, n: v - n*ufl.dot(v, n)
 
 comm = MPI.COMM_WORLD
-mesh_prefix = 'medium'
+mesh_prefix = 'coarse'
 cpoint_filename = f'../output/checkpoints/deforming-mesh-{mesh_prefix}/BDM_chp_velocity/'
 
 # Read mesh and BDM velocity function
@@ -41,6 +41,14 @@ L = ufl.inner(u_bdm, v) * ufl.dx # Linear form
 # Solve the variational problem with a direct solver
 problem = LinearProblem(a, L, bcs=[], u=u_cg)
 problem.solve()
+
+from utilities.normals_and_tangents import facet_vector_approximation
+nh = facet_vector_approximation(DG1_vector)
+u_t_expr = dfx.fem.Expression((ufl.Identity(mesh.geometry.dim) - ufl.outer(nh, nh))*u_dg, DG1_vector.element.interpolation_points())
+u_t = dfx.fem.Function(DG1_vector)
+u_t.interpolate(u_t_expr)
+
+u_cg.interpolate(u_t)
 
 # Reshape vector and normalize
 u_reshaped = u_cg.x.array.reshape((int(u_cg.x.array.__len__()/mesh.geometry.dim), mesh.geometry.dim))
