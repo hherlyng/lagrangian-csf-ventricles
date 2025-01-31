@@ -66,7 +66,9 @@ L = inner(zero, dw)*dx # Zero RHS because of zero traction or Dirichlet BC enfor
 # Dirichlet BC on corpus callosum
 cc_disp_expr = WallDeformation(derivative=False)
 cc_disp_func = dfx.fem.Function(W)
-cc_dofs = dfx.fem.locate_dofs_geometrical(W, lambda x: np.isclose(x[0], -0.012214))
+cc_dofs = dfx.fem.locate_dofs_geometrical(W, lambda x: np.isclose(x[0], -0.00165))
+cc_dofs = dfx.fem.locate_dofs_topological(W, mesh.topology.dim-1, np.array([8211], dtype=np.int32))
+# cc_dofs = dfx.fem.locate_dofs_geometrical(W, lambda x: np.isclose(x[0], -0.012214))
 assert comm.allreduce(len(cc_dofs), op=MPI.MAX)>0, print("No corpus callosum dofs located.")
 bcs = [dfx.fem.dirichletbc(cc_disp_func, cc_dofs)]
 

@@ -130,10 +130,8 @@ L = dfx.fem.form([L0, L1])
 # Create expressions with positive and negative z-component of the velocity
 v_chp_positive_z = dfx.fem.Function(V)
 v_chp_expr_positive_z = ChoroidPlexusFlux(z_positive=True) 
-v_chp_positive_z.interpolate(v_chp_expr_positive_z) 
 v_chp_negative_z = dfx.fem.Function(V)
 v_chp_expr_negative_z = ChoroidPlexusFlux(z_positive=False) 
-v_chp_negative_z.interpolate(v_chp_expr_negative_z) 
 facets_chp_laterals = ft.find(CHOROID_PLEXUS_LATERAL)
 v_dofs_chp_laterals = dfx.fem.locate_dofs_topological(V, facet_dim, facets_chp_laterals)
 facets_chp_third = ft.find(CHOROID_PLEXUS_THIRD)
@@ -146,13 +144,14 @@ bcs_stokes = [dfx.fem.dirichletbc(v_chp_positive_z, v_dofs_chp_laterals),
               dfx.fem.dirichletbc(v_chp_positive_z, v_dofs_chp_fourth)
 ]
 
-# Impose impermeability elsewhere
-facets_impermeability = np.concatenate(([ft.find(tag) for tag in impermeability_tags]))
-v_dofs_impermeability = dfx.fem.locate_dofs_topological(V, facet_dim, facets_impermeability)
+# Impose deformation velocity on the rest of the boundary
+v_defo = dfx.fem.Function(dfx.fem.functionspace(mesh, bdm_el)); # Deformation velocity
+facets_defo = np.concatenate(([ft.find(tag) for tag in impermeability_tags]))
+v_dofs_defo = dfx.fem.locate_dofs_topological(V, facet_dim, facets_defo)
 
-bcs_stokes.append(dfx.fem.dirichletbc(v_zero, v_dofs_impermeability))
+bcs_stokes.append(dfx.fem.dirichletbc(v_defo, v_dofs_defo))
 
-def assemble_nested_system(lhs_form, rhs_form, bcs):
+def assemble_nested_system(lhs_form: dfx.fem.form, rhs_form: dfx.fem.form, bcs: list[dfx.fem.dirichletbc]):
     A = dfx.fem.petsc.assemble_matrix_nest(lhs_form, bcs=bcs)
     A.assemble()
 
@@ -164,8 +163,7 @@ def assemble_nested_system(lhs_form, rhs_form, bcs):
     bcs0 = dfx.fem.bcs_by_block(spaces, bcs)
     dfx.fem.petsc.set_bc_nest(b, bcs0)
     return A, b
-
-def create_solver(A):
+def create_solver(A: PETSc.Mat):
     ksp = PETSc.KSP().create(comm)
     ksp.setOperators(A)
     ksp.setType("preonly")
@@ -174,10 +172,9 @@ def create_solver(A):
     pc.setFactorSolverType("mumps")
     pc.setFactorSetUpSolverType()
     return ksp
+def solve_stokes(a: dfx.fem.form, L: dfx.fem.form, bcs: list[dfx.fem.DirichletBC]):
 
-def solve_stokes():
-
-    A, b = assemble_nested_system(a, L, bcs_stokes)
+    A, b = assemble_nested_system(a, L, bcs)
 
     ksp = create_solver(A)
 
@@ -204,9 +201,8 @@ if __name__=='__main__':
     write_cpoint = True if int(argv[1])==1 else False
 
     # I/O functions
-    uh = dfx.fem.Function(dfx.fem.functionspace(mesh, vec_el)); uh.name = 'uh' # Stokes velocity
+    uh = dfx.fem.Function(dfx.fem.functionspace(mesh, dg_vec_el)); uh.name = 'uh' # Stokes velocity
     ph = dfx.fem.Function(dfx.fem.functionspace(mesh, dg_el)); ph.name = 'ph' # Pressure
-    vh = dfx.fem.Function(dfx.fem.functionspace(mesh, vec_el)); # Deformation velocity
 
     velocity_output_filename = f"../output/deforming-mesh-{mesh_prefix}/BDM_chp+cilia+defo_velocity.pvd"
     velocity_output = dfx.io.VTKFile(comm, velocity_output_filename, "w")
@@ -218,17 +214,32 @@ if __name__=='__main__':
         cpoint_filename = f"../output/checkpoints/deforming-mesh-{mesh_prefix}/BDM_chp_velocity"
         a4d.write_mesh(cpoint_filename, mesh, store_partition_info=True)
 
-    for t in np.linspace(0, 1, 50):
+    T = 1
+    dt = 0.02
+    N = int(T/dt)
 
-        uh_, ph_ = solve_stokes() # Solve the Stokes equations
+    for t in np.linspace(0, T, N):
+
+        # Update deformation velocity
+        a4d.read_function(filename=vh_input_filename, u=v_defo, time=t)
+        
+        # Account for deformation in choroid plexus production
+        v_chp_positive_z.interpolate(v_chp_expr_positive_z) 
+        v_chp_negative_z.interpolate(v_chp_expr_negative_z)
+        print(f'Max production velocity: {v_chp_positive_z.x.array.max():.2e}')
+        print(f'Min production velocity: {v_chp_positive_z.x.array.min():.2e}')
+        v_chp_positive_z.x.array[:] -= v_defo.x.array.copy()
+        v_chp_negative_z.x.array[:] -= v_defo.x.array.copy()
+
+        print(f'Max deformation velocity: {v_defo.x.array.max():.2e}')
+        print(f'Min deformation velocity: {v_defo.x.array.min():.2e}')
+
+
+        uh_, ph_ = solve_stokes(a, L, bcs_stokes) # Solve the Stokes equations
 
         # Interpolate output functions
         uh.interpolate(uh_)
         ph.interpolate(ph_)
-
-        # # Add deformation velocity to uh
-        a4d.read_function(filename=vh_input_filename, u=vh, time=t)
-        uh.x.array[:] += vh.x.array.copy()
 
         # Write output
         velocity_output.write_mesh(mesh, t)
@@ -236,7 +247,7 @@ if __name__=='__main__':
         pressure_output.write_mesh(mesh, t)
         pressure_output.write_function(ph, t)
 
-        if write_cpoint: a4d.write_function(cpoint_filename, uh, time=t)
+        if write_cpoint: a4d.write_function(cpoint_filename, uh_, time=t)
 
         # Calculate mean pressure
         vol = assemble_scalar(1*ufl.dx(mesh))
