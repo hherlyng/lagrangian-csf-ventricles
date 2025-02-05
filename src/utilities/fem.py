@@ -2,6 +2,7 @@ import ufl
 import dolfinx as dfx
 
 from ufl import inner, dot, sym, grad, avg
+from petsc4py import PETSc
 
 # Operators
 # NOTE: these are the jump operators from Krauss, Zikatonov paper.
@@ -31,7 +32,9 @@ def tangent(v: dfx.fem.Function | ufl.Coefficient, n: ufl.FacetNormal):
         The normal projection of v on n.
     """
     return v - n*dot(v, n)
-def stabilization(u: ufl.TrialFunction, v: ufl.TestFunction, mu: dfx.fem.Constant, penalty: dfx.fem.Constant, consistent: bool=True):
+def stabilization(u: ufl.TrialFunction, v: ufl.TestFunction,
+                  mu: dfx.fem.Constant, penalty: dfx.fem.Constant,
+                  consistent: bool=True) -> ufl.Form:
     """ Displacement/Flux Stabilization term from Krauss et al paper. 
 
     Parameters
@@ -67,3 +70,18 @@ def stabilization(u: ufl.TrialFunction, v: ufl.TestFunction, mu: dfx.fem.Constan
 
     # For preconditioning
     return 2*mu*(penalty/hA)*inner(Jump(tangent(u, n)), Jump(tangent(v, n)))*dS
+
+def assemble_nested_system(lhs_form: dfx.fem.form,
+                           rhs_form: dfx.fem.form,
+                           bcs: list[dfx.fem.dirichletbc]) -> tuple((PETSc.Mat, PETSc.Vec)):
+    A = dfx.fem.petsc.assemble_matrix_nest(lhs_form, bcs=bcs)
+    A.assemble()
+
+    b = dfx.fem.petsc.assemble_vector_nest(rhs_form)
+    dfx.fem.petsc.apply_lifting_nest(b, lhs_form, bcs=bcs)
+    for b_sub in b.getNestSubVecs():
+        b_sub.ghostUpdate(addv=PETSc.InsertMode.ADD, mode=PETSc.ScatterMode.REVERSE)
+    spaces = dfx.fem.extract_function_spaces(rhs_form)
+    bcs0 = dfx.fem.bcs_by_block(spaces, bcs)
+    dfx.fem.petsc.set_bc_nest(b, bcs0)
+    return A, b

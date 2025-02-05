@@ -1,0 +1,357 @@
+\documentclass[11pt]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[margin=1.0in]{geometry}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{amsfonts}
+\usepackage{siunitx}
+\usepackage{physics}
+\usepackage{bm} % Bold-faced math
+\usepackage{amsopn}
+\usepackage[skip=10pt]{caption}
+\usepackage{color}
+\usepackage{xcolor,colortbl}
+\usepackage[pdftex, bookmarks, colorlinks, breaklinks]{hyperref}
+\usepackage{soul}
+\hypersetup{colorlinks, citecolor=blue}
+\usepackage[capitalise]{cleveref}
+\usepackage{stmaryrd} % double brackets for jump operator
+\usepackage{graphicx}
+
+% Bibliography tools
+\usepackage{csquotes}
+
+% Set some length parameters
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{10pt}
+\setlength{\tabcolsep}{0.35cm}
+
+
+%% Some new commands
+% Partial derivatives
+\newcommand{\pdifft}[1]{\frac{\partial  #1}{\partial t}}
+\newcommand{\pdiffx}[1]{\frac{\partial #1}{\partial x}}
+\newcommand{\pdiffy}[1]{\frac{\partial #1}{\partial y}}
+\newcommand{\pdiffxi}[1]{\frac{\partial #1}{\partial x_i}}
+\newcommand{\pdiffxj}[1]{\frac{\partial #1}{\partial x_j}}
+\newcommand{\secpdiffx}[1]{\frac{\partial^2 #1}{\partial x^2}}
+\newcommand{\secpdiffxi}[1]{\frac{\partial^2 #1}{\partial x_i \partial x_i}}
+\newcommand{\secpdiffxj}[1]{\frac{\partial^2 #1}{\partial x_j \partial x_j}}
+
+% Boundaries
+\newcommand{\Gchp}{\Gamma_{\mathrm{chp}}}
+
+% Norms
+\newcommand{\normltwo}[1]{{ \vert\vert#1\vert\vert}_{L^2}}
+\newcommand{\normlinf}[1]{{\vert\vert#1\vert\vert}_{L^{\infty}}}
+\newcommand{\Hnorm}[1]{\norm{#1}_{H^1}}
+\newcommand{\Lnorm}[1]{\norm{#1}_{L^2}}
+
+% Integrals
+\newcommand{\intO}[1]{\int_{\Omega}#1 \, d\bm{x}}
+\newcommand{\intG}[1]{\int_{\Gamma}#1 \, ds}
+\newcommand{\intE}[1]{\int_{\mathcal{E}}#1 dS}
+\newcommand{\intGnf}[1]{\int_{\Gamma_{\mathrm{nf}}}#1 \, ds}
+\newcommand{\intGinj}[1]{\int_{\Gamma_{\mathrm{inj}}}#1 \, ds}
+\newcommand{\intGs}[1]{\int_{\Gamma_s}#1 \, ds}
+\newcommand{\intGp}[1]{\int_{\Gamma_p}#1 \, ds}
+
+% Discontinuity operators
+\newcommand{\avg}[1]{\{#1\}}
+\newcommand{\jump}[1]{\llbracket#1\rrbracket}
+
+% Bold faced math characters
+\newcommand{\ff}{\mathbf{f}}
+\newcommand{\nn}{\mathbf{n}}
+\newcommand{\rr}{\mathbf{r}}
+\newcommand{\uu}{\mathbf{u}}
+\newcommand{\vv}{\mathbf{v}}
+\newcommand{\ww}{\mathbf{w}}
+\newcommand{\xx}{\mathbf{x}}
+\newcommand{\JJ}{\mathbf{J}}
+\newcommand{\VV}{\mathbf{V}}
+\newcommand{\bsigma}{\bm{\sigma}}
+\newcommand{\bsigmahat}{\hat{\bm{\sigma}}}
+\newcommand{\btau}{\bm{\tau}}
+\newcommand{\beps}{\bm{\varepsilon}}
+
+% Comments
+\newcommand{\lyng}[1]{\textcolor{blue}{HH: #1}}
+\newcommand{\fixme}[1]{\textcolor{red}{#1}}
+
+\newcommand{\dx}{\, \mathrm{d}x}
+
+\setcounter{footnote}{1}
+
+% Title
+\title{\textbf{Lagrangian flow topology in brain ventricles}}
+\author{
+    H. Herlyng, S. Shadden
+}
+
+\date{\today}
+% Optional PDF information
+\ifpdf
+\hypersetup{
+  pdftitle={fluid-mechanics},
+  pdfauthor={H.~Herlyng et al.}
+}
+\fi
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+    This paper ...
+\end{abstract}
+
+\section{Introduction}
+
+\section{Methods}
+\subsection{Finite-Time Lyapunov exponent field}
+
+\subsection{The governing equations of Stokes flow}
+We consider flow of an incompressible, Newtonian fluid of density $\rho$ in a domain $\Omega$ with boundary $\Gamma$. Due to low Reynolds numbers in CSF flow in brain ventricles~\cite{Liu2024UsingBreathing}, we neglect inertial effects and drop the nonlinear term $(\uu\cdot\nabla)\uu$. Further assuming that there are no body forces, we get the governing equation for time-dependent Stokes flow:
+\begin{equation}
+    \rho\pdifft{\uu} - \nabla\cdot\bm{\sigma} = \mathbf{0},
+    \label{eq:time_dependent_stokes}
+\end{equation}
+where $\uu$ and $p$ are the fluid velocity and pressure, respectively. The stress tensor $\sigma$ is defined as
+\begin{equation*}
+    \sigma(\uu, p) = 2\mu\bm{\varepsilon}(\uu) - p\mathbf{I}
+\end{equation*}
+and
+\begin{equation*}
+    \bm{\varepsilon}(\uu) = \frac{1}{2}\left(\nabla \uu + (\nabla\uu)^T\right)
+\end{equation*}
+is the symmetric part of the velocity gradient, or strain-rate tensor. We derive a weak form of~\cref{eq:time_dependent_stokes} by multiplying the equation with a test function $\vv\in\VV$ and integrating over the domain
+\begin{align}
+    &\intO{\rho\pdifft{\uu}\cdot\vv} - \intO{(\nabla\cdot\bm{\sigma})\cdot\vv} = \mathbf{0} \\
+    &\intO{\rho\pdifft{\uu}\cdot\vv} - \intG{\bm{\sigma}\nn\cdot\vv} + \intO{\bm{\sigma} : \nabla\vv} = \mathbf{0} \\
+    &\intO{\rho\pdifft{\uu}\cdot\vv} - \intG{\bm{\sigma}\nn\cdot\vv} + \intO{2\mu\varepsilon(\uu) : \varepsilon(\vv)} - \intO{p\nabla\cdot\vv} = \mathbf{0}, \label{eq:weak_form_full}
+\end{align}
+where line two results from integration by parts of the stress term. 
+
+
+\subsection{Flow mechanisms and boundary conditions}
+We consider three fluid motion-inducing mechanisms, and model them as follows:
+\begin{itemize}
+    \item Ventricles deformation related to the cardiac and respiratory cycles,
+    modeled with an imposed deformation velocity
+    \item Secretion of CSF from the choroid plexus,
+    modeled with an influx boundary condition on the velocity
+    \item Motile cilia beating, modeled as a tangential wall stress acting on the fluid
+     
+\end{itemize}
+
+\subsubsection{Brain ventricles deformation}
+We model the brain ventricles deformation by imposing a motion on the parts of the geometry,
+then solving the linear elasticity equations for the
+deformation $\mathbf{d}(\xx, t)$ of the ventricles.
+The deformation velocity is then $\pdifft{\mathbf{d}}$, which is used in the boundary
+conditions for the Stokes equations when solving for the CSF velocity $\uu$.
+We assume that the deformation $\mathbf{d}$ only has a $z$ component (feet-head axis).
+The displacement is based on measurements~\cite{Kurtcuoglu2007ComputationalSylvius, Enzmann1992BrainImaging}.
+
+Alternatively, to increase computational efficiency, we can assume that the deformations of the brain ventricles are so small that we can impose the deformation velocities directly without changing the mesh. In fact, we let these deformation velocities derive from a boundary condition on the normal traction at the end of the spinal canal. We impose
+\begin{equation}
+    (\mu\nabla\uu - p\mathbf{I})\nn = \Tilde{p}(t)\nn, \quad\mathrm{on} \ \Gamma_{\mathrm{canal}},
+\end{equation}
+%where the "pressure" function $\Tilde{p}(t)$ is a dual-modal sinusoidal forcing function:
+\begin{equation}
+    \Tilde{p}(t) = A_c\sin{\omega_c t} + A_r\sin{\omega_r t}.
+\end{equation}
+The two terms are the contributions of the cardiac and respiratory cycle to the pressure, respectively. Considering the average human (in a resting condition) to have a heartbeat of 62 bpm and a respiration rate of 15 breaths per minute~\cite{Vinje2019RespiratoryMeasurements}, we have the cardiac and respiratory frequencies $f_c = 1.03$ Hz and $f_r = 0.25$ Hz, from which we derive the angular frequencies $\omega_i = 2\pi f_i$, $i\in\{c, r\}$.
+
+\subsubsection{Choroid plexus secretion.}
+The secretion is modeled by imposing
+\begin{equation}
+    \uu\cdot\nn = \uu_{\mathrm{in}}\cdot\nn\quad\mathrm{on \ \Gamma_{\mathrm{chp}}},
+    \label{eq:choroid_plexus_BC}
+\end{equation}
+where $\uu_{\mathrm{in}}$ is calculated based on a daily total CSF production of $\dot{V}=504$ ml/day~\cite{Czosnyka2004CerebrospinalDynamics}. From this, we calculate $\uu_\mathrm{in}=\dot{V}/\vert\Gamma_{\mathrm{chp}}\vert$.
+
+This value is based on the assumption that all CSF that enters the brain ventricles is produced by the choroid plexus, even though in reality 10--30\% of the CSF production may come from interstitial fluid transported through the ependymal cell layer of the brain ventricles walls into the ventricles~\cite{Brodal2016TheSystem}.
+
+\subsubsection{Cilia forces}
+Motile cilia are modeled by imposing forces on the fluid with a boundary condition on the tangential traction $P_{\nn}(\bsigmahat) = \btau = \tau P_{\nn}(\rr)$. Here $\bsigmahat=\bsigma\nn$ is the traction vector and  $P_{\nn}(\cdot)$ is the projection of a vector onto the plane which $\nn$ is normal to. The vector $\btau$ models the cilia motion. It has been shown that motile cilia beating direction is oriented by CSF production during neural development~\cite{Guirao2010CouplingCilia}. A previous study has considered directionality of the cilia forcing aligned with the wall shear stress of the macroscopic flow simulated in a production-only setup~\cite{Siyahhan2014FlowVentricles}. We apply a similar approach, simulating CSF flow with the boundary condition~\eqref{eq:choroid_plexus_BC} on $\Gchp$, a zero normal traction condition on the spinal canal and lateral apertures, and $\uu\cdot\nn=0$ on the rest of the boundary. In the tangential direction, the CSF is free to slip. The resulting velocity field, $\uu_{\mathrm{prod}}$, is normalized in length to yield the direction of the cilia:
+\begin{equation*}
+    \rr = \frac{\uu_{\mathrm{prod}}}{|\uu_{\mathrm{prod}}|}.
+\end{equation*}
+
+The parameter $\tau$ determines the magnitude of $\btau$.
+
+\lyng{Should we do some "upper/lower bound" type of estimate? E.g., in the "maximal force" setting, how much do cilia contribute to flow structures?}
+
+\subsection{To do}
+\begin{itemize}
+    \item Simulate an inflation of the ventricular geometry with the linear elasticity equation by increasing pressure (?) until a chosen point reaches the deformation in experimental curve, yields geometry at those time instances that the curve provides information about $\rightarrow$ interpolate in time
+    
+    \item Cilia directionality: Yamadori T. The directions of ciliary beat on the wall of the fourth ventricle in the mouse. Arch Histol Jpn 1977; 40: 283–296
+\end{itemize}
+
+\clearpage
+\subsection{Fluid and wall motion induced by the cardiac cycle}
+Imposing pressure boundary conditions is a way to simulate the back-and-forth motion of the fluid which results from cardiac beating. We do this by using the anterior and the posterior ends of the mesh as a fictitious inlet and outlet, respectively, and we consider the boundary conditions
+\begin{align}
+    (\mu\nabla\uu - p\mathbf{I})\nn &= \mathbf{0}, \quad\mathrm{on} \ \Gamma_1, \label{eq:zero_pressure_BC}\\
+    (\mu\nabla\uu - p\mathbf{I})\nn &= \Tilde{p}(t)\nn, \quad\mathrm{on} \ \Gamma_2, \label{eq:sine_pressure_BC}
+\end{align}
+where $\Gamma_1$ and $\Gamma_2$ are the regions of the boundary on the anterior and posterior parts of the mesh, respectively. The simulated motion follows from the applied pressure
+\begin{equation}
+    \Tilde{p}(t) = A\sin{\omega t},
+\end{equation}
+where $A$ is an amplitude tuned so that velocity data matches experimental data, and $\omega = 2\pi f$ is the angular frequency of the cardiac cycle frequency $f = 2.22$ Hz. With the boundary conditions~\eqref{eq:zero_pressure_BC} and~\eqref{eq:sine_pressure_BC}, the stress boundary integral in the weak form~\eqref{eq:weak_form_full} is split into two parts: $\Gamma_s$, where slip boundary conditions are applied; $\Gamma_p = \Gamma_1 \cup \Gamma_2$, where the pressure boundary conditions are applied. The integral over $\Gamma_s$ is handled as discussed in~\cref{sec:slip_BCs}.
+
+For the pressure boundary $\Gamma_p$, we write
+\begin{equation}
+    \intGp{\bm{\sigma}\nn\cdot\vv} = \intGp{(\mu\left(\nabla\uu + (\nabla\uu)^T\right) - p\mathbf{I})\nn\cdot\vv} = \intGp{\mu(\nabla\uu)^T\nn\cdot\vv} + \intGp{(\mu\nabla\uu - p\mathbf{I})\nn\cdot\vv}.
+\end{equation}
+The first term in the last expression including the transpose of the velocity gradient is kept in the bilinear form. The second term pertains to the boundary conditions we are setting. By application of~\eqref{eq:zero_pressure_BC} and~\eqref{eq:sine_pressure_BC} we get
+\begin{equation}
+    \intGp{(\mu\nabla\uu - p\mathbf{I})\nn\cdot\vv} = \int_{\Gamma_2}\Tilde{p}(t)\nn\cdot\vv \, ds.
+\end{equation}
+For this model scenario, we redefine the abstract weak form~\eqref{eq:mom_weak_abstract} of the momentum equation to
+\begin{equation}
+    a(\uu, \vv) + c_p(\uu, \vv) + b(p, \vv) = L_p(\vv), \quad\forall\vv\in\VV
+\end{equation}
+where
+\begin{align}
+    c_p(\uu, \vv) &= -\intGp{\mu\big(\nabla\uu)^T\nn\cdot\vv}, \\
+    L_p(\vv) &= \int_{\Gamma_2}\Tilde{p}(t)\nn\cdot\vv ds.
+\end{align}
+
+Back-and-forth motion can also be modeled by imposing a rigid motion on the fluid domain. Consider the Stokes equations 
+\begin{subequations}
+    \begin{alignat}{2}
+        \rho\pdifft{\uu} &= \nabla\cdot\bm{\sigma}(\uu, p), \\
+        \nabla\cdot\uu &= 0,
+    \end{alignat}
+    \label{eq:stokes_eqs}%
+\end{subequations}%
+on the time-dependent, moving domain $\Omega_t$, which has a reference frame with coordinates $\hat{\xx} = (\hat{x}, \hat{y}, \hat{z})$ attached to the moving domain. In $\Omega_t$, we thus consider variables $\psi(\hat{\xx}, t)$, so in~\eqref{eq:stokes_eqs} we have $\uu(\hat{\xx}, t)$ and $p(\hat{\xx}, t)$. Denote $\Omega$ the domain in the absolute, fixed reference frame with coordinates $\xx = (x, y, z)$, where variables are defined as $\psi(\xx, t)$. To avoid moving the computational mesh, we want to solve the Stokes equations in the absolute reference frame. We can achieve this by transformation of the variables in~\eqref{eq:stokes_eqs}. Define the transformation 
+\begin{equation}
+    \varphi(t) : \psi(\hat{\xx}, t) \rightarrow \psi(\xx, t)
+\end{equation}
+and assume that $\varphi(t)$ is injective. Differentiation and application of the chain rule yields
+\begin{equation}
+    \begin{aligned}
+        \pdifft{\psi}(\hat{\xx}, t) &= \pdifft{\psi}(\xx, t) + \frac{\partial \psi}{\partial\hat{\xx}}\pdifft{\hat{\xx}} \\
+        &= \pdifft{\psi}(\xx, t) + \frac{\partial \psi}{\partial\xx}\frac{\partial\xx}{\partial\hat{\xx}}\pdifft{\hat{\xx}} \\
+        &= \pdifft{\psi}(\xx, t) + \frac{\partial \psi}{\partial\xx}\pdifft{\hat{\xx}},
+    \end{aligned}
+\end{equation}
+where the last line follows from the fact that the motion of the moving reference frame is rigid. If we denote $\uu_{\mathrm{ref}} = \partial\hat{\xx}/\partial t$, we have
+\begin{equation}
+    \pdifft{\psi}(\hat{\xx}, t) = \pdifft{\psi}(\xx, t) + \uu_{\mathrm{ref}}\cdot\nabla\psi,
+    \label{eq:temporal_derivative_relation}
+\end{equation}
+where the second term leads to the interpretation that the variable $\psi(\xx, t)$ in the fixed reference frame is advected with the velocity $\uu_{\mathrm{ref}}$ of the domain $\Omega_t$ in the moving reference frame. Using the relation~\eqref{eq:temporal_derivative_relation}, we can rewrite~\eqref{eq:stokes_eqs} in the fixed reference frame:
+\begin{subequations}
+    \begin{alignat}{2}
+        \rho\bigg(\pdifft{\uu} + (\uu_{\mathrm{ref}}\cdot\nabla)\uu\bigg) &= \nabla\cdot\bm{\sigma}(\uu, p), \label{eq:mom_eq_fixed}\\
+        \nabla\cdot\uu &= 0.
+    \end{alignat}
+    \label{eq:stokes_eqs_fixed}%
+\end{subequations}%
+The divergence operators are unchanged, owing to the rigidity of the reference frame motion. The convection term in~\eqref{eq:mom_eq_fixed} leads to rewriting~\eqref{eq:mom_weak_abstract} to
+\begin{equation}
+    a(\uu, \vv) + c_{\mathrm{fixed}}(\uu, \vv) + b(p, \vv) = L_s(\vv), \quad\forall\vv\in\VV
+\end{equation}
+with
+\begin{equation}
+    c_{\mathrm{fixed}}(\uu, \vv) = \rho\intO{(\uu_{\mathrm{ref}}\cdot\nabla)\uu\cdot\vv}.
+\end{equation}
+
+Boundary conditions must also be reconsidered. In the moving domain, the boundary conditions are
+\begin{align}
+    \ww\cdot\nn &= 0, \label{eq:imperm_BC_moving}\\
+    P_{\nn}(\bm{\sigma}(\ww, p)\nn) &= \mathbf{0}, \label{eq:slip_BC_moving}
+\end{align}
+with $\ww = \uu - \uu_{\mathrm{ref}}$ being the fluid velocity in the moving reference frame. The first condition~\eqref{eq:imperm_BC_moving} simply becomes
+\begin{equation}
+    \uu\cdot\nn = \uu_{\mathrm{ref}}\cdot\nn.
+\end{equation}
+The second condition~\eqref{eq:slip_BC_moving} is readily satisfied, since $\bm{\varepsilon}(\uu_{\mathrm{ref}}) = \mathbf{0}$ owing to the rigidity of the reference frame motion.
+
+\subsection{Weak formulation}
+\subsubsection{Tangential traction}
+We impose the tangential stress condition weakly as follows. The stress force vector $\bm{\sigma}\nn$ can be decomposed into a normal and tangential component:
+\begin{equation}
+    \bm{\sigma}\nn = (\bm{\sigma}\nn\cdot\nn)\nn + P_{\nn}(\bm{\sigma}\nn)
+\end{equation}
+The boundary integral in~\eqref{eq:weak_form_full} can then be rewritten as
+\begin{align}
+    \intG{\bm{\sigma}\nn\cdot\vv} &= \intG{(\bm{\sigma}\nn\cdot\nn)\nn\cdot\vv} + \intG{P_{\nn}(\bm{\sigma}\nn)\cdot\vv} \\
+    &= \intG{(\bm{\sigma}\nn\cdot\nn)(\vv\cdot\nn)} + \intG{P_{\nn}(\bm{\sigma}\nn)\cdot P_{\nn}(\vv)} \label{eq:bdry_int_decomposed}
+\end{align}
+Application of boundary conditions in the normal and tangential directions is done by using respectively the first and second terms of~\eqref{eq:bdry_int_decomposed}.
+
+\subsection{Discretization}
+
+We consider a divergence-conforming discretization of the Stokes equations using Brezzi-Douglas-Marini (BDM) elements for the velocity and discontinuous Galerkin (DG) elements for the pressure. The BDM elements have degrees of freedom associated with the normal component of vectors on the facets of the mesh cells. Thus, setting boundary conditions strongly for BDM-discretized variables constitutes fixing the normal component of the discretized variable on a facet. We can therefore impose~\eqref{eq:impermeability_BC} on the boundary strongly by setting the degrees of freedom to zero. Owing to this strong imposition, the normal component integral in~\eqref{eq:bdry_int_decomposed} is dropped, because $\vv\cdot\nn=0$ on the boundary when $\uu\cdot\nn=0$ is imposed. Inserting the tangential stress boundary condition~\eqref{eq:tangent_stress_BC} into~\eqref{eq:bdry_int_decomposed}, we then have
+\begin{equation}
+    \intG{\bm{\sigma}\nn\cdot\vv} = \intG{(\bm{\sigma}\nn\cdot\nn)(\vv\cdot\nn)} + \intG{P_{\nn}(\bm{\sigma}\nn)\cdot P_{\nn}(\vv)} = \intG{\bm{\tau}\cdot P_{\nn}(\vv)}.
+\end{equation}
+The resulting weak form of the momentum equation is
+\begin{equation}
+    \intO{\rho\pdifft{\uu}\cdot\vv} + \intO{2\mu\varepsilon(\uu) : \varepsilon(\vv)} - \intO{p\nabla\cdot\vv} = \intG{\bm{\tau}\cdot P_{\nn}(\vv)},
+    \label{eq:weak_form_cont}
+\end{equation}
+which is written abstractly as
+\begin{equation}
+    a(\uu, \vv) + b(p, \vv) = L_s(\vv), \quad\forall\vv\in\VV,
+    \label{eq:weak_form_cont_abstract}
+\end{equation}
+with the definitions
+\begin{align}
+    a(\uu, \vv) &= \intO{\rho\pdifft{\uu}\cdot\vv} + \intO{2\mu\varepsilon(\uu) : \varepsilon(\vv)}, \\
+    b(p, \vv) &= - \intO{p\nabla\cdot\vv}, \\
+    L_s(\vv) &= \intG{\bm{\tau}\cdot P_{\nn}(\vv)}.
+\end{align}
+
+The continuity equation~\eqref{eq:navier_stokes2} is multiplied by a test function $q\in Q$ and integrated over the domain:
+\begin{equation}
+    \intO{q\nabla\cdot\uu} = 0, \quad\forall q\in Q.
+\end{equation}
+We recognize that this equation can be written as $b(\uu, q) = 0$. The resulting weak form of the Stokes equations is then the saddle-point problem
+\begin{subequations}
+\begin{alignat}{2}
+    a(\uu, \vv) + b(p, \vv) &= L_s(\vv), &&\quad\forall\vv\in\VV, \label{eq:mom_weak_abstract}\\
+    b(q, \uu) &= 0, &&\quad\forall q\in Q.
+\end{alignat}
+\label{eq:stokes_weak_form_abstract}%
+\end{subequations}%
+
+The discretization considered here is based on the work by~\textcite{Hong2016AEquations}. We let the subscript $h$ denote discretized variables. Consider~\eqref{eq:stokes_weak_form_abstract} with discrete variables:
+\begin{subequations}
+\begin{alignat}{2}
+    a(\uu_h, \vv_h) + b(p_h, \vv_h) &= L(\vv_h), &&\quad\forall\vv_h\in\VV_h, \\
+    b(q_h, \uu_h) &= 0, &&\quad\forall \: q_h\in Q_h,
+\end{alignat}
+\label{eq:stokes_weak_form_discrete}%
+\end{subequations}%
+with the discrete function spaces $\VV_h$ and $Q_h$.
+Discretizing the variables in~\eqref{eq:stokes_weak_form_discrete} with $\mathrm{BDM}_k-\mathrm{DG}_{k-1}$ elements, this is not automatically stable discretization. To ensure coercivity and continuity of the bilinear form, we need to add the following stabilization terms to the weak form:
+\begin{equation}
+    \begin{aligned}
+      a_{\mathrm{stab}}(\uu_h, \vv_h) = &-\intE{\avg{2\mu\bm{\varepsilon}(\uu_h)\nn}\cdot\jump{P_{\nn}(\vv_h)}} \\
+                                                &-\intE{\avg{2\mu\bm{\varepsilon}(\vv_h)\nn}\cdot\jump{P_{\nn}(\uu_h)}} \\
+                                                &+2\mu\frac{\gamma}{h_a}\intE{\jump{P_{\nn}(\uu_h)}\cdot\jump{P_{\nn}(\vv_h)}}, \\
+    \end{aligned}
+\end{equation}
+where $\mathcal{E}$ are all internal facets of the mesh. Furthermore, $\gamma > 0$ is a penalty parameter which must be chosen large enough and $h_a$ is the average cell diameter of two neighboring elements. The jump and average operators $[[\cdot]]$ and $\{\cdot\}$ of a variable $\bm{\phi}$ are defined as
+\begin{align}
+    \jump{\bm{\phi}} &= \bm{\phi}\vert_{+} - \bm{\phi}\vert_{-}, \\
+    \avg{\bm{\phi}}  &= \frac{1}{2}\big((\bm{\phi}\cdot\nn)\vert_{+} - (\bm{\phi}\cdot\nn)\vert_{-} \big),
+\end{align}
+where $\bm{\phi}\vert_{+}$ is used to denote the value of the variable $\bm{\phi}$ on the side of the edge $\mathcal{E}$ where $\nn$ is pointing out of the cell. Correspondingly, $\bm{\phi}\vert_{-}$ is the variable value on the side of the edge $\mathcal{E}$ where  $\nn$ is pointing inwards.
+
+\clearpage
+
+\bibliography{references}{}
+\bibliographystyle{siam}
+
+
+\end{document}

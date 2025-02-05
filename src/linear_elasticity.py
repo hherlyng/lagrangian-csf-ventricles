@@ -11,8 +11,8 @@ from mpi4py    import MPI
 from petsc4py  import PETSc
 from basix.ufl import element
 from dolfinx.fem.petsc import create_matrix, assemble_matrix_mat, create_vector, assemble_vector, apply_lifting
-from utilities.wall_deformation_BC import WallDeformation
-from utilities.create_nullspace import build_rigid_motions_nullspace
+from utilities.deformation_data import WallDeformationCorpusCallosum, WallDeformationSpinalCord
+from utilities.projection import projection_problem_CG2_to_BDM1
 
 print = PETSc.Sys.Print
 
@@ -64,25 +64,33 @@ a = 2*mu * inner(eps(w), eps(dw))*dx + lam * div(w)*div(dw)*dx
 L = inner(zero, dw)*dx # Zero RHS because of zero traction or Dirichlet BC enforced on the whole boundary    
 
 # Dirichlet BC on corpus callosum
-cc_disp_expr = WallDeformation(derivative=False)
+cc_disp_expr = WallDeformationCorpusCallosum(derivative=False)
 cc_disp_func = dfx.fem.Function(W)
-cc_dofs = dfx.fem.locate_dofs_geometrical(W, lambda x: np.isclose(x[0], -0.00165))
-cc_dofs = dfx.fem.locate_dofs_topological(W, mesh.topology.dim-1, np.array([8211], dtype=np.int32))
+# cc_facet = np.array([8211], dtype=np.int32)
 # cc_dofs = dfx.fem.locate_dofs_geometrical(W, lambda x: np.isclose(x[0], -0.012214))
+cc_dofs = dfx.fem.locate_dofs_geometrical(W, 
+                                          lambda x: np.logical_or(np.isclose(x[0], -0.0081892),
+                                                                  np.isclose(x[0], -0.00850902)
+                                                                 )
+                                                                )
+# coordinates facet 8211: 
+# dof 1 = [-0.0081892 ,  0.03658167,  0.01317776]
+# dof 2 = [-0.0062015 ,  0.03844222,  0.01270373]
+# dof 3 = [-0.00850902,  0.03949922,  0.01225272]                                                               
+
 assert comm.allreduce(len(cc_dofs), op=MPI.MAX)>0, print("No corpus callosum dofs located.")
 bcs = [dfx.fem.dirichletbc(cc_disp_func, cc_dofs)]
-
-anchor_spinal_canal = True
+anchor_spinal_canal = False
 if anchor_spinal_canal:
-    # Anchor spinal canal
+    # Anchor spinal cord
     canal_out_dofs = dfx.fem.locate_dofs_topological(W, mesh.topology.dim-1, ft.find(CANAL_OUT))
     bcs.append(dfx.fem.dirichletbc(zero, canal_out_dofs))
 else:
-    # Build nullspace of rigid body deformations
-    rm_nullspace = build_rigid_motions_nullspace(W)
-
-
-bdry_dofs = dfx.fem.locate_dofs_topological(W, mesh.topology.dim-1, dfx.mesh.exterior_facet_indices(mesh.topology))
+    # Impose deformation on spinal cord
+    sc_disp_expr = WallDeformationSpinalCord(derivative=False)
+    sc_disp_func = dfx.fem.Function(W)
+    sc_dofs = dfx.fem.locate_dofs_topological(W, mesh.topology.dim-1, ft.find(CANAL_OUT))
+    bcs.append(dfx.fem.dirichletbc(sc_disp_func, sc_dofs))
 
 # Create linear system
 a_cpp, L_cpp = dfx.fem.form(a), dfx.fem.form(L)
@@ -107,25 +115,22 @@ opts["mg_levels_ksp_chebyshev_esteig_steps"] = 10
 solver = PETSc.KSP().create(comm)
 solver.setOperators(A)
 solver.setFromOptions()
-solver.setMonitor(lambda _, its, rnorm: print(f"Iteration: {its}, residual: {rnorm}"))
+# solver.setMonitor(lambda _, its, rnorm: print(f"Iteration: {its}, residual: {rnorm}"))
 
-if not anchor_spinal_canal: A.setNearNullSpace(rm_nullspace) # Set near nullspace
-
-N = 50
+N = 30
 T = 1
-times = np.linspace(0, T, N)
+times = np.linspace(0, T, N+1)
 dt = T / N
 fps = 5
-#int(1/dt)//skip, skip = 50
 
 # Create pyvista plotter object
 cells, cell_types, x = dfx.plot.vtk_mesh(W)
 grid = pv.UnstructuredGrid(cells, cell_types, x) 
-pl = pv.Plotter()
-pl.open_gif(f"../output/illustrations/linear_elasticity_deformation.gif", fps=fps)
-pl.add_mesh(grid, style='wireframe', color='k') # Add initial mesh
-pl.view_yz(negative=True)
-pl.camera.zoom(1.25)
+# pl = pv.Plotter()
+# pl.open_gif(f"../output/illustrations/linear_elasticity_deformation.gif", fps=fps)
+# pl.add_mesh(grid, style='wireframe', color='k') # Add initial mesh
+# pl.view_yz(negative=True)
+# pl.camera.zoom(1.25)
 cmap = cm.matter
 min_disp = 0.0
 max_disp = 0.0
@@ -138,16 +143,15 @@ CG1_vector_space = dfx.fem.functionspace(mesh, element=element("Lagrange", mesh.
 wh_out = dfx.fem.Function(CG1_vector_space)
 vh_out = dfx.fem.Function(CG1_vector_space)
 dw_dt = dfx.fem.Function(W)
+bdm_el = element("BDM", mesh.basix_cell(), 1)
+BDM = dfx.fem.functionspace(mesh, bdm_el)
+dw_dt_bdm = dfx.fem.Function(BDM)
 
-vh_cpoint_filename = f"../output/checkpoints/deforming-mesh-coarse/deformation_velocity/"
+vh_cpoint_filename = f"../output/checkpoints/deforming-mesh-{mesh_prefix}/deformation_velocity/"
 a4d.write_mesh(filename=vh_cpoint_filename, mesh=mesh, store_partition_info=True)
+a4d.write_meshtags(vh_cpoint_filename, mesh, ft, meshtag_name='ft')
 
-for idx, t in enumerate(times):
-    # Update displacement BC
-    cc_disp_expr.t = t
-    cc_disp_func.interpolate(cc_disp_expr)
-
-    # Assemble linear system and solve the equations of linear elasticity
+def assemble_system():
     A.zeroEntries()
     assemble_matrix_mat(A, a_cpp, bcs=bcs)
     A.assemble()
@@ -156,8 +160,19 @@ for idx, t in enumerate(times):
     apply_lifting(b, [a_cpp], bcs=[bcs])
     b.ghostUpdate(addv=PETSc.InsertMode.ADD, mode=PETSc.ScatterMode.REVERSE)
     for bc in bcs: bc.set(b.array_w)
-    #rm_nullspace.remove(b) # Orthogonalize RHS vector
 
+projection_problem = projection_problem_CG2_to_BDM1(dw_dt, dw_dt_bdm)
+
+for idx, t in enumerate(times):
+    # Update displacement BCs
+    cc_disp_expr.t = t
+    cc_disp_func.interpolate(cc_disp_expr)
+
+    sc_disp_expr.t = t
+    sc_disp_func.interpolate(sc_disp_expr)
+
+    # Assemble linear system and solve the equations of linear elasticity
+    assemble_system()
     solver.solve(b, wh.x.petsc_vec)
     wh.x.scatter_forward() # MPI communication    
 
@@ -167,6 +182,9 @@ for idx, t in enumerate(times):
 
     # Update min/max displacements
     wh_magnitude = np.sqrt(wh_reshaped[:, 0]**2 + wh_reshaped[:, 1]**2 + wh_reshaped[:, 2]**2)
+    print(f"Max x displacement = {wh_reshaped[:, 0].max():.2e}")
+    print(f"Max y displacement = {wh_reshaped[:, 1].max():.2e}")
+    print(f"Max z displacement = {wh_reshaped[:, 2].max():.2e}")
     min_this_t = comm.allreduce(wh_magnitude.min(), op=MPI.MIN)
     max_this_t = comm.allreduce(wh_magnitude.max(), op=MPI.MAX)
 
@@ -178,24 +196,29 @@ for idx, t in enumerate(times):
 
     # Calculate deformation velocity
     dw_dt.x.array[:] = (wh.x.array.copy() - wh_.x.array.copy())/dt # Backward difference in time
-    a4d.write_function(filename=vh_cpoint_filename, u=dw_dt, time=t)
-    vh_out.interpolate(dw_dt) # Interpolate the velocity into CG1 for output
-    xdmf_vel.write_function(vh_out, t) # Write to output file
+
+    # Project deformation velocity into BDM 1 space for checkpointing
+    projection_problem.solve()
+    a4d.write_function(filename=vh_cpoint_filename, u=dw_dt_bdm, time=t)
+
+    # Interpolate the velocity into CG1 and write XDMF output
+    vh_out.interpolate(dw_dt) 
+    xdmf_vel.write_function(vh_out, t) 
     
     wh_.x.array[:] = wh.x.array.copy() # Update previous timestep deformation    
 
 xdmf.close()
 xdmf_vel.close()
 
-# Plot
-if comm.size==1:
-    for idx, t in enumerate(times):
-        warped = grid.warp_by_vector(f"wh_{idx}", factor=25)
-        actor1 = pl.add_mesh(warped, cmap=cmap, clim=[min_disp, max_disp])
-        actor2 = pl.add_text(f"time = {t:.2f} sec")
+# # Plot
+# if comm.size==1:
+#     for idx, t in enumerate(times):
+#         warped = grid.warp_by_vector(f"wh_{idx}", factor=25)
+#         actor1 = pl.add_mesh(warped, cmap=cmap, clim=[min_disp, max_disp])
+#         actor2 = pl.add_text(f"time = {t:.2f} sec")
 
-        pl.write_frame()
-        pl.remove_actor(actor1)
-        pl.remove_actor(actor2)
+#         pl.write_frame()
+#         pl.remove_actor(actor1)
+#         pl.remove_actor(actor2)
 
-    pl.close()
+#     pl.close()
