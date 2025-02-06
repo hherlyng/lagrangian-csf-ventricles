@@ -8,7 +8,7 @@ from mpi4py import MPI
 from basix.ufl import element
 
 comm = MPI.COMM_WORLD
-mesh_prefix = 'coarse'
+mesh_prefix = 'medium'
 cpoint_input_filename = f'../output/checkpoints/deforming-mesh-{mesh_prefix}/BDM_chp_velocity/'
 
 # Read mesh and BDM velocity function

@@ -83,8 +83,8 @@ def generate_data(input_filename: str, output_dir: str, write_xdmf_check: bool=T
 
     # Write the arrays to binary files
     with open(output_dir+"brain_adjacency.bin", "w+b")    as file_1, \
-        open(output_dir+"brain_connectivity.bin", "w+b") as file_2, \
-        open(output_dir+"brain_coordinates.bin", "w+b")  as file_3:
+         open(output_dir+"brain_connectivity.bin", "w+b") as file_2, \
+         open(output_dir+"brain_coordinates.bin", "w+b")  as file_3:
         adjacency.tofile(file_1)
         connectivity.tofile(file_2)
         file_3.write(struct.pack("i", num_nodes)) # Write integer num_nodes

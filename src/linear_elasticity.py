@@ -11,7 +11,7 @@ from mpi4py    import MPI
 from petsc4py  import PETSc
 from basix.ufl import element
 from dolfinx.fem.petsc import create_matrix, assemble_matrix_mat, create_vector, assemble_vector, apply_lifting
-from utilities.deformation_data import WallDeformationCorpusCallosum, WallDeformationSpinalCord
+from utilities.deformation_data import WallDeformationCorpusCallosum, WallDeformationSpinalCanal
 from utilities.projection import projection_problem_CG2_to_BDM1
 
 print = PETSc.Sys.Print
@@ -22,7 +22,7 @@ CANAL_OUT = 23
 # Solve linear elasticity equation on the ventricles. Wall motion is 
 # prescribed in time at a single point (close to corpus callosum).
 comm = MPI.COMM_WORLD
-mesh_prefix = 'coarse'
+mesh_prefix = 'medium'
 with dfx.io.XDMFFile(comm, f"../geometries/{mesh_prefix}_ventricles_mesh_tagged.xdmf", "r") as xdmf:
     mesh = xdmf.read_mesh()
     
@@ -77,8 +77,9 @@ cc_dofs = dfx.fem.locate_dofs_geometrical(W,
 # dof 1 = [-0.0081892 ,  0.03658167,  0.01317776]
 # dof 2 = [-0.0062015 ,  0.03844222,  0.01270373]
 # dof 3 = [-0.00850902,  0.03949922,  0.01225272]                                                               
-
-assert comm.allreduce(len(cc_dofs), op=MPI.MAX)>0, print("No corpus callosum dofs located.")
+num_cc_dofs = comm.allreduce(len(cc_dofs), op=MPI.SUM)
+print("Number of corpus callosum dofs: ", num_cc_dofs)
+assert num_cc_dofs>0, print("No corpus callosum dofs located.")
 bcs = [dfx.fem.dirichletbc(cc_disp_func, cc_dofs)]
 anchor_spinal_canal = False
 if anchor_spinal_canal:
@@ -87,9 +88,12 @@ if anchor_spinal_canal:
     bcs.append(dfx.fem.dirichletbc(zero, canal_out_dofs))
 else:
     # Impose deformation on spinal cord
-    sc_disp_expr = WallDeformationSpinalCord(derivative=False)
+    sc_disp_expr = WallDeformationSpinalCanal(derivative=False)
     sc_disp_func = dfx.fem.Function(W)
     sc_dofs = dfx.fem.locate_dofs_topological(W, mesh.topology.dim-1, ft.find(CANAL_OUT))
+    num_sc_dofs = comm.allreduce(len(sc_dofs), op=MPI.SUM)
+    assert num_sc_dofs>0, print("No spinal canal dofs located.")
+    print("Number of spinal canal dofs: ", num_sc_dofs)
     bcs.append(dfx.fem.dirichletbc(sc_disp_func, sc_dofs))
 
 # Create linear system

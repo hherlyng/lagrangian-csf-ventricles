@@ -169,7 +169,7 @@ if __name__=='__main__':
 
     # Read mesh
     comm = MPI.COMM_WORLD
-    mesh_prefix = 'coarse'
+    mesh_prefix = 'medium'
     v_defo_input_filename = f"../output/checkpoints/deforming-mesh-{mesh_prefix}/deformation_velocity/"
     mesh = a4d.read_mesh(v_defo_input_filename, comm, read_from_partition=True)
     # mesh.topology.create_entities(mesh.topology.dim-1) # Create facets
@@ -210,7 +210,7 @@ if __name__=='__main__':
     velocity_xdmf.write_mesh(mesh)
 
     if write_cpoint:
-        cpoint_filename = f"../output/checkpoints/deforming-mesh-{mesh_prefix}/BDM_chp_velocity"
+        cpoint_filename = f"../output/checkpoints/deforming-mesh-{mesh_prefix}/BDM_chp+cilia+defo_velocity"
         a4d.write_mesh(cpoint_filename, mesh, store_partition_info=True)
 
     T = 1

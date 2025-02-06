@@ -21,8 +21,8 @@ class WallDeformationCorpusCallosum:
                                    np.zeros(x.shape[1]),
                                    np.ones (x.shape[1])))
 
-class WallDeformationSpinalCord:
-    """ Displacement curve for the spinal cord in feet-head direction
+class WallDeformationSpinalCanal:
+    """ Displacement curve for the (outlet of) spinal canal in feet-head direction
         (i.e. z axis, positive in cranial direction). """
     # Inserted final as initial position
     disp = np.array([-0.027, 0.0, 0.025, 0.049, 0.058, 0.053, 0.054,
