@@ -10,7 +10,7 @@ from dolfinx.fem.petsc import LinearProblem
 # Velocity data
 mesh_prefix = "medium"
 velocity_input_filename = \
-    f"../output/checkpoints/deforming-mesh-{mesh_prefix}/BDM_chp+cilia+defo_velocity"
+    f"../output/{mesh_prefix}-mesh/flow/checkpoints/velocity_chp+cilia+defo"
 mesh = a4d.read_mesh(filename=velocity_input_filename,
                      comm=MPI.COMM_WORLD,
                      engine="BP4",
@@ -44,7 +44,7 @@ problem = LinearProblem(a, L, petsc_options={"ksp_type" : "preonly",
                                              "pc_type" : "lu",
                                              "pc_factor_mat_solver_type" : "mumps"})
 
-output_filename = f"../output/checkpoints/projections/deforming-mesh-{mesh_prefix}/BDM_chp+cilia+defo_velocity"
+output_filename = f"../output/{mesh_prefix}-mesh/flow/checkpoints/velocity_projection_chp+cilia+defo"
 a4d.write_mesh(output_filename, mesh)
 
 for int_time, time in enumerate(timestamps):

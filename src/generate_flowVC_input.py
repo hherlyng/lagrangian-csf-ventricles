@@ -122,6 +122,6 @@ def generate_data(input_filename: str, output_dir: str, write_xdmf_check: bool=T
 if __name__=='__main__':
     mesh_prefix = "medium"  
     velocity_input_filename = \
-        f"../output/checkpoints/projections/deforming-mesh-{mesh_prefix}/BDM_chp+cilia+defo_velocity"
-    output_dir = f"/Users/hherlyng/flowVC/bin/deforming-brain-mesh-{mesh_prefix}/BDM_chp+cilia+defo/"
+        f"../output/{mesh_prefix}-mesh/flow/checkpoints/velocity_projection_chp+cilia+defo"
+    output_dir = f"/Users/hherlyng/flowVC/bin/brain/{mesh_prefix}-mesh/chp+cilia+defo/"
     generate_data(input_filename=velocity_input_filename, output_dir=output_dir)

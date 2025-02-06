@@ -91,7 +91,7 @@ def setup_stokes_problem(mesh: dfx.mesh.Mesh, ft: dfx.mesh.MeshTags, mesh_prefix
     tau_val = 7.89e-3#*1e-2 # Tangential traction force density [Pa]
     tau = dfx.fem.Function(V)
     tau_input = dfx.fem.Function(DG_vec)
-    cilia_direction_filename = f'../output/checkpoints/cilia-direction-vectors/mesh-{mesh_prefix}/'
+    cilia_direction_filename = f'../output/{mesh_prefix}-mesh/flow/checkpoints/cilia-direction-vectors'
     a4d.read_function(filename=cilia_direction_filename, u=tau_input)
     tau.interpolate(tau_input)
 
@@ -170,7 +170,7 @@ if __name__=='__main__':
     # Read mesh
     comm = MPI.COMM_WORLD
     mesh_prefix = 'medium'
-    v_defo_input_filename = f"../output/checkpoints/deforming-mesh-{mesh_prefix}/deformation_velocity/"
+    v_defo_input_filename = f"../output/{mesh_prefix}-mesh/deformation/checkpoints/deformation_velocity/"
     mesh = a4d.read_mesh(v_defo_input_filename, comm, read_from_partition=True)
     # mesh.topology.create_entities(mesh.topology.dim-1) # Create facets
     ft   = a4d.read_meshtags(v_defo_input_filename, mesh, meshtag_name='ft')
@@ -201,16 +201,16 @@ if __name__=='__main__':
     uh_cg = dfx.fem.Function(dfx.fem.functionspace(mesh, cg1_vec_el))
     uh_cg.name = 'uh_cg'
 
-    velocity_output_filename = f"../output/deforming-mesh-{mesh_prefix}/BDM_chp+cilia+defo_velocity.pvd"
+    velocity_output_filename = f"../output/{mesh_prefix}-mesh/flow/velocity_chp+cilia+defo.pvd"
     velocity_output = dfx.io.VTKFile(comm, velocity_output_filename, "w")
-    pressure_output_filename = f"../output/deforming-mesh-{mesh_prefix}/BDM_chp+cilia+defo_pressure.pvd"
+    pressure_output_filename = f"../output/{mesh_prefix}-mesh/flow/pressure_chp+cilia+defo.pvd"
     pressure_output = dfx.io.VTKFile(comm, pressure_output_filename, "w")
 
     velocity_xdmf = dfx.io.XDMFFile(comm, velocity_output_filename.removesuffix('.pvd')+'.xdmf', 'w')
     velocity_xdmf.write_mesh(mesh)
 
     if write_cpoint:
-        cpoint_filename = f"../output/checkpoints/deforming-mesh-{mesh_prefix}/BDM_chp+cilia+defo_velocity"
+        cpoint_filename = f"../output/{mesh_prefix}-mesh/flow/checkpoints/velocity_chp+cilia+defo"
         a4d.write_mesh(cpoint_filename, mesh, store_partition_info=True)
 
     T = 1

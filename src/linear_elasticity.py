@@ -139,8 +139,8 @@ cmap = cm.matter
 min_disp = 0.0
 max_disp = 0.0
 
-xdmf = dfx.io.XDMFFile(comm, f"../output/deforming-mesh-{mesh_prefix}/displacement.xdmf", "w")
-xdmf_vel = dfx.io.XDMFFile(comm, f"../output/deforming-mesh-{mesh_prefix}/deformation_velocity.xdmf", "w")
+xdmf = dfx.io.XDMFFile(comm, f"../output/{mesh_prefix}-mesh/deformation/displacement.xdmf", "w")
+xdmf_vel = dfx.io.XDMFFile(comm, f"../output/{mesh_prefix}-mesh/deformation/deformation_velocity.xdmf", "w")
 xdmf.write_mesh(mesh)
 xdmf_vel.write_mesh(mesh)
 CG1_vector_space = dfx.fem.functionspace(mesh, element=element("Lagrange", mesh.basix_cell(), degree=1, shape=(mesh.geometry.dim,)))
@@ -151,7 +151,7 @@ bdm_el = element("BDM", mesh.basix_cell(), 1)
 BDM = dfx.fem.functionspace(mesh, bdm_el)
 dw_dt_bdm = dfx.fem.Function(BDM)
 
-vh_cpoint_filename = f"../output/checkpoints/deforming-mesh-{mesh_prefix}/deformation_velocity/"
+vh_cpoint_filename = f"../output/{mesh_prefix}-mesh/deformation/checkpoints/deformation_velocity/"
 a4d.write_mesh(filename=vh_cpoint_filename, mesh=mesh, store_partition_info=True)
 a4d.write_meshtags(vh_cpoint_filename, mesh, ft, meshtag_name='ft')
 
