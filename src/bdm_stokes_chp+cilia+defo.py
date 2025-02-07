@@ -197,17 +197,11 @@ if __name__=='__main__':
     uh_out = dfx.fem.Function(dfx.fem.functionspace(mesh, dg1_vec_el))
     uh_out.name = 'uh' 
 
-    cg1_vec_el  = element("Lagrange", mesh.basix_cell(), 1, shape=(mesh.geometry.dim,))
-    uh_cg = dfx.fem.Function(dfx.fem.functionspace(mesh, cg1_vec_el))
-    uh_cg.name = 'uh_cg'
-
     velocity_output_filename = f"../output/{mesh_prefix}-mesh/flow/velocity_chp+cilia+defo.pvd"
     velocity_output = dfx.io.VTKFile(comm, velocity_output_filename, "w")
     pressure_output_filename = f"../output/{mesh_prefix}-mesh/flow/pressure_chp+cilia+defo.pvd"
     pressure_output = dfx.io.VTKFile(comm, pressure_output_filename, "w")
 
-    velocity_xdmf = dfx.io.XDMFFile(comm, velocity_output_filename.removesuffix('.pvd')+'.xdmf', 'w')
-    velocity_xdmf.write_mesh(mesh)
 
     if write_cpoint:
         cpoint_filename = f"../output/{mesh_prefix}-mesh/flow/checkpoints/velocity_chp+cilia+defo"
@@ -239,14 +233,12 @@ if __name__=='__main__':
 
         # Interpolate velocity into DG1 output function
         uh_out.interpolate(uh_)
-        uh_cg.interpolate(uh_out)
 
         # Write output
         velocity_output.write_mesh(mesh, t)
         velocity_output.write_function(uh_out, t)
         pressure_output.write_mesh(mesh, t)
         pressure_output.write_function(ph_, t)
-        velocity_xdmf.write_function(uh_cg, t=t)
 
         if write_cpoint: a4d.write_function(cpoint_filename, uh_, time=t)
 
