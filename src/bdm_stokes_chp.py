@@ -1,16 +1,17 @@
 import ufl
 import time
+import basix
 
 import numpy   as np
 import dolfinx as dfx
 import adios4dolfinx as a4d
 
 from ufl       import inner, dot, grad, div
-from scifem    import assemble_scalar
+from scifem    import assemble_scalar, create_real_functionspace
 from mpi4py    import MPI
 from petsc4py  import PETSc
 from basix.ufl import element
-from utilities.fem import stabilization, eps, assemble_nested_system
+from utilities.fem import stabilization, eps, assemble_nested_system, create_normal_contribution_bc
 from utilities.normals_and_tangents import facet_normal_approximation
 
 print = PETSc.Sys.Print
@@ -103,39 +104,20 @@ def setup_stokes_problem(mesh: dfx.mesh.Mesh, ft: dfx.mesh.MeshTags):
 
     # Set choroid plexus inflow velocity BC strongly
     # Create expressions with positive and negative z-component of the velocity,
-    # and interpolate the expressions into finite element functions
+    # and interpolate the expressions into finite element functions.
     chp_flux = 5.833e-9 # Corresponds to 504 ml production per day [Czosnyka et al.]
-    nh = facet_normal_approximation(V, ft, mt_id=choroid_plexus_tags)
     chp_area = assemble_scalar(1*ds(choroid_plexus_tags)) # The area of the choroid plexus boundary
     chp_velocity = chp_flux/chp_area
-    v_chp_expr = dfx.fem.Expression(-chp_velocity*nh, V.element.interpolation_points()) # Minus sign to get flux into the domain
+    facets_chp = np.concatenate(([ft.find(tag) for tag in choroid_plexus_tags]))
+    v_chp_expr = create_normal_contribution_bc(V, -chp_velocity*n, facets_chp)
+
     v_chp = dfx.fem.Function(V)
     v_chp.interpolate(v_chp_expr)
-    # v_chp_expr_positive_z = ChoroidPlexusFlux(ds, z_positive=True) 
-    # v_chp_expr_negative_z = ChoroidPlexusFlux(ds, z_positive=False) 
-    # v_chp_positive_z = dfx.fem.Function(V)
-    # v_chp_negative_z = dfx.fem.Function(V)
-    # v_chp_positive_z.interpolate(v_chp_expr_positive_z) 
-    # v_chp_negative_z.interpolate(v_chp_expr_negative_z)
 
     # Find the dofs of facets tagged with choroid plexus tags
-    facets_chp_laterals = ft.find(CHOROID_PLEXUS_LATERAL)
-    v_dofs_chp_laterals = dfx.fem.locate_dofs_topological(V, facet_dim, facets_chp_laterals)
-    facets_chp_third = ft.find(CHOROID_PLEXUS_THIRD)
-    v_dofs_chp_third = dfx.fem.locate_dofs_topological(V, facet_dim, facets_chp_third)
-    facets_chp_fourth = ft.find(CHOROID_PLEXUS_FOURTH)
-    v_dofs_chp_fourth = dfx.fem.locate_dofs_topological(V, facet_dim, facets_chp_fourth)
-
-    facets_chp = np.concatenate(([ft.find(tag) for tag in choroid_plexus_tags]))
     v_dofs_chp = dfx.fem.locate_dofs_topological(V, mesh.topology.dim-1, facets_chp)
     
     bcs = [dfx.fem.dirichletbc(v_chp, v_dofs_chp)]
-
-    # # Create BC objects
-    # bcs = [dfx.fem.dirichletbc(v_chp_positive_z, v_dofs_chp_laterals),
-    #        dfx.fem.dirichletbc(v_chp_negative_z, v_dofs_chp_third),
-    #        dfx.fem.dirichletbc(v_chp_positive_z, v_dofs_chp_fourth)
-    # ]
 
     # Impose impermeability condition on the rest of the boundary
     v_zero = dfx.fem.Function(V) # Zero velocity
