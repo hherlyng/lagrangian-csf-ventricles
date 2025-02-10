@@ -10,7 +10,8 @@ from scifem    import assemble_scalar
 from mpi4py    import MPI
 from petsc4py  import PETSc
 from basix.ufl import element
-from utilities.fem import stabilization, tangent, eps, assemble_nested_system
+from utilities.fem import stabilization, eps, assemble_nested_system
+from utilities.normals_and_tangents import facet_normal_approximation
 
 print = PETSc.Sys.Print
 
@@ -63,7 +64,7 @@ class ChoroidPlexusFlux:
                                              np.zeros(x.shape[1]),
                                    self.sign*np.ones (x.shape[1])))
 
-def setup_stokes_problem(mesh: dfx.mesh.Mesh, ft: dfx.mesh.MeshTags, mesh_prefix: str):
+def setup_stokes_problem(mesh: dfx.mesh.Mesh, ft: dfx.mesh.MeshTags):
     facet_dim = mesh.topology.dim-1
     mesh.topology.create_connectivity(facet_dim, facet_dim+1) # Create facet-cell connectivity
 
@@ -74,10 +75,8 @@ def setup_stokes_problem(mesh: dfx.mesh.Mesh, ft: dfx.mesh.MeshTags, mesh_prefix
 
     bdm1_el = element("BDM", mesh.basix_cell(), 1)
     dg0_el  = element("DG", mesh.basix_cell(), 0)
-    dg1_vec_el = element("DG", mesh.basix_cell(), 1, shape=(mesh.geometry.dim,))
     V = dfx.fem.functionspace(mesh, bdm1_el)
     Q = dfx.fem.functionspace(mesh, dg0_el)
-    DG_vec = dfx.fem.functionspace(mesh, dg1_vec_el)
     v_zero = dfx.fem.Function(V)
 
     u, v = ufl.TrialFunction(V), ufl.TestFunction(V)
@@ -105,12 +104,19 @@ def setup_stokes_problem(mesh: dfx.mesh.Mesh, ft: dfx.mesh.MeshTags, mesh_prefix
     # Set choroid plexus inflow velocity BC strongly
     # Create expressions with positive and negative z-component of the velocity,
     # and interpolate the expressions into finite element functions
-    v_chp_expr_positive_z = ChoroidPlexusFlux(ds, z_positive=True) 
-    v_chp_expr_negative_z = ChoroidPlexusFlux(ds, z_positive=False) 
-    v_chp_positive_z = dfx.fem.Function(V)
-    v_chp_negative_z = dfx.fem.Function(V)
-    v_chp_positive_z.interpolate(v_chp_expr_positive_z) 
-    v_chp_negative_z.interpolate(v_chp_expr_negative_z)
+    chp_flux = 5.833e-9 # Corresponds to 504 ml production per day [Czosnyka et al.]
+    nh = facet_normal_approximation(V, ft, mt_id=choroid_plexus_tags)
+    chp_area = assemble_scalar(1*ds(choroid_plexus_tags)) # The area of the choroid plexus boundary
+    chp_velocity = chp_flux/chp_area
+    v_chp_expr = dfx.fem.Expression(-chp_velocity*nh, V.element.interpolation_points()) # Minus sign to get flux into the domain
+    v_chp = dfx.fem.Function(V)
+    v_chp.interpolate(v_chp_expr)
+    # v_chp_expr_positive_z = ChoroidPlexusFlux(ds, z_positive=True) 
+    # v_chp_expr_negative_z = ChoroidPlexusFlux(ds, z_positive=False) 
+    # v_chp_positive_z = dfx.fem.Function(V)
+    # v_chp_negative_z = dfx.fem.Function(V)
+    # v_chp_positive_z.interpolate(v_chp_expr_positive_z) 
+    # v_chp_negative_z.interpolate(v_chp_expr_negative_z)
 
     # Find the dofs of facets tagged with choroid plexus tags
     facets_chp_laterals = ft.find(CHOROID_PLEXUS_LATERAL)
@@ -120,20 +126,25 @@ def setup_stokes_problem(mesh: dfx.mesh.Mesh, ft: dfx.mesh.MeshTags, mesh_prefix
     facets_chp_fourth = ft.find(CHOROID_PLEXUS_FOURTH)
     v_dofs_chp_fourth = dfx.fem.locate_dofs_topological(V, facet_dim, facets_chp_fourth)
 
-    # Create BC objects
-    bcs = [dfx.fem.dirichletbc(v_chp_positive_z, v_dofs_chp_laterals),
-           dfx.fem.dirichletbc(v_chp_negative_z, v_dofs_chp_third),
-           dfx.fem.dirichletbc(v_chp_positive_z, v_dofs_chp_fourth)
-    ]
+    facets_chp = np.concatenate(([ft.find(tag) for tag in choroid_plexus_tags]))
+    v_dofs_chp = dfx.fem.locate_dofs_topological(V, mesh.topology.dim-1, facets_chp)
+    
+    bcs = [dfx.fem.dirichletbc(v_chp, v_dofs_chp)]
+
+    # # Create BC objects
+    # bcs = [dfx.fem.dirichletbc(v_chp_positive_z, v_dofs_chp_laterals),
+    #        dfx.fem.dirichletbc(v_chp_negative_z, v_dofs_chp_third),
+    #        dfx.fem.dirichletbc(v_chp_positive_z, v_dofs_chp_fourth)
+    # ]
 
     # Impose impermeability condition on the rest of the boundary
-    v_defo = dfx.fem.Function(V) # Zero velocity
+    v_zero = dfx.fem.Function(V) # Zero velocity
     facets_imperm = np.concatenate(([ft.find(tag) for tag in impermeability_tags])) # Facets where u.n=0
-    v_dofs_defo = dfx.fem.locate_dofs_topological(V, facet_dim, facets_imperm) # Dofs where u.n=0
+    v_dofs_zero = dfx.fem.locate_dofs_topological(V, facet_dim, facets_imperm) # Dofs where u.n=0
 
-    bcs.append(dfx.fem.dirichletbc(v_defo, v_dofs_defo)) # Add BC object to list
+    bcs.append(dfx.fem.dirichletbc(v_zero, v_dofs_zero)) # Add BC object to list
 
-    return a, L, bcs, V, Q, ds, v_chp_positive_z, v_chp_negative_z
+    return a, L, bcs, V, Q, ds
 
 def create_direct_solver(A: PETSc.Mat, comm: MPI.Comm):
     ksp = PETSc.KSP().create(comm)
@@ -179,8 +190,7 @@ if __name__=='__main__':
 
 
     # Setup the Sokes problem
-    a, L, bcs, V, Q, ds, \
-    v_chp_positive_z, v_chp_negative_z = setup_stokes_problem(mesh, ft, mesh_prefix)
+    a, L, bcs, V, Q, ds = setup_stokes_problem(mesh, ft)
     
     # Solution functions
     uh = dfx.fem.Function(V)
@@ -227,7 +237,20 @@ if __name__=='__main__':
 
     # Calculate mean pressure
     vol = assemble_scalar(1*ufl.dx(mesh))
-    print("Mean pressure: ", 1/vol*assemble_scalar(ph_*ufl.dx(mesh)))
+    print(f"Mean pressure: {1/vol*assemble_scalar(ph_*ufl.dx(mesh)):.2e}")
+
+    # Calculate choroid plexus CSF flux
+    ds_chp = ds(choroid_plexus_tags)
+    n = ufl.FacetNormal(mesh)
+    prod_total = assemble_scalar(dot(uh_, n)*ds_chp)
+    prod_laterals = assemble_scalar(dot(uh_, n)*ds(CHOROID_PLEXUS_LATERAL))
+    prod_third = assemble_scalar(dot(uh_, n)*ds(CHOROID_PLEXUS_THIRD))
+    prod_fourth = assemble_scalar(dot(uh_, n)*ds(CHOROID_PLEXUS_FOURTH))
+    print("Choroid plexus production:\n")
+    print(f"Total:\t\t{prod_total:.2e}")
+    print(f"Laterals:\t{prod_laterals:.2e}")
+    print(f"Third:\t\t{prod_third:.2e}")
+    print(f"Fourth:\t\t{prod_fourth:.2e}")
 
     # Close output files
     velocity_output.close()

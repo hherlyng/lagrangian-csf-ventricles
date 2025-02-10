@@ -50,8 +50,8 @@ def facet_vector_approximation(V: dfx.fem.FunctionSpace,
             DOLFINx.
 """
     
-    if not V.element.basix_element.discontinuous:
-        raise RuntimeError("Discontinuous elements are required for a proper representation of the facet vectors.")
+    # if not V.element.basix_element.discontinuous:
+    #     raise RuntimeError("Discontinuous elements are required for a proper representation of the facet vectors.")
     jit_options = jit_options if jit_options is not None else {}
     form_compiler_options = form_compiler_options if form_compiler_options is not None else {}
 
@@ -150,6 +150,7 @@ def facet_vector_approximation(V: dfx.fem.FunctionSpace,
     apply_lifting(b, [bilinear_form], [[bc_deac]])
     b.ghostUpdate(addv=PETSc.InsertMode.ADD_VALUES, mode=PETSc.ScatterMode.REVERSE)
     set_bc(b, [bc_deac])
+    b.ghostUpdate(addv=PETSc.InsertMode.INSERT, mode=PETSc.ScatterMode.FORWARD)
 
     # Setup a linear solver using the Conjugate Gradient method.
     solver = PETSc.KSP().create(MPI.COMM_WORLD)
@@ -163,17 +164,101 @@ def facet_vector_approximation(V: dfx.fem.FunctionSpace,
 
     # Normalize the vectors to get the unit facet normal/tangent vector.
     nh_norm = ufl.sqrt(ufl.inner(nh, nh)) # Norm of facet vector
+    cond_norm = ufl.conditional(ufl.gt(nh_norm, 1e-10), nh_norm, 1.0) # Avoid division by zero
     if V.mesh.geometry.dim == 1:
-        nh_norm_vec = ufl.as_vector((nh[0]/nh_norm))
+        nh_norm_vec = ufl.as_vector((nh[0]/cond_norm))
     elif V.mesh.geometry.dim == 2:
-        nh_norm_vec = ufl.as_vector((nh[0]/nh_norm, nh[1]/nh_norm))
+        nh_norm_vec = ufl.as_vector((nh[0]/cond_norm, nh[1]/cond_norm))
     elif V.mesh.geometry.dim == 3:
-        nh_norm_vec = ufl.as_vector((nh[0]/nh_norm, nh[1]/nh_norm, nh[2]/nh_norm))
+        nh_norm_vec = ufl.as_vector((nh[0]/cond_norm, nh[1]/cond_norm, nh[2]/cond_norm))
 
     nh_normalized = dfx.fem.Expression(nh_norm_vec, V.element.interpolation_points())
     n_out = dfx.fem.Function(V)
     n_out.interpolate(nh_normalized)
 
+    return n_out
+
+def facet_normal_approximation(V, mt: dfx.mesh.MeshTags, mt_id: int | tuple):
+    """
+    Approximate the facet normal by projecting it into the function space for a set of facets
+
+    Args:
+        V: The function space to project into
+    """
+    n = ufl.FacetNormal(V.mesh)
+    nh = dfx.fem.Function(V)
+    u, v = ufl.TrialFunction(V), ufl.TestFunction(V)
+    ds = ufl.ds(domain=V.mesh, subdomain_data=mt, subdomain_id=mt_id)
+    a = ufl.inner(u, v) * ds
+    L = ufl.inner(n, v) * ds
+
+    # Find all dofs that are not boundary dofs
+    imap = V.dofmap.index_map
+    all_blocks = np.arange(imap.size_local, dtype=np.int32)
+    if type(mt_id)!=int:
+        mt_facets = np.concatenate(([mt.find(tag) for tag in mt_id]))
+    else:
+        mt_facets = mt.find(mt_id)
+    top_blocks = dfx.fem.locate_dofs_topological(
+        V, V.mesh.topology.dim - 1, mt_facets)
+    deac_blocks = all_blocks[np.isin(all_blocks, top_blocks, invert=True)]
+
+    # Note there should be a better way to do this
+    # Create sparsity pattern only for constraint + bc
+    bilinear_form = dfx.fem.form(a)
+    pattern = dfx.fem.create_sparsity_pattern(bilinear_form)
+    pattern.insert_diagonal(deac_blocks)
+    pattern.finalize()
+    u_0 = dfx.fem.Function(V)
+    u_0.x.petsc_vec.set(0)
+
+    bc_deac = dfx.fem.dirichletbc(u_0, deac_blocks)
+    A = dfx.cpp.la.petsc.create_matrix(V.mesh.comm, pattern)
+    A.zeroEntries()
+
+    # Assemble the matrix with all entries
+    form_coeffs = dfx.cpp.fem.pack_coefficients(bilinear_form._cpp_object)
+    form_consts = dfx.cpp.fem.pack_constants(bilinear_form._cpp_object)
+    dfx.cpp.fem.petsc.assemble_matrix(A, bilinear_form._cpp_object,
+                                  form_consts, form_coeffs, [bc_deac._cpp_object])
+    if bilinear_form.function_spaces[0] is bilinear_form.function_spaces[1]:
+        A.assemblyBegin(PETSc.Mat.AssemblyType.FLUSH)  # type: ignore
+        A.assemblyEnd(PETSc.Mat.AssemblyType.FLUSH)  # type: ignore
+        dfx.cpp.fem.petsc.insert_diagonal(A, bilinear_form.function_spaces[0], [
+            bc_deac._cpp_object], 1.0)
+    A.assemble()
+
+    linear_form = dfx.fem.form(L)
+    b = dfx.fem.petsc.assemble_vector(linear_form)
+    dfx.fem.petsc.apply_lifting(b, [bilinear_form], [[bc_deac]])
+    b.ghostUpdate(addv=PETSc.InsertMode.ADD_VALUES,
+                  mode=PETSc.ScatterMode.REVERSE)  # type: ignore
+    dfx.fem.petsc.set_bc(b, [bc_deac])
+    b.ghostUpdate(addv=PETSc.InsertMode.INSERT,
+                  mode=PETSc.ScatterMode.FORWARD)  # type: ignore
+    # Solve Linear problem
+    solver = PETSc.KSP().create(V.mesh.comm)  # type: ignore
+    solver.setType("cg")
+    solver.rtol = 1e-8
+    solver.setOperators(A)
+    solver.solve(b, nh.x.petsc_vec)
+    nh.x.petsc_vec.ghostUpdate(addv=PETSc.InsertMode.INSERT,
+                               mode=PETSc.ScatterMode.FORWARD)  # type: ignore
+    
+    # Normalize the vectors to get the unit facet normal/tangent vector.
+    nh_norm = ufl.sqrt(ufl.inner(nh, nh)) # Norm of facet vector
+    cond_norm = ufl.conditional(ufl.gt(nh_norm, 1e-10), nh_norm, 1.0) # Avoid division by zero
+    if V.mesh.geometry.dim == 1:
+        nh_norm_vec = ufl.as_vector((nh[0]/cond_norm))
+    elif V.mesh.geometry.dim == 2:
+        nh_norm_vec = ufl.as_vector((nh[0]/cond_norm, nh[1]/cond_norm))
+    elif V.mesh.geometry.dim == 3:
+        nh_norm_vec = ufl.as_vector((nh[0]/cond_norm, nh[1]/cond_norm, nh[2]/cond_norm))
+
+    nh_normalized = dfx.fem.Expression(nh_norm_vec, V.element.interpolation_points())
+    n_out = dfx.fem.Function(V)
+    n_out.interpolate(nh_normalized)
+    
     return n_out
 
 

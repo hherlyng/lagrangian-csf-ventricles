@@ -3,6 +3,7 @@ import numpy         as np
 import dolfinx       as dfx
 import adios4dolfinx as a4d
 
+from sys             import argv
 from mpi4py          import MPI
 from basix.ufl       import element
 
@@ -10,7 +11,7 @@ from basix.ufl       import element
 #  NOTE: this script only works when run in serial, not in parallell.
 #--------------------------------------------------------------------#
 
-def generate_data(input_filename: str, output_dir: str, write_xdmf_check: bool=True):
+def generate_data(input_filename: str, output_dir: str, steady_state: bool, write_xdmf_check: bool=True):
     # Read mesh
     mesh = a4d.read_mesh(filename=input_filename,
                         comm=MPI.COMM_WORLD,
@@ -100,28 +101,46 @@ def generate_data(input_filename: str, output_dir: str, write_xdmf_check: bool=T
         xdmf_u = dfx.io.XDMFFile(MPI.COMM_WORLD, output_dir+"bin_velocity_check.xdmf", "w")
         xdmf_u.write_mesh(mesh)
 
-    timestamps = np.arange(0, 30)
-
-    # Loop over the timestamps
-    for timestamp in timestamps:
+    if steady_state:
+        timestamp = 0
         # Read the velocity data
         a4d.read_function(filename=input_filename, u=u, time=timestamp)
 
         # Cast velocity as numpy.array and prepend timestamp
         velocity = u.x.array
-        velocity = np.array(np.insert(velocity, 0, timestamp, axis=0), dtype="double")
+        velocity0 = np.array(np.insert(velocity, 0, timestamp, axis=0), dtype="double")
+        velocity1 = np.array(np.insert(velocity, 0, timestamp+1, axis=0), dtype="double")
         if write_xdmf_check: xdmf_u.write_function(u, timestamp) # Write to xdmf
         
-        # Write the velocity data to binary file
+        # Write the velocity data to binary files
+        with open(output_dir+f"brain_vel.{timestamp}.bin", "w+b")   as file0, \
+             open(output_dir+f"brain_vel.{timestamp+1}.bin", "w+b") as file1:
+            velocity0.tofile(file0)
+            velocity1.tofile(file1)
 
-        with open(output_dir+f"brain_vel.{timestamp}.bin", "w+b") as file:
-            velocity.tofile(file) # Write to binary file
+    else:
+        timestamps = np.arange(0, 30)
+
+        # Loop over the timestamps
+        for timestamp in timestamps:
+            # Read the velocity data
+            a4d.read_function(filename=input_filename, u=u, time=timestamp)
+
+            # Cast velocity as numpy.array and prepend timestamp
+            velocity = u.x.array
+            velocity = np.array(np.insert(velocity, 0, timestamp, axis=0), dtype="double")
+            if write_xdmf_check: xdmf_u.write_function(u, timestamp) # Write to xdmf
+            
+            # Write the velocity data to binary file
+            with open(output_dir+f"brain_vel.{timestamp}.bin", "w+b") as file:
+                velocity.tofile(file) # Write to binary file
 
     if write_xdmf_check: xdmf_u.close()
 
 if __name__=='__main__':
+    steady = True if int(argv[1])==1 else False
     mesh_prefix = "medium"  
     velocity_input_filename = \
-        f"../output/{mesh_prefix}-mesh/flow/checkpoints/velocity_projection_chp+cilia+defo"
-    output_dir = f"/Users/hherlyng/flowVC/bin/brain/{mesh_prefix}-mesh/chp+cilia+defo/"
-    generate_data(input_filename=velocity_input_filename, output_dir=output_dir)
+        f"../output/{mesh_prefix}-mesh/flow/checkpoints/velocity_projection_defo"
+    output_dir = f"/Users/hherlyng/flowVC/bin/brain/{mesh_prefix}-mesh/defo/"
+    generate_data(input_filename=velocity_input_filename, steady_state=steady, output_dir=output_dir)

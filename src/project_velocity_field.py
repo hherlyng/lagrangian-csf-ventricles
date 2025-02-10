@@ -3,6 +3,7 @@ import numpy         as np
 import dolfinx       as dfx
 import adios4dolfinx as a4d
 
+from sys               import argv
 from mpi4py            import MPI
 from basix.ufl         import element
 from dolfinx.fem.petsc import LinearProblem
@@ -10,7 +11,7 @@ from dolfinx.fem.petsc import LinearProblem
 # Velocity data
 mesh_prefix = "medium"
 velocity_input_filename = \
-    f"../output/{mesh_prefix}-mesh/flow/checkpoints/velocity_chp+cilia+defo"
+    f"../output/{mesh_prefix}-mesh/flow/checkpoints/velocity_defo"
 mesh = a4d.read_mesh(filename=velocity_input_filename,
                      comm=MPI.COMM_WORLD,
                      engine="BP4",
@@ -44,10 +45,18 @@ problem = LinearProblem(a, L, petsc_options={"ksp_type" : "preonly",
                                              "pc_type" : "lu",
                                              "pc_factor_mat_solver_type" : "mumps"})
 
-output_filename = f"../output/{mesh_prefix}-mesh/flow/checkpoints/velocity_projection_chp+cilia+defo"
-a4d.write_mesh(output_filename, mesh)
+if __name__=='__main__':
+    steady = True if int(argv[1])==1 else False
 
-for int_time, time in enumerate(timestamps):
-    a4d.read_function(velocity_input_filename, u_project, time=time) # Read the input velocity
-    u_cg = problem.solve() # Solve for the CG1 velocity
-    a4d.write_function(output_filename, u_cg, time=int_time)
+    output_filename = f"../output/{mesh_prefix}-mesh/flow/checkpoints/velocity_projection_defo"
+    a4d.write_mesh(output_filename, mesh)
+
+    if steady:
+        a4d.read_function(velocity_input_filename, u_project)
+        u_cg = problem.solve()
+        a4d.write_function(output_filename, u_cg)
+    else:
+        for int_time, time in enumerate(timestamps):
+            a4d.read_function(velocity_input_filename, u_project, time=time) # Read the input velocity
+            u_cg = problem.solve() # Solve for the CG1 velocity
+            a4d.write_function(output_filename, u_cg, time=int_time)
