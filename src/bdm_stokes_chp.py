@@ -156,7 +156,9 @@ def solve_stokes(a: dfx.fem.form, L: dfx.fem.form, bcs: list[dfx.fem.DirichletBC
     return uh, ph
 
 if __name__=='__main__':
+    
     from sys import argv
+
     # Check if velocity checkpoints should be written
     write_cpoint = True if int(argv[1])==1 else False
 
@@ -169,7 +171,6 @@ if __name__=='__main__':
          mesh = xdmf.read_mesh() # Read mesh
          mesh.topology.create_entities(mesh.topology.dim-1) # Create facets
          ft = xdmf.read_meshtags(mesh, name="ft") # Read facet tags
-
 
     # Setup the Sokes problem
     a, L, bcs, V, Q, ds = setup_stokes_problem(mesh, ft)
