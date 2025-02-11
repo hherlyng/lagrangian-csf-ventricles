@@ -154,25 +154,24 @@ conditions for the Stokes equations when solving for the CSF velocity $\uu$.
 We assume that the deformation $\mathbf{d}$ only has a $z$ component (feet-head axis).
 The displacement is based on measurements~\cite{Kurtcuoglu2007ComputationalSylvius, Enzmann1992BrainImaging}.
 
-Alternatively, to increase computational efficiency, we can assume that the deformations of the brain ventricles are so small that we can impose the deformation velocities directly without changing the mesh. In fact, we let these deformation velocities derive from a boundary condition on the normal traction at the end of the spinal canal. We impose
-\begin{equation}
-    (\mu\nabla\uu - p\mathbf{I})\nn = \Tilde{p}(t)\nn, \quad\mathrm{on} \ \Gamma_{\mathrm{canal}},
-\end{equation}
-%where the "pressure" function $\Tilde{p}(t)$ is a dual-modal sinusoidal forcing function:
-\begin{equation}
-    \Tilde{p}(t) = A_c\sin{\omega_c t} + A_r\sin{\omega_r t}.
-\end{equation}
-The two terms are the contributions of the cardiac and respiratory cycle to the pressure, respectively. Considering the average human (in a resting condition) to have a heartbeat of 62 bpm and a respiration rate of 15 breaths per minute~\cite{Vinje2019RespiratoryMeasurements}, we have the cardiac and respiratory frequencies $f_c = 1.03$ Hz and $f_r = 0.25$ Hz, from which we derive the angular frequencies $\omega_i = 2\pi f_i$, $i\in\{c, r\}$.
-
 \subsubsection{Choroid plexus secretion.}
-The secretion is modeled by imposing
+The secretion is modeled by imposing a normal velocity at the
+boundary $\Gamma_{\mathrm{chp}}$ such that the total flux through the choroid plexus boundary is
+\begin{equation}
+    \int_{\Gamma_{\mathrm{chp}}}(\uu\cdot\nn)\,\mathrm ds = Q.
+\end{equation}
+Here $Q=504$ ml/day is the daily total CSF production \cite{Czosnyka2004CerebrospinalDynamics}.
+From this, we calculate $\uu_\mathrm{in}=Q/\vert\Gamma_{\mathrm{chp}}\vert$.
 \begin{equation}
     \uu\cdot\nn = \uu_{\mathrm{in}}\cdot\nn\quad\mathrm{on \ \Gamma_{\mathrm{chp}}},
     \label{eq:choroid_plexus_BC}
 \end{equation}
-where $\uu_{\mathrm{in}}$ is calculated based on a daily total CSF production of $\dot{V}=504$ ml/day~\cite{Czosnyka2004CerebrospinalDynamics}. From this, we calculate $\uu_\mathrm{in}=\dot{V}/\vert\Gamma_{\mathrm{chp}}\vert$.
+where $\uu_{\mathrm{in}}$ . 
 
-This value is based on the assumption that all CSF that enters the brain ventricles is produced by the choroid plexus, even though in reality 10--30\% of the CSF production may come from interstitial fluid transported through the ependymal cell layer of the brain ventricles walls into the ventricles~\cite{Brodal2016TheSystem}.
+This value is based on the assumption that all CSF that enters the brain ventricles
+is produced by the choroid plexus, even though in reality 10--30\% of the CSF production
+may come from interstitial fluid transported through the ependymal cell
+layer of the brain ventricles walls into the ventricles~\cite{Brodal2016TheSystem}.
 
 \subsubsection{Cilia forces}
 Motile cilia are modeled by imposing forces on the fluid with a boundary condition on the tangential traction $P_{\nn}(\bsigmahat) = \btau = \tau P_{\nn}(\rr)$. Here $\bsigmahat=\bsigma\nn$ is the traction vector and  $P_{\nn}(\cdot)$ is the projection of a vector onto the plane which $\nn$ is normal to. The vector $\btau$ models the cilia motion. It has been shown that motile cilia beating direction is oriented by CSF production during neural development~\cite{Guirao2010CouplingCilia}. A previous study has considered directionality of the cilia forcing aligned with the wall shear stress of the macroscopic flow simulated in a production-only setup~\cite{Siyahhan2014FlowVentricles}. We apply a similar approach, simulating CSF flow with the boundary condition~\eqref{eq:choroid_plexus_BC} on $\Gchp$, a zero normal traction condition on the spinal canal and lateral apertures, and $\uu\cdot\nn=0$ on the rest of the boundary. In the tangential direction, the CSF is free to slip. The resulting velocity field, $\uu_{\mathrm{prod}}$, is normalized in length to yield the direction of the cilia:

@@ -18,6 +18,7 @@ print = PETSc.Sys.Print
 
 # Mesh tags
 CANAL_OUT = 23
+LATERAL_APERTURES = 28
 
 # Solve linear elasticity equation on the ventricles. Wall motion is 
 # prescribed in time at a single point (close to corpus callosum).
@@ -81,16 +82,18 @@ num_cc_dofs = comm.allreduce(len(cc_dofs), op=MPI.SUM)
 print("Number of corpus callosum dofs: ", num_cc_dofs)
 assert num_cc_dofs>0, print("No corpus callosum dofs located.")
 bcs = [dfx.fem.dirichletbc(cc_disp_func, cc_dofs)]
-anchor_spinal_canal = False
+anchor_spinal_canal = True
 if anchor_spinal_canal:
-    # Anchor spinal cord
-    canal_out_dofs = dfx.fem.locate_dofs_topological(W, mesh.topology.dim-1, ft.find(CANAL_OUT))
-    bcs.append(dfx.fem.dirichletbc(zero, canal_out_dofs))
+    # Anchor spinal cord and lateral apertures
+    canal_out_dofs = dfx.fem.locate_dofs_topological(W, facet_dim, ft.find(CANAL_OUT))
+    apertures_dofs = dfx.fem.locate_dofs_topological(W, facet_dim, ft.find(LATERAL_APERTURES))
+    anchor_dofs = np.concatenate((canal_out_dofs, apertures_dofs))
+    bcs.append(dfx.fem.dirichletbc(zero, anchor_dofs))
 else:
     # Impose deformation on spinal cord
     sc_disp_expr = WallDeformationSpinalCanal(derivative=False)
     sc_disp_func = dfx.fem.Function(W)
-    sc_dofs = dfx.fem.locate_dofs_topological(W, mesh.topology.dim-1, ft.find(CANAL_OUT))
+    sc_dofs = dfx.fem.locate_dofs_topological(W, facet_dim, ft.find(CANAL_OUT))
     num_sc_dofs = comm.allreduce(len(sc_dofs), op=MPI.SUM)
     assert num_sc_dofs>0, print("No spinal canal dofs located.")
     print("Number of spinal canal dofs: ", num_sc_dofs)
@@ -121,7 +124,7 @@ solver.setOperators(A)
 solver.setFromOptions()
 # solver.setMonitor(lambda _, its, rnorm: print(f"Iteration: {its}, residual: {rnorm}"))
 
-N = 30
+N = 20
 T = 1
 times = np.linspace(0, T, N+1)
 dt = T / N
@@ -139,8 +142,8 @@ cmap = cm.matter
 min_disp = 0.0
 max_disp = 0.0
 
-xdmf = dfx.io.XDMFFile(comm, f"../output/{mesh_prefix}-mesh/deformation/displacement.xdmf", "w")
-xdmf_vel = dfx.io.XDMFFile(comm, f"../output/{mesh_prefix}-mesh/deformation/deformation_velocity.xdmf", "w")
+xdmf = dfx.io.XDMFFile(comm, f"../output/{mesh_prefix}-mesh/deformation/anchored_displacement.xdmf", "w")
+xdmf_vel = dfx.io.XDMFFile(comm, f"../output/{mesh_prefix}-mesh/deformation/anchored_deformation_velocity.xdmf", "w")
 xdmf.write_mesh(mesh)
 xdmf_vel.write_mesh(mesh)
 CG1_vector_space = dfx.fem.functionspace(mesh, element=element("Lagrange", mesh.basix_cell(), degree=1, shape=(mesh.geometry.dim,)))
@@ -151,7 +154,7 @@ bdm_el = element("BDM", mesh.basix_cell(), 1)
 BDM = dfx.fem.functionspace(mesh, bdm_el)
 dw_dt_bdm = dfx.fem.Function(BDM)
 
-vh_cpoint_filename = f"../output/{mesh_prefix}-mesh/deformation/checkpoints/deformation_velocity/"
+vh_cpoint_filename = f"../output/{mesh_prefix}-mesh/deformation/checkpoints/anchored_deformation_velocity/"
 a4d.write_mesh(filename=vh_cpoint_filename, mesh=mesh, store_partition_info=True)
 a4d.write_meshtags(vh_cpoint_filename, mesh, ft, meshtag_name='ft')
 
@@ -172,8 +175,9 @@ for idx, t in enumerate(times):
     cc_disp_expr.t = t
     cc_disp_func.interpolate(cc_disp_expr)
 
-    sc_disp_expr.t = t
-    sc_disp_func.interpolate(sc_disp_expr)
+    if not anchor_spinal_canal:
+        sc_disp_expr.t = t
+        sc_disp_func.interpolate(sc_disp_expr)
 
     # Assemble linear system and solve the equations of linear elasticity
     assemble_system()

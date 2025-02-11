@@ -41,9 +41,10 @@ LATERAL_VENTRICLES = 7
 FOURTH_VENTRICLE = 8
 
 displacement_tags = (AQUEDUCT_WALL, FORAMINA_34_WALL, LATERAL_VENTRICLES_WALL, FOURTH_VENTRICLE_WALL,
-                     CANAL_WALL, THIRD_VENTRICLE_WALL, CHOROID_PLEXUS_LATERAL, CHOROID_PLEXUS_THIRD, CHOROID_PLEXUS_FOURTH)
+                     CANAL_WALL, THIRD_VENTRICLE_WALL, CHOROID_PLEXUS_LATERAL, CHOROID_PLEXUS_THIRD, CHOROID_PLEXUS_FOURTH,
+                     CANAL_OUT, LATERAL_APERTURES)
 
-def setup_stokes_problem(mesh: dfx.mesh.Mesh, ft: dfx.mesh.MeshTags, mesh_prefix: str):
+def setup_stokes_problem(mesh: dfx.mesh.Mesh, ft: dfx.mesh.MeshTags):
     facet_dim = mesh.topology.dim-1
     mesh.topology.create_connectivity(facet_dim, facet_dim+1) # Create facet-cell connectivity
 
@@ -69,7 +70,7 @@ def setup_stokes_problem(mesh: dfx.mesh.Mesh, ft: dfx.mesh.MeshTags, mesh_prefix
     # Stokes problem in reference domain accounting for the deformation
     a00 = (2*mu*inner(eps(u), eps(v))*dx # Viscous dissipation
         + stabilization(u, v, mu, penalty) # BDM stabilization
-        - mu*inner(dot(grad(u).T, n), v)*(ds(CANAL_OUT)+ds(LATERAL_APERTURES)) # Parallel flow at inlet/outlet
+        #- mu*inner(dot(grad(u).T, n), v)*(ds(CANAL_OUT)+ds(LATERAL_APERTURES)) # Parallel flow at inlet/outlet
         )
     a01 = inner(p, div(v))*dx
     a10 = inner(q, div(u))*dx
@@ -130,7 +131,7 @@ if __name__=='__main__':
     ft   = a4d.read_meshtags(v_defo_input_filename, mesh, meshtag_name='ft')
 
     # Setup the Sokes problem
-    a, L, bcs, V, Q, ds, v_defo = setup_stokes_problem(mesh, ft, mesh_prefix)
+    a, L, bcs, V, Q, ds, v_defo = setup_stokes_problem(mesh, ft)
     
     # Solution functions
     uh = dfx.fem.Function(V)
@@ -163,11 +164,11 @@ if __name__=='__main__':
     for t in np.linspace(0, T, N+1):
 
         # Update deformation velocity
-        a4d.read_function(filename=v_defo_input_filename, u=v_defo, time=t)
+        a4d.read_function(filename=v_defo_input_filename, u=v_defo, time=t) 
 
         # Solve the Stokes equations
         uh_, ph_ = solve_stokes(a, L, bcs, uh, ph) 
-
+        uh_.x.array[:] -= v_defo.x.array.copy() # Calculate relative velocity
         # Interpolate velocity into DG1 output function
         uh_out.interpolate(uh_)
 

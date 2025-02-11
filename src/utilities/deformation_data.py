@@ -16,7 +16,7 @@ class WallDeformationCorpusCallosum:
         self.order = 1 if derivative else 0
 
     def __call__(self, x):
-        amplitude = self.disp(self.t, self.order) # Evaluates first derivative of spline curve
+        amplitude = self.disp(self.t, self.order) # Evaluates function value of spline curve
         return amplitude*np.stack((np.zeros(x.shape[1]),
                                    np.zeros(x.shape[1]),
                                    np.ones (x.shape[1])))
@@ -29,7 +29,6 @@ class WallDeformationSpinalCanal:
                     0.053, 0.048, 0.024, -0.002, -0.028, -0.051, -0.073,
                     -0.0875, -0.06, -0.027])*1e-3 # Convert from mm to m
     disp -= disp[0] # Reset curve so that inital/final position is 0
-    # disp *= 0.9
     num_datapoints = len(disp)
     times = np.arange(num_datapoints)/(num_datapoints-1)
     disp_interp = interp.CubicSpline(times, disp)
@@ -40,7 +39,7 @@ class WallDeformationSpinalCanal:
         self.order = 1 if derivative else 0
 
     def __call__(self, x):
-        amplitude = self.disp(self.t, self.order) # Evaluates first derivative of spline curve
+        amplitude = self.disp(self.t, self.order) # Evaluates function value of spline curve
         return amplitude*np.stack((np.zeros(x.shape[1]),
                                    np.zeros(x.shape[1]),
                                    np.ones (x.shape[1])))
