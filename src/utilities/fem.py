@@ -5,6 +5,7 @@ import dolfinx as dfx
 from ufl       import inner, dot, sym, grad, avg
 from petsc4py  import PETSc
 from basix.ufl import element
+from dolfinx.fem.petsc import assemble_matrix_mat, assemble_vector, apply_lifting
 
 # Operators
 # NOTE: these are the jump operators from Krauss, Zikatonov paper.
@@ -73,6 +74,22 @@ def stabilization(u: ufl.TrialFunction, v: ufl.TestFunction,
     # For preconditioning
     return 2*mu*(penalty/hA)*inner(Jump(tangent(u, n)), Jump(tangent(v, n)))*dS
 
+def assemble_system(A: PETSc.Mat,
+                    b: PETSc.Vec,
+                    lhs_form: dfx.fem.form,
+                    rhs_form: dfx.fem.form,
+                    bcs: list[dfx.fem.dirichletbc]):
+    A.zeroEntries()
+    assemble_matrix_mat(A, lhs_form, bcs=bcs)
+    A.assemble()
+    with b.localForm() as local_b_vec: local_b_vec.set(0.0)
+    assemble_vector(b, rhs_form)
+    apply_lifting(b, [lhs_form], bcs=[bcs])
+    b.ghostUpdate(addv=PETSc.InsertMode.ADD, mode=PETSc.ScatterMode.REVERSE)
+    dfx.fem.set_bc(b, bcs)
+
+    return A, b
+
 def assemble_nested_system(lhs_form: dfx.fem.form,
                            rhs_form: dfx.fem.form,
                            bcs: list[dfx.fem.dirichletbc]) -> tuple((PETSc.Mat, PETSc.Vec)):
@@ -86,6 +103,7 @@ def assemble_nested_system(lhs_form: dfx.fem.form,
     spaces = dfx.fem.extract_function_spaces(rhs_form)
     bcs0 = dfx.fem.bcs_by_block(spaces, bcs)
     dfx.fem.petsc.set_bc_nest(b, bcs0)
+
     return A, b
 
 def compute_exterior_facet_entities(mesh: dfx.mesh.Mesh, facets: np.ndarray[np.int32]):
