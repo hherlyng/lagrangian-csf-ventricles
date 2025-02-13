@@ -89,8 +89,7 @@ def setup_stokes_problem(mesh: dfx.mesh.Mesh, ft: dfx.mesh.MeshTags, mesh_prefix
     p, q = ufl.TrialFunction(Q), ufl.TestFunction(Q)
 
     mu = dfx.fem.Constant(mesh, dfx.default_scalar_type(7e-4)) #[kg/(m*s)] #*1e-2 # Dynamic viscosity [kg/(cm*s)]
-    penalty = dfx.fem.Constant(mesh, dfx.default_scalar_type(10.0))
-    h = ufl.CellDiameter(mesh)
+    penalty = dfx.fem.Constant(mesh, dfx.default_scalar_type(100.0))
 
     # Tangential traction BC
     tau_val = 0#7.89e-3*1e-1 # Tangential traction force density [Pa]
@@ -104,7 +103,6 @@ def setup_stokes_problem(mesh: dfx.mesh.Mesh, ft: dfx.mesh.MeshTags, mesh_prefix
     a00 = (2*mu*inner(eps(u), eps(v))*dx # Viscous dissipation
          + stabilization(u, v, mu, penalty) # BDM stabilization
          - mu*inner(dot(grad(u).T, n), v)*(ds(CANAL_OUT)+ds(LATERAL_APERTURES)) # Parallel flow at inlet/outlet
-         #- mu/h*inner(u, v)*(ds(CANAL_OUT)+ds(LATERAL_APERTURES))
           )
     a01 = p*div(v)*dx
 
@@ -113,7 +111,6 @@ def setup_stokes_problem(mesh: dfx.mesh.Mesh, ft: dfx.mesh.MeshTags, mesh_prefix
 
     L0 = inner(v_zero, v)*dx \
     #    + inner(tau_val*tangent(tau, n), tangent(v, n))*ds(cilia_tags) \
-       #- mu/h*inner(v_defo, v)*(ds(CANAL_OUT)+ds(LATERAL_APERTURES))
     L1 = inner(dfx.fem.Function(Q), q)*dx
 
     a = dfx.fem.form([[a00, a01],
@@ -151,8 +148,6 @@ def create_direct_solver(A: PETSc.Mat, comm: MPI.Comm):
     pc.setType("lu")
     pc.setFactorSolverType("mumps")
     pc.setFactorSetUpSolverType()
-    pc.getFactorMatrix().setMumpsIcntl(icntl=24, ival=1)
-    pc.getFactorMatrix().setMumpsIcntl(icntl=25, ival=0)
     
     return ksp
 

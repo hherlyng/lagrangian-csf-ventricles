@@ -10,7 +10,6 @@ from ufl       import inner, grad, sym, div
 from mpi4py    import MPI
 from petsc4py  import PETSc
 from basix.ufl import element
-from scifem.utils         import unroll_dofmap
 from dolfinx.fem.petsc    import create_matrix, create_vector
 from utilities.fem        import assemble_system
 from utilities.projection import projection_problem_CG2_to_BDM1
@@ -26,7 +25,7 @@ LATERAL_APERTURES = 28
 # prescribed in time at a single point (close to corpus callosum).
 comm = MPI.COMM_WORLD
 mesh_prefix = 'medium'
-with dfx.io.XDMFFile(comm, f"../geometries/{mesh_prefix}_ventricles_mesh_tagged.xdmf", "r") as xdmf:
+with dfx.io.XDMFFile(comm, f"../geometries/{mesh_prefix}_ventricles_mesh_tagged_newChP.xdmf", "r") as xdmf:
     mesh = xdmf.read_mesh()
     
     # Generate mesh entities    
@@ -125,19 +124,6 @@ T = 2
 period = 1
 N = int(T / deltaT)
 times = np.linspace(0, T, N+1)
-fps = 5
-
-# Create pyvista plotter object
-cells, cell_types, x = dfx.plot.vtk_mesh(W)
-grid = pv.UnstructuredGrid(cells, cell_types, x) 
-# pl = pv.Plotter()
-# pl.open_gif(f"../output/illustrations/linear_elasticity_deformation.gif", fps=fps)
-# pl.add_mesh(grid, style='wireframe', color='k') # Add initial mesh
-# pl.view_yz(negative=True)
-# pl.camera.zoom(1.25)
-cmap = cm.matter
-min_disp = 0.0
-max_disp = 0.0
 
 xdmf = dfx.io.XDMFFile(comm, f"../output/{mesh_prefix}-mesh/deformation/time_dep_displacement.xdmf", "w")
 xdmf_vel = dfx.io.XDMFFile(comm, f"../output/{mesh_prefix}-mesh/deformation/time_dep_deformation_velocity.xdmf", "w")
@@ -164,8 +150,10 @@ projection_problem = projection_problem_CG2_to_BDM1(dw_dt, dw_dt_bdm)
 for idx, t in enumerate(times):
     
     print(f"\nTime t = {t:.3g}")
-    
+        
     if t > period:
+        # Ensure BC function time value is within
+        # the time interval [0, period]
         bc_time = t - int(t)
     else:
         bc_time = t
@@ -173,7 +161,6 @@ for idx, t in enumerate(times):
     # Update displacement BCs
     cc_disp_expr.t = bc_time
     cc_disp_func.interpolate(cc_disp_expr)
-    print(bc_time)
 
     if not anchor_spinal_canal:
         sc_disp_expr.t = bc_time
@@ -183,21 +170,6 @@ for idx, t in enumerate(times):
     A, b = assemble_system(A, b, a_cpp, L_cpp, bcs)
     solver.solve(b, wh.x.petsc_vec)
     wh.x.scatter_forward() # MPI communication
-
-    # Add pyvista grid for current timestep
-    wh_reshaped = wh.x.array.copy().reshape((int(wh.x.array.__len__()/3), mesh.geometry.dim))
-    grid[f"wh_{idx}"] = wh_reshaped
-
-    # Update min/max displacements
-    wh_magnitude = np.sqrt(wh_reshaped[:, 0]**2 + wh_reshaped[:, 1]**2 + wh_reshaped[:, 2]**2)
-    print(f"Max x displacement = {wh_reshaped[:, 0].max():.2e}")
-    print(f"Max y displacement = {wh_reshaped[:, 1].max():.2e}")
-    print(f"Max z displacement = {wh_reshaped[:, 2].max():.2e}")
-    min_this_t = comm.allreduce(wh_magnitude.min(), op=MPI.MIN)
-    max_this_t = comm.allreduce(wh_magnitude.max(), op=MPI.MAX)
-
-    min_disp = min(min_disp, min_this_t)
-    max_disp = max(max_disp, max_this_t)
 
     wh_out.interpolate(wh)
     xdmf.write_function(wh_out, t)
@@ -220,16 +192,3 @@ for idx, t in enumerate(times):
 
 xdmf.close()
 xdmf_vel.close()
-
-# # Plot
-# if comm.size==1:
-#     for idx, t in enumerate(times):
-#         warped = grid.warp_by_vector(f"wh_{idx}", factor=25)
-#         actor1 = pl.add_mesh(warped, cmap=cmap, clim=[min_disp, max_disp])
-#         actor2 = pl.add_text(f"time = {t:.2f} sec")
-
-#         pl.write_frame()
-#         pl.remove_actor(actor1)
-#         pl.remove_actor(actor2)
-
-#     pl.close()
