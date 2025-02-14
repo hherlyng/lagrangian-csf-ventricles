@@ -7,6 +7,7 @@ dependencies:
   - adios4dolfinx
   - scifem
   - numpy
+  - pandas
   - scipy
   - matplotlib
   - pyvista
