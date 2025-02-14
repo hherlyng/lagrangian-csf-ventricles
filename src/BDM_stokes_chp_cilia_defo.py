@@ -185,8 +185,8 @@ if __name__=='__main__':
     v_chp, v_chp_expr, v_defo = setup_stokes_problem(mesh, ft, mesh_prefix)
     
     # Solution functions
-    uh = dfx.fem.Function(V)
-    ph = dfx.fem.Function(Q)
+    uh = dfx.fem.Function(V); uh.name = 'velocity'
+    ph = dfx.fem.Function(Q); ph.name = 'pressure'
     uh_rel = dfx.fem.Function(V)
 
     print("Number of dofs Stokes eqs: ")
@@ -197,7 +197,7 @@ if __name__=='__main__':
     # I/O function: Stokes velocity in DG1
     dg1_vec_el = element("DG", mesh.basix_cell(), 1, shape=(mesh.geometry.dim,))
     uh_out = dfx.fem.Function(dfx.fem.functionspace(mesh, dg1_vec_el))
-    uh_out.name = 'uh' 
+    uh_out.name = 'velocity' 
 
     uh_cg = dfx.fem.Function(dfx.fem.functionspace(mesh, element("Lagrange", mesh.basix_cell(), 1, shape=(mesh.geometry.dim,))))
 
@@ -209,16 +209,18 @@ if __name__=='__main__':
     velocity_cg_output.write_mesh(mesh)
 
     if write_cpoint:
-        cpoint_filename = f"../output/{mesh_prefix}-mesh/flow/checkpoints/velocity_chp+cilia+defo"
+        cpoint_filename = f"../output/{mesh_prefix}-mesh/flow/checkpoints/chp+cilia+defo"
         a4d.write_mesh(cpoint_filename, mesh, store_partition_info=True)
+        a4d.write_meshtags(cpoint_filename, mesh, ft)
 
     T = 2
-    dt = 0.05
+    dt = 0.02
     N = int(T / dt)
+    times = np.linspace(0, T, N+1)
 
     tic = time.perf_counter()
 
-    for t in np.linspace(0, T, N+1):
+    for t in times:
 
         # Update deformation velocity
         a4d.read_function(filename=v_defo_input_filename, u=v_defo, time=t)
@@ -228,29 +230,31 @@ if __name__=='__main__':
         # v_chp.x.array[:] += v_defo.x.array.copy()
 
         # Solve the Stokes equations
-        uh_, ph_ = solve_stokes(a, L, bcs, uh, ph) 
+        uh, ph = solve_stokes(a, L, bcs, uh, ph) 
 
         # Interpolate velocity into DG1 output function
-        uh_rel.x.array[:] = uh_.x.array.copy()# - v_defo.x.array.copy() # Velocity relative to deformation
-        uh_out.interpolate(uh_rel)
+        # uh_rel.x.array[:] = uh.x.array.copy()# - v_defo.x.array.copy() # Velocity relative to deformation
+        uh_out.interpolate(uh)
         uh_cg.interpolate(uh_out)
 
         # Write output
         velocity_output.write_mesh(mesh, t)
         velocity_output.write_function(uh_out, t)
         pressure_output.write_mesh(mesh, t)
-        pressure_output.write_function(ph_, t)
+        pressure_output.write_function(ph, t)
         velocity_cg_output.write_function(uh_cg, t)
 
-        if write_cpoint: a4d.write_function(cpoint_filename, uh_rel, time=t)
+        if write_cpoint:
+            a4d.write_function(cpoint_filename, uh, time=t)
+            a4d.write_function(cpoint_filename, ph, time=t)
 
         # Calculate mean pressure
         vol = assemble_scalar(1*ufl.dx(mesh))
-        print("Mean pressure: ", 1/vol*assemble_scalar(ph_*ufl.dx(mesh)))
+        print("Mean pressure: ", 1/vol*assemble_scalar(ph*ufl.dx(mesh)))
 
         # Calculate choroid plexus CSF flux
         normal_vec = ufl.FacetNormal(mesh) # Facet normal vector of mesh
-        calculate_choroid_plexus_flux(ds=ds, tags=choroid_plexus_tags, uh=uh_rel, n=normal_vec)
+        calculate_choroid_plexus_flux(ds=ds, tags=choroid_plexus_tags, uh=uh, n=normal_vec)
 
     print(f"Solution loop time elapsed: {time.perf_counter()-tic:.4f} sec")
 

@@ -52,7 +52,7 @@ print("Value of Lamé parameters:")
 print(f"mu \t= {mu_value:.2f}\nlambda \t= {lam_value:.2f}")
 
 # Timestep size [s]
-deltaT = 0.05
+deltaT = 0.02
 dt = dfx.fem.Constant(mesh, deltaT) 
 
 # Finite elements
