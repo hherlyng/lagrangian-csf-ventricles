@@ -93,8 +93,8 @@
 % Optional PDF information
 \ifpdf
 \hypersetup{
-  pdftitle={fluid-mechanics},
-  pdfauthor={H.~Herlyng et al.}
+  pdftitle={lagrangian-csf},
+  pdfauthor={H.~Herlyng and S.~Shadden}
 }
 \fi
 
@@ -107,6 +107,12 @@
 \end{abstract}
 
 \section{Introduction}
+Cerebrospinal fluid (CSF) flow is an important contributor to the regulatory processes of the brain.
+
+In this work, we study intraventricular CSF flow in larval zebrafish and adult human brain ventricles.
+The geometries are segmented from medical imaging data. First we simulate CSF flow using a finite
+element method, then the velocity fields are used to analyze flow topology using particle
+trajectories and finite-time Lyapunov exponent fields.
 
 \section{Methods}
 \subsection{Finite-Time Lyapunov exponent field}
@@ -133,7 +139,6 @@ is the symmetric part of the velocity gradient, or strain-rate tensor. We derive
 \end{align}
 where line two results from integration by parts of the stress term. 
 
-
 \subsection{Flow mechanisms and boundary conditions}
 We consider three fluid motion-inducing mechanisms, and model them as follows:
 \begin{itemize}
@@ -141,7 +146,7 @@ We consider three fluid motion-inducing mechanisms, and model them as follows:
     modeled with an imposed deformation velocity
     \item Secretion of CSF from the choroid plexus,
     modeled with an influx boundary condition on the velocity
-    \item Motile cilia beating, modeled as a tangential wall stress acting on the fluid
+    \item Motile cilia beating, modeled as a tangential boundary traction acting on the fluid
      
 \end{itemize}
 
@@ -152,7 +157,8 @@ deformation $\mathbf{d}(\xx, t)$ of the ventricles.
 The deformation velocity is then $\pdifft{\mathbf{d}}$, which is used in the boundary
 conditions for the Stokes equations when solving for the CSF velocity $\uu$.
 We assume that the deformation $\mathbf{d}$ only has a $z$ component (feet-head axis).
-The displacement is based on measurements~\cite{Kurtcuoglu2007ComputationalSylvius, Enzmann1992BrainImaging}.
+The displacement is based on measurements~\cite{Kurtcuoglu2007ComputationalSylvius,
+Enzmann1992BrainImaging}.
 
 \subsubsection{Choroid plexus secretion.}
 The secretion is modeled by imposing a normal velocity at the
@@ -174,105 +180,52 @@ may come from interstitial fluid transported through the ependymal cell
 layer of the brain ventricles walls into the ventricles~\cite{Brodal2016TheSystem}.
 
 \subsubsection{Cilia forces}
-Motile cilia are modeled by imposing forces on the fluid with a boundary condition on the tangential traction $P_{\nn}(\bsigmahat) = \btau = \tau P_{\nn}(\rr)$. Here $\bsigmahat=\bsigma\nn$ is the traction vector and  $P_{\nn}(\cdot)$ is the projection of a vector onto the plane which $\nn$ is normal to. The vector $\btau$ models the cilia motion. It has been shown that motile cilia beating direction is oriented by CSF production during neural development~\cite{Guirao2010CouplingCilia}. A previous study has considered directionality of the cilia forcing aligned with the wall shear stress of the macroscopic flow simulated in a production-only setup~\cite{Siyahhan2014FlowVentricles}. We apply a similar approach, simulating CSF flow with the boundary condition~\eqref{eq:choroid_plexus_BC} on $\Gchp$, a zero normal traction condition on the spinal canal and lateral apertures, and $\uu\cdot\nn=0$ on the rest of the boundary. In the tangential direction, the CSF is free to slip. The resulting velocity field, $\uu_{\mathrm{prod}}$, is normalized in length to yield the direction of the cilia:
+Motile cilia are modeled by imposing forces on the fluid with a
+boundary condition on the tangential traction
+$P_{\nn}(\bsigmahat) = \btau = \tau P_{\nn}(\rr)$.
+Here $\bsigmahat=\bsigma\nn$ is the traction vector and
+$P_{\nn}(\cdot)$ is the projection of a vector onto the plane which
+$\nn$ is normal to. The vector $\btau$ models the cilia motion.
+It has been shown that motile cilia beating direction is oriented by
+CSF production during neural development~\cite{Guirao2010CouplingCilia}.
+A previous study has considered directionality of the cilia forcing aligned
+with the wall shear stress of the macroscopic flow simulated in a
+production-only setup~\cite{Siyahhan2014FlowVentricles}.
+We apply a similar approach, simulating CSF flow with the
+boundary condition~\eqref{eq:choroid_plexus_BC} on $\Gchp$,
+a zero normal traction condition on the spinal canal and lateral apertures,
+and $\uu\cdot\nn=0$ on the rest of the boundary. In the
+tangential direction, the CSF is free to slip. The resulting velocity field,
+$\uu_{\mathrm{prod}}$, is normalized in length to yield the direction of the cilia:
 \begin{equation*}
     \rr = \frac{\uu_{\mathrm{prod}}}{|\uu_{\mathrm{prod}}|}.
 \end{equation*}
 
-The parameter $\tau$ determines the magnitude of $\btau$.
+The parameter $\tau$ determines the magnitude of $\btau$. In previous work on zebrafish modeling,
+we determined $\tau$ heuristically by comparing simulated CSF velocity fields with \emph{in vivo}
+flow data~\cite{Olstad, Herlyng}.
 
-\lyng{Should we do some "upper/lower bound" type of estimate? E.g., in the "maximal force" setting, how much do cilia contribute to flow structures?}
+Cilia directionality reference: Yamadori T. The directions of ciliary beat on the wall of the fourth ventricle in the mouse. Arch Histol Jpn 1977; 40: 283–296
+
+\lyng{Should we do some "upper/lower bound" type of estimate?
+E.g., in the "maximal force" setting, how much do cilia contribute to flow structures?}
+
+
+\subsection{Ventricular geometries and model scenarios}
+We consider two geometries: the ventricular geometry of a larval zebrafish at two days
+post-fertilization, and the brain ventricles of an adult (healthy) human. In larval zebrafish,
+choroid plexus secretion begins around four days post-fertilization. Therefore, we only consider
+cilia forces in this flow model. For the human brain, we impose both deformation, choroid plexus
+secretion and cilia forces.
+
 
 \subsection{To do}
 \begin{itemize}
-    \item Simulate an inflation of the ventricular geometry with the linear elasticity equation by increasing pressure (?) until a chosen point reaches the deformation in experimental curve, yields geometry at those time instances that the curve provides information about $\rightarrow$ interpolate in time
-    
-    \item Cilia directionality: Yamadori T. The directions of ciliary beat on the wall of the fourth ventricle in the mouse. Arch Histol Jpn 1977; 40: 283–296
+    \item 
 \end{itemize}
 
+
 \clearpage
-\subsection{Fluid and wall motion induced by the cardiac cycle}
-Imposing pressure boundary conditions is a way to simulate the back-and-forth motion of the fluid which results from cardiac beating. We do this by using the anterior and the posterior ends of the mesh as a fictitious inlet and outlet, respectively, and we consider the boundary conditions
-\begin{align}
-    (\mu\nabla\uu - p\mathbf{I})\nn &= \mathbf{0}, \quad\mathrm{on} \ \Gamma_1, \label{eq:zero_pressure_BC}\\
-    (\mu\nabla\uu - p\mathbf{I})\nn &= \Tilde{p}(t)\nn, \quad\mathrm{on} \ \Gamma_2, \label{eq:sine_pressure_BC}
-\end{align}
-where $\Gamma_1$ and $\Gamma_2$ are the regions of the boundary on the anterior and posterior parts of the mesh, respectively. The simulated motion follows from the applied pressure
-\begin{equation}
-    \Tilde{p}(t) = A\sin{\omega t},
-\end{equation}
-where $A$ is an amplitude tuned so that velocity data matches experimental data, and $\omega = 2\pi f$ is the angular frequency of the cardiac cycle frequency $f = 2.22$ Hz. With the boundary conditions~\eqref{eq:zero_pressure_BC} and~\eqref{eq:sine_pressure_BC}, the stress boundary integral in the weak form~\eqref{eq:weak_form_full} is split into two parts: $\Gamma_s$, where slip boundary conditions are applied; $\Gamma_p = \Gamma_1 \cup \Gamma_2$, where the pressure boundary conditions are applied. The integral over $\Gamma_s$ is handled as discussed in~\cref{sec:slip_BCs}.
-
-For the pressure boundary $\Gamma_p$, we write
-\begin{equation}
-    \intGp{\bm{\sigma}\nn\cdot\vv} = \intGp{(\mu\left(\nabla\uu + (\nabla\uu)^T\right) - p\mathbf{I})\nn\cdot\vv} = \intGp{\mu(\nabla\uu)^T\nn\cdot\vv} + \intGp{(\mu\nabla\uu - p\mathbf{I})\nn\cdot\vv}.
-\end{equation}
-The first term in the last expression including the transpose of the velocity gradient is kept in the bilinear form. The second term pertains to the boundary conditions we are setting. By application of~\eqref{eq:zero_pressure_BC} and~\eqref{eq:sine_pressure_BC} we get
-\begin{equation}
-    \intGp{(\mu\nabla\uu - p\mathbf{I})\nn\cdot\vv} = \int_{\Gamma_2}\Tilde{p}(t)\nn\cdot\vv \, ds.
-\end{equation}
-For this model scenario, we redefine the abstract weak form~\eqref{eq:mom_weak_abstract} of the momentum equation to
-\begin{equation}
-    a(\uu, \vv) + c_p(\uu, \vv) + b(p, \vv) = L_p(\vv), \quad\forall\vv\in\VV
-\end{equation}
-where
-\begin{align}
-    c_p(\uu, \vv) &= -\intGp{\mu\big(\nabla\uu)^T\nn\cdot\vv}, \\
-    L_p(\vv) &= \int_{\Gamma_2}\Tilde{p}(t)\nn\cdot\vv ds.
-\end{align}
-
-Back-and-forth motion can also be modeled by imposing a rigid motion on the fluid domain. Consider the Stokes equations 
-\begin{subequations}
-    \begin{alignat}{2}
-        \rho\pdifft{\uu} &= \nabla\cdot\bm{\sigma}(\uu, p), \\
-        \nabla\cdot\uu &= 0,
-    \end{alignat}
-    \label{eq:stokes_eqs}%
-\end{subequations}%
-on the time-dependent, moving domain $\Omega_t$, which has a reference frame with coordinates $\hat{\xx} = (\hat{x}, \hat{y}, \hat{z})$ attached to the moving domain. In $\Omega_t$, we thus consider variables $\psi(\hat{\xx}, t)$, so in~\eqref{eq:stokes_eqs} we have $\uu(\hat{\xx}, t)$ and $p(\hat{\xx}, t)$. Denote $\Omega$ the domain in the absolute, fixed reference frame with coordinates $\xx = (x, y, z)$, where variables are defined as $\psi(\xx, t)$. To avoid moving the computational mesh, we want to solve the Stokes equations in the absolute reference frame. We can achieve this by transformation of the variables in~\eqref{eq:stokes_eqs}. Define the transformation 
-\begin{equation}
-    \varphi(t) : \psi(\hat{\xx}, t) \rightarrow \psi(\xx, t)
-\end{equation}
-and assume that $\varphi(t)$ is injective. Differentiation and application of the chain rule yields
-\begin{equation}
-    \begin{aligned}
-        \pdifft{\psi}(\hat{\xx}, t) &= \pdifft{\psi}(\xx, t) + \frac{\partial \psi}{\partial\hat{\xx}}\pdifft{\hat{\xx}} \\
-        &= \pdifft{\psi}(\xx, t) + \frac{\partial \psi}{\partial\xx}\frac{\partial\xx}{\partial\hat{\xx}}\pdifft{\hat{\xx}} \\
-        &= \pdifft{\psi}(\xx, t) + \frac{\partial \psi}{\partial\xx}\pdifft{\hat{\xx}},
-    \end{aligned}
-\end{equation}
-where the last line follows from the fact that the motion of the moving reference frame is rigid. If we denote $\uu_{\mathrm{ref}} = \partial\hat{\xx}/\partial t$, we have
-\begin{equation}
-    \pdifft{\psi}(\hat{\xx}, t) = \pdifft{\psi}(\xx, t) + \uu_{\mathrm{ref}}\cdot\nabla\psi,
-    \label{eq:temporal_derivative_relation}
-\end{equation}
-where the second term leads to the interpretation that the variable $\psi(\xx, t)$ in the fixed reference frame is advected with the velocity $\uu_{\mathrm{ref}}$ of the domain $\Omega_t$ in the moving reference frame. Using the relation~\eqref{eq:temporal_derivative_relation}, we can rewrite~\eqref{eq:stokes_eqs} in the fixed reference frame:
-\begin{subequations}
-    \begin{alignat}{2}
-        \rho\bigg(\pdifft{\uu} + (\uu_{\mathrm{ref}}\cdot\nabla)\uu\bigg) &= \nabla\cdot\bm{\sigma}(\uu, p), \label{eq:mom_eq_fixed}\\
-        \nabla\cdot\uu &= 0.
-    \end{alignat}
-    \label{eq:stokes_eqs_fixed}%
-\end{subequations}%
-The divergence operators are unchanged, owing to the rigidity of the reference frame motion. The convection term in~\eqref{eq:mom_eq_fixed} leads to rewriting~\eqref{eq:mom_weak_abstract} to
-\begin{equation}
-    a(\uu, \vv) + c_{\mathrm{fixed}}(\uu, \vv) + b(p, \vv) = L_s(\vv), \quad\forall\vv\in\VV
-\end{equation}
-with
-\begin{equation}
-    c_{\mathrm{fixed}}(\uu, \vv) = \rho\intO{(\uu_{\mathrm{ref}}\cdot\nabla)\uu\cdot\vv}.
-\end{equation}
-
-Boundary conditions must also be reconsidered. In the moving domain, the boundary conditions are
-\begin{align}
-    \ww\cdot\nn &= 0, \label{eq:imperm_BC_moving}\\
-    P_{\nn}(\bm{\sigma}(\ww, p)\nn) &= \mathbf{0}, \label{eq:slip_BC_moving}
-\end{align}
-with $\ww = \uu - \uu_{\mathrm{ref}}$ being the fluid velocity in the moving reference frame. The first condition~\eqref{eq:imperm_BC_moving} simply becomes
-\begin{equation}
-    \uu\cdot\nn = \uu_{\mathrm{ref}}\cdot\nn.
-\end{equation}
-The second condition~\eqref{eq:slip_BC_moving} is readily satisfied, since $\bm{\varepsilon}(\uu_{\mathrm{ref}}) = \mathbf{0}$ owing to the rigidity of the reference frame motion.
 
 \subsection{Weak formulation}
 \subsubsection{Tangential traction}
@@ -346,6 +299,15 @@ where $\mathcal{E}$ are all internal facets of the mesh. Furthermore, $\gamma > 
     \avg{\bm{\phi}}  &= \frac{1}{2}\big((\bm{\phi}\cdot\nn)\vert_{+} - (\bm{\phi}\cdot\nn)\vert_{-} \big),
 \end{align}
 where $\bm{\phi}\vert_{+}$ is used to denote the value of the variable $\bm{\phi}$ on the side of the edge $\mathcal{E}$ where $\nn$ is pointing out of the cell. Correspondingly, $\bm{\phi}\vert_{-}$ is the variable value on the side of the edge $\mathcal{E}$ where  $\nn$ is pointing inwards.
+
+\section{Results}
+We present the CSF flow simulated in the brain ventricles. To assess the validity of the flow, we compare some
+quantities of interest with previous works~\cite{Kurtcuoglu2007ComputationalSylvius, Causemann2022HumanFramework}:
+\begin{itemize}
+    \item The pressure gradient in the cerebral aqueduct
+
+    \item The flow rate in the cerebral aqueduct and the outlet to the spinal canal
+\end{itemize}
 
 \clearpage
 
