@@ -45,17 +45,19 @@ cilia_tags = (AQUEDUCT_WALL, FORAMINA_34_WALL, LATERAL_VENTRICLES_WALL, FOURTH_V
 choroid_plexus_tags = (CHOROID_PLEXUS_LATERAL, CHOROID_PLEXUS_THIRD, CHOROID_PLEXUS_FOURTH)
 deformation_tags = [tag for tag in cilia_tags if tag not in choroid_plexus_tags]
 
-def calculate_choroid_plexus_flux(ds: ufl.Measure, tags: tuple[int], uh: dfx.fem.Function, n: ufl.FacetNormal):
+def calculate_fluxes(ds: ufl.Measure, tags: tuple[int],
+                                  uh: dfx.fem.Function, uh_rel: dfx.fem.Function,
+                                  n: ufl.FacetNormal):
     """ Calculate the total amount of CSF produced by the choroid plexi. """
 
     # Calculate production (minus signs because n=outward unit normal)
-    prod_total = assemble_scalar(-dot(uh, n)*ds(tags))
-    prod_laterals = assemble_scalar(-dot(uh, n)*ds(tags[0]))
-    prod_third = assemble_scalar(-dot(uh, n)*ds(tags[1]))
-    prod_fourth = assemble_scalar(-dot(uh, n)*ds(tags[2]))
+    prod_total = assemble_scalar(-dot(uh_rel, n)*ds(tags))
+    prod_laterals = assemble_scalar(-dot(uh_rel, n)*ds(tags[0]))
+    prod_third = assemble_scalar(-dot(uh_rel, n)*ds(tags[1]))
+    prod_fourth = assemble_scalar(-dot(uh_rel, n)*ds(tags[2]))
     
     # Convert to ml/day
-    conversion_factor = 86400*1e6 # Convert m^3->ml and seconds->day
+    conversion_factor = 86400*1e6 # Convert m^3/second -> ml/day
     values = conversion_factor*np.array([prod_total, prod_laterals, prod_third, prod_fourth])
 
     # Print the values
@@ -65,7 +67,9 @@ def calculate_choroid_plexus_flux(ds: ufl.Measure, tags: tuple[int], uh: dfx.fem
     print(f"Third:\t\t{values[2]:.3g}")
     print(f"Fourth:\t\t{values[3]:.3g}")
 
-    print(f"Total boundary flux:\t\t{conversion_factor*assemble_scalar(-dot(uh, n)*ds)}")
+    # Check that mass is conserved by calculating total boundary flux
+    total_boundary_flux = assemble_scalar(-dot(uh, n)*ds)
+    assert total_boundary_flux < 1e-10, print("Mass conservation violated.")
 
 def setup_stokes_problem(mesh: dfx.mesh.Mesh, ft: dfx.mesh.MeshTags, mesh_prefix: str):
     facet_dim = mesh.topology.dim-1
@@ -199,14 +203,10 @@ if __name__=='__main__':
     uh_out = dfx.fem.Function(dfx.fem.functionspace(mesh, dg1_vec_el))
     uh_out.name = 'velocity' 
 
-    uh_cg = dfx.fem.Function(dfx.fem.functionspace(mesh, element("Lagrange", mesh.basix_cell(), 1, shape=(mesh.geometry.dim,))))
-
     velocity_output_filename = f"../output/{mesh_prefix}-mesh/flow/velocity_chp+cilia+defo.pvd"
     velocity_output = dfx.io.VTKFile(comm, velocity_output_filename, "w")
     pressure_output_filename = f"../output/{mesh_prefix}-mesh/flow/pressure_chp+cilia+defo.pvd"
     pressure_output = dfx.io.VTKFile(comm, pressure_output_filename, "w")
-    velocity_cg_output = dfx.io.XDMFFile(comm, f'../output/{mesh_prefix}-mesh/flow/cg_velocity.xdmf', 'w')
-    velocity_cg_output.write_mesh(mesh)
 
     if write_cpoint:
         cpoint_filename = f"../output/{mesh_prefix}-mesh/flow/checkpoints/chp+cilia+defo"
@@ -227,22 +227,19 @@ if __name__=='__main__':
         
         # Account for deformation in choroid plexus flux BC
         v_chp.interpolate(v_chp_expr)
-        # v_chp.x.array[:] += v_defo.x.array.copy()
+        v_chp.x.array[:] += v_defo.x.array.copy()
 
         # Solve the Stokes equations
         uh, ph = solve_stokes(a, L, bcs, uh, ph) 
 
         # Interpolate velocity into DG1 output function
-        # uh_rel.x.array[:] = uh.x.array.copy()# - v_defo.x.array.copy() # Velocity relative to deformation
         uh_out.interpolate(uh)
-        uh_cg.interpolate(uh_out)
 
         # Write output
         velocity_output.write_mesh(mesh, t)
         velocity_output.write_function(uh_out, t)
         pressure_output.write_mesh(mesh, t)
         pressure_output.write_function(ph, t)
-        velocity_cg_output.write_function(uh_cg, t)
 
         if write_cpoint:
             a4d.write_function(cpoint_filename, uh, time=t)
@@ -254,7 +251,8 @@ if __name__=='__main__':
 
         # Calculate choroid plexus CSF flux
         normal_vec = ufl.FacetNormal(mesh) # Facet normal vector of mesh
-        calculate_choroid_plexus_flux(ds=ds, tags=choroid_plexus_tags, uh=uh, n=normal_vec)
+        uh_rel.x.array[:] = uh.x.array.copy() - v_defo.x.array.copy() # Relative velocity
+        calculate_fluxes(ds=ds, tags=choroid_plexus_tags, uh=uh, uh_rel=uh_rel, n=normal_vec)
 
     print(f"Solution loop time elapsed: {time.perf_counter()-tic:.4f} sec")
 

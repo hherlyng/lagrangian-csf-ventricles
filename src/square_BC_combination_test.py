@@ -26,7 +26,7 @@ class RightBoundaryDeformation:
         self.T = 1
     
     def __call__(self, x):
-        return self.A*np.sin(2*np.pi*self.t/self.T)*np.cos(3/2*np.pi*x[1])*np.stack((np.ones(x.shape[1]),
+        return self.A*np.sin(2*np.pi*self.t/self.T)*np.cos(np.pi*x[1])*np.stack((np.ones(x.shape[1]),
                                                               np.zeros(x.shape[1])))
 
 def create_direct_solver(A: PETSc.Mat, comm: MPI.Comm):
@@ -58,22 +58,6 @@ def solve_stokes(a: dfx.fem.form, L: dfx.fem.form, bcs: list[dfx.fem.DirichletBC
     ph.x.scatter_forward()
 
     return uh, ph
-# def solve_stokes(a: dfx.fem.form, L: dfx.fem.form, bcs: list[dfx.fem.DirichletBC],
-#                  uh: dfx.fem.Function, ph: dfx.fem.Function, lmh: dfx.fem.Function):
-    
-#     A, b = assemble_nested_system(a, L, bcs)
-
-#     ksp = create_direct_solver(A, comm)
-
-#     w = PETSc.Vec().createNest([uh.x.petsc_vec, ph.x.petsc_vec, lmh.x.petsc_vec])
-#     ksp.solve(b, w)
-#     assert ksp.getConvergedReason() > 0, print(ksp.getConvergedReason())
-
-#     # MPI communcation
-#     uh.x.scatter_forward()
-#     ph.x.scatter_forward()
-
-#     return uh, ph, lmh
     
 mesh, ft = create_square_mesh_with_tags(N_cells=16)
 comm = mesh.comm
@@ -172,15 +156,13 @@ T = 1
 N = int(T / dt)
 for t in np.linspace(dt, T, N):
     print(f'Time = {t:.4g}')
-    # v_defo_left_expr.t = t
+    v_defo_left_expr.t = t
     v_defo_right_expr.t = t
     v_defo_left.interpolate(v_defo_left_expr)
     v_defo_right.interpolate(v_defo_right_expr)
     
     uh, ph = solve_stokes(a, L, bcs, uh, ph)
-    # uh.x.array[v_dofs_defo_left] -= v_defo_left.x.array[v_dofs_defo_left]
-    # uh.x.array[v_dofs_defo_right] -= v_defo_right.x.array[v_dofs_defo_right]
-    print(v_defo_right.x.array[v_dofs_defo_right])
+    
     uh_out.interpolate(uh)
     velocity_out.write_mesh(mesh, t)
     velocity_out.write_function(uh_out, t)
@@ -190,6 +172,3 @@ for t in np.linspace(dt, T, N):
     print(f'Boundary flux: {assemble_scalar(dot(uh, n)*ds):.4g}')
 
 velocity_out.close()
-
-
-# uh, ph, _ = solve_stokes(a, L, bcs, uh, ph, lmh)

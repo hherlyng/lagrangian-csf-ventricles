@@ -25,7 +25,7 @@ LATERAL_APERTURES = 28
 # prescribed in time at a single point (close to corpus callosum).
 comm = MPI.COMM_WORLD
 mesh_prefix = 'medium'
-with dfx.io.XDMFFile(comm, f"../geometries/{mesh_prefix}_ventricles_mesh_tagged_newChP.xdmf", "r") as xdmf:
+with dfx.io.XDMFFile(comm, f"../geometries/{mesh_prefix}_ventricles_mesh_tagged.xdmf", "r") as xdmf:
     mesh = xdmf.read_mesh()
     
     # Generate mesh entities    
@@ -118,7 +118,7 @@ opts["mg_levels_ksp_chebyshev_esteig_steps"] = 10
 solver = PETSc.KSP().create(comm)
 solver.setOperators(A)
 solver.setFromOptions()
-# solver.setMonitor(lambda _, its, rnorm: print(f"Iteration: {its}, residual: {rnorm}"))
+solver.setMonitor(lambda _, its, rnorm: print(f"Iteration: {its}, residual: {rnorm}"))
 
 T = 2
 period = 1
@@ -134,6 +134,7 @@ CG1_vector_space = dfx.fem.functionspace(mesh,
                                                          mesh.basix_cell(),
                                                          degree=1,
                                                          shape=(mesh.geometry.dim,)))
+
 wh_out = dfx.fem.Function(CG1_vector_space)
 vh_out = dfx.fem.Function(CG1_vector_space)
 dw_dt = dfx.fem.Function(W)
@@ -173,7 +174,7 @@ for idx, t in enumerate(times):
 
     wh_out.interpolate(wh)
     xdmf.write_function(wh_out, t)
-
+    
     # Calculate deformation velocity by a central difference in time
     dw_dt.x.array[:] = \
         (wh.x.array.copy() - 2*wh_n.x.array.copy() + wh_nmin.x.array.copy())/deltaT**2

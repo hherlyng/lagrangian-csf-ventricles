@@ -37,6 +37,20 @@ ph = dfx.fem.Function(Q)
 n = ufl.FacetNormal(mesh)
 u_flux = ufl.dot(uh, n)
 
+# Compute cross-sectional areas and length of aqueduct
+dS = ufl.Measure('dS', domain=mesh, subdomain_data=ft)
+area_top_aq = assemble_scalar(1*dS(AQUEDUCT_TOP))
+area_bot_aq = assemble_scalar(1*dS(AQUEDUCT_BOT))
+facet_top_aq = ft.find(AQUEDUCT_TOP)[0]
+facet_bot_aq = ft.find(AQUEDUCT_BOT)[0]
+mesh.topology.create_connectivity(mesh.topology.dim-1, 0)
+f_to_v = mesh.topology.connectivity(mesh.topology.dim-1, 0)
+vertex_top_aq = f_to_v.links(facet_top_aq)[0]
+vertex_bot_aq = f_to_v.links(facet_bot_aq)[0]
+point_top_aq = mesh.geometry.x[vertex_top_aq, :]
+point_bot_aq = mesh.geometry.x[vertex_bot_aq, :]
+length_aq = np.sqrt(np.sum((point_top_aq-point_bot_aq)**2))
+
 T = 2
 dt = 0.02
 N = int(T / dt)
@@ -51,21 +65,6 @@ for t in times:
 
     a4d.read_function(filename=infile_name, u=uh, time=t, name='velocity')
     a4d.read_function(filename=infile_name, u=ph, time=t, name='pressure')
-
-    # Compute cross-sectional areas and length of aqueduct
-    dS = ufl.Measure('dS', domain=mesh, subdomain_data=ft)
-    area_top_aq = assemble_scalar(1*dS(AQUEDUCT_TOP))
-    area_bot_aq = assemble_scalar(1*dS(AQUEDUCT_BOT))
-
-    facet_top_aq = ft.find(AQUEDUCT_TOP)[0]
-    facet_bot_aq = ft.find(AQUEDUCT_BOT)[0]
-    mesh.topology.create_connectivity(mesh.topology.dim-1, 0)
-    f_to_v = mesh.topology.connectivity(mesh.topology.dim-1, 0)
-    vertex_top_aq = f_to_v.links(facet_top_aq)[0]
-    vertex_bot_aq = f_to_v.links(facet_bot_aq)[0]
-    point_top_aq = mesh.geometry.x[vertex_top_aq, :]
-    point_bot_aq = mesh.geometry.x[vertex_bot_aq, :]
-    length_aq = np.sqrt(np.sum((point_top_aq-point_bot_aq)**2))
 
     # Calculate flow rates
     flowrate_top_aq = assemble_scalar(u_flux('+')*dS(AQUEDUCT_TOP))*m3_to_ml
@@ -88,18 +87,20 @@ flowrates_top_aq = np.array(flowrates_top_aq)
 flowrates_bot_aq = np.array(flowrates_bot_aq)
 pressure_gradients_aq = np.array(pressure_gradients_aq)
 
+print(f'Sum of flow rates = {np.sum(flowrates_top_aq[1:]+flowrates_top_aq[:-1])/2*dt:.4g}')
+
 fig, ax = plt.subplots(figsize=[16, 9])
-pl1, = ax.plot(times, flowrates_top_aq, color='k', label='aqueduct flowrate')
+pl1, = ax.plot(times, flowrates_top_aq, color='k', label='flowrate')
 ax.set_ylabel('ml/s', fontsize=40)
 ax.tick_params(axis='both', labelsize=30)
 
 ax2 = ax.twinx()
-pl2, = ax2.plot(times, pressure_gradients_aq, color='r', label='aqueduct pressure gradient')
+pl2, = ax2.plot(times, pressure_gradients_aq, color='r', label='pressure gradient')
 ax2.set_ylabel('mmHg/m', color=pl2.get_color(), fontsize=40)
 ax2.tick_params(axis='y', colors=pl2.get_color(), labelsize=30)
 
 ax.set_xlabel('Time [s]', fontsize=40) 
 ax.legend([pl1, pl2], [pl1.get_label(), pl2.get_label()],
-           fontsize=20, loc='upper left', frameon=True, fancybox=False, edgecolor='k')
+           fontsize=20, loc='upper right', frameon=True, fancybox=False, edgecolor='k')
 fig.tight_layout()
 plt.show()
