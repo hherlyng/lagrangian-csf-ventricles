@@ -107,8 +107,9 @@ def assemble_nested_system(lhs_form: dfx.fem.form,
     return A, b
 
 def compute_exterior_facet_entities(mesh: dfx.mesh.Mesh, facets: np.ndarray[np.int32]):
-    """Copyright (C) 2019-2024 Michal Habera and Jørgen S. Dokken.
-       Helper function to compute (cell, local_facet_index) pairs for exterior facets. """
+    """ Helper function to compute (cell, local_facet_index) pairs for exterior facets. 
+        Copyright (C) 2019-2024 Michal Habera and Jørgen S. Dokken.
+    """
     tdim = mesh.topology.dim
     mesh.topology.create_connectivity(tdim - 1, tdim)
     mesh.topology.create_connectivity(tdim, tdim - 1)
@@ -129,9 +130,9 @@ def compute_exterior_facet_entities(mesh: dfx.mesh.Mesh, facets: np.ndarray[np.i
 
 def create_normal_contribution_bc(Q: dfx.fem.FunctionSpace, expr: ufl.core.expr.Expr, facets: np.typing.NDArray[np.int32]) -> dfx.fem.Function:
     """
-    Create function representing normal vector.
-    SPDX-License-Identifier:    MIT
-    Author: Jørgen S. Dokken
+    Create function representing normal flux.
+    SPDX-License-Identifier:    MIT.
+    Author: Jørgen S. Dokken.
     """
     domain = Q.mesh
     Q_el = Q.element
@@ -139,7 +140,7 @@ def create_normal_contribution_bc(Q: dfx.fem.FunctionSpace, expr: ufl.core.expr.
     # Compute integration entities (cell, local_facet index) for all facets
     boundary_entities = compute_exterior_facet_entities(domain, facets)
     interpolation_points = Q_el.basix_element.x
-    fdim = domain.topology.dim - 1
+    fdim = domain.topology.dim-1
 
     c_el = domain.ufl_domain().ufl_coordinate_element()
     ref_top = c_el.reference_topology
@@ -151,13 +152,15 @@ def create_normal_contribution_bc(Q: dfx.fem.FunctionSpace, expr: ufl.core.expr.
                      
     # Pull back interpolation points from reference coordinate element to facet reference element
     facet_cmap = element(
-        "Lagrange", cell_to_facet[domain.topology.cell_name()], c_el.degree, shape=(domain.geometry.dim, ), dtype=np.float64)
+        "Lagrange", cell_to_facet[domain.topology.cell_name()], c_el.degree, shape=(domain.geometry.dim,), dtype=np.float64)
     facet_cel = dfx.cpp.fem.CoordinateElement_float64(
         facet_cmap.basix_element._e)
     reference_facet_points = None
+    from IPython import embed;embed()
     for i, points in enumerate(interpolation_points[fdim]):
         geom = ref_geom[ref_top[fdim][i]]
         ref_points = facet_cel.pull_back(points, geom)
+
         # Assert that interpolation points are all equal on all facets
         if reference_facet_points is None:
             reference_facet_points = ref_points
@@ -190,3 +193,23 @@ def create_normal_contribution_bc(Q: dfx.fem.FunctionSpace, expr: ufl.core.expr.
     qh.x.scatter_forward()
     
     return qh
+
+def compute_cell_boundary_int_entities(mesh: dfx.mesh.Mesh):
+    """Compute the integration entities for integrals around the
+    boundaries of all cells in msh.
+
+    Parameters:
+        mesh: The mesh.
+
+    Returns:
+        Facets to integrate over, identified by ``(cell, local facet
+        index)`` pairs.
+
+    Copyright (C) Joe Dean 2025.
+    """
+    tdim = mesh.topology.dim
+    fdim = tdim - 1
+    n_f = dfx.cpp.mesh.cell_num_entities(mesh.topology.cell_type, fdim)
+    n_c = mesh.topology.index_map(tdim).size_local
+
+    return np.vstack((np.repeat(np.arange(n_c), n_f), np.tile(np.arange(n_f), n_c))).T.flatten()

@@ -2,16 +2,45 @@ from mpi4py import MPI
 import numpy   as np
 import dolfinx as dfx
 
-def create_square_mesh_with_tags(N_cells: int) -> tuple((dfx.mesh.Mesh, dfx.mesh.MeshTags)):
-        mesh = dfx.mesh.create_unit_square(MPI.COMM_WORLD, N_cells, N_cells,
-                                           cell_type=dfx.mesh.CellType.triangle,
-                                           ghost_mode=dfx.mesh.GhostMode.shared_facet)
+def create_square_mesh_with_tags(N: int, comm: MPI.Comm=MPI.COMM_WORLD,
+                                 ghost_mode=dfx.mesh.GhostMode.shared_facet) \
+                                 -> tuple((dfx.mesh.Mesh, dfx.mesh.MeshTags)):
+        """ Create a unit square mesh with N x N cells, with boundary facet tags:
+                Left   = 1 \n
+                Right  = 2 \n
+                Bottom = 3 \n
+                Top    = 4
 
+        Parameters
+        ----------
+        N : int
+            Mesh cells in x and y directions (total # cells will be N x N).
+        
+        comm:  MPI.Comm
+            MPI communicator, by default MPI.COMM_WORLD.
+        
+        ghost_mode
+            Mode for handling ghosting of mesh cells and nodes, by default dfx.mesh.GhostMode.shared_facet.
+
+        Returns
+        -------
+        mesh : dfx.mesh.Mesh
+            The mesh.
+            
+        ft   : dfx.mesh.Meshtags
+            The mesh facet tags.
+        """
+        mesh = dfx.mesh.create_unit_square(
+                                comm,
+                                N, N,
+                                ghost_mode=ghost_mode
+                                )
         def left(x): return np.isclose(x[0], 0.0)
         def right(x): return np.isclose(x[0], 1.0)
         def bottom(x): return np.isclose(x[1], 0.0)
         def top(x): return np.isclose(x[1], 1.0)
-        LEFT = 1; RIGHT = 2; BOT = 3; TOP = 4
+        LEFT=1; RIGHT=2; BOT=3; TOP=4
+
         # Facet tags
         bc_facet_indices, bc_facet_markers = [], []
         fdim = mesh.topology.dim - 1
