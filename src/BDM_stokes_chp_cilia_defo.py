@@ -10,7 +10,7 @@ from scifem    import assemble_scalar
 from mpi4py    import MPI
 from petsc4py  import PETSc
 from basix.ufl import element
-from utilities.fem import stabilization, tangent, eps, assemble_nested_system, create_normal_contribution_bc
+from utilities.fem import stabilization, tangent, eps, assemble_nested_system, create_normal_contribution_bc, calculate_mean
 
 print = PETSc.Sys.Print
 
@@ -184,7 +184,7 @@ if __name__=='__main__':
     mesh = a4d.read_mesh(v_defo_input_filename, comm, read_from_partition=False)
     ft   = a4d.read_meshtags(v_defo_input_filename, mesh, meshtag_name='ft')
 
-    # Setup the Sokes problem
+    # Setup the Stokes problem
     a, L, bcs, V, Q, ds, \
     v_chp, v_chp_expr, v_defo = setup_stokes_problem(mesh, ft, mesh_prefix)
     
@@ -203,13 +203,14 @@ if __name__=='__main__':
     uh_out = dfx.fem.Function(dfx.fem.functionspace(mesh, dg1_vec_el))
     uh_out.name = 'velocity' 
 
-    velocity_output_filename = f"../output/{mesh_prefix}-mesh/flow/velocity_chp+cilia+defo.pvd"
+    output_dir = f'../output/{mesh_prefix}-mesh/flow/stokes/'
+    velocity_output_filename = output_dir + 'velocity_chp+cilia+defo.pvd'
     velocity_output = dfx.io.VTKFile(comm, velocity_output_filename, "w")
-    pressure_output_filename = f"../output/{mesh_prefix}-mesh/flow/pressure_chp+cilia+defo.pvd"
+    pressure_output_filename = output_dir + 'pressure_chp+cilia+defo.pvd'
     pressure_output = dfx.io.VTKFile(comm, pressure_output_filename, "w")
 
     if write_cpoint:
-        cpoint_filename = f"../output/{mesh_prefix}-mesh/flow/checkpoints/chp+cilia+defo"
+        cpoint_filename = output_dir + 'checkpoints/chp+cilia+defo'
         a4d.write_mesh(cpoint_filename, mesh, store_partition_info=True)
         a4d.write_meshtags(cpoint_filename, mesh, ft)
 
@@ -235,6 +236,9 @@ if __name__=='__main__':
         # Interpolate velocity into DG1 output function
         uh_out.interpolate(uh)
 
+        # Subtract mean pressure so that mean=0
+        ph.x.array[:] -= calculate_mean(mesh, ph, ufl.dx)
+
         # Write output
         velocity_output.write_mesh(mesh, t)
         velocity_output.write_function(uh_out, t)
@@ -244,10 +248,6 @@ if __name__=='__main__':
         if write_cpoint:
             a4d.write_function(cpoint_filename, uh, time=t)
             a4d.write_function(cpoint_filename, ph, time=t)
-
-        # Calculate mean pressure
-        vol = assemble_scalar(1*ufl.dx(mesh))
-        print("Mean pressure: ", 1/vol*assemble_scalar(ph*ufl.dx(mesh)))
 
         # Calculate choroid plexus CSF flux
         normal_vec = ufl.FacetNormal(mesh) # Facet normal vector of mesh

@@ -2,187 +2,37 @@ from mpi4py   import MPI
 from petsc4py import PETSc
 
 import ufl
-import time
 import numpy   as np
 import dolfinx as dfx
-import adios4dolfinx as a4d
 from ufl    import div, dot, grad, inner, outer
 from scifem import assemble_scalar
-from basix.ufl import element
 from utilities.fem     import create_normal_contribution_bc, compute_cell_boundary_int_entities, calculate_mean, calculate_norm_L2
-from dolfinx.fem.petsc import assemble_matrix_block, assemble_vector_block, create_matrix_block, create_vector_block
+from utilities.mesh    import create_square_mesh_with_tags
+from dolfinx.fem.petsc import assemble_matrix_block, assemble_vector_block
+
+# Parabolic velocity profile
+def u_parabolic(x):
+    return np.vstack((Re*(x[1]-x[1]**2),
+                      np.zeros_like(x[1])
+    ))
 
 # Jump operator
 jump = lambda phi, n: outer(phi('+'), n('+')) + outer(phi('-'), n('-'))
 
-class NavierStokesProblem:
-
-    comm = MPI.COMM_WORLD # MPI communicator
-
-    # Simulation parameters
-    t = 0.0
-    num_time_steps = 20
-    t_end = 2
-    delta_t = t_end/num_time_steps # Timestep size
-    polynomial_degree = 1 # Polynomial degree
-
-    def __init__(self) -> None:
-        pass
-
-    def setup_spaces(self):
-        """ Create finite element function spaces for the velocity and for the pressure,
-            both on the mesh and the submesh. """
-        mesh, submesh = self.mesh, self.submesh
-        gdim = mesh.geometry.dim
-        k = self.polynomial_degree
-
-        self.V = dfx.fem.functionspace(mesh, ('Discontinuous Brezzi-Douglas-Marini', k+1))
-        self.Q = dfx.fem.functionspace(mesh, ('Discontinuous Lagrange', k))
-        self.Vbar = dfx.fem.functionspace(submesh, ('Discontinuous Lagrange', k+1, (gdim,)))
-        self.Qbar = dfx.fem.functionspace(submesh, ('Discontinuous Lagrange', k+1))
-        self.M = ufl.MixedFunctionSpace(V, Q, Vbar, Qbar)
-
-    def calculate_offsets(self):
-        """ Create offsets for accessing the blocked functions
-            in the local degree of freedom vectors. """
-        self.offset_u = self.V.dofmap.index_map.size_local * self.V.dofmap.index_map_bs
-        self.offset_p = offset_u + self.Q.dofmap.index_map.size_local*self.Q.dofmap.index_map_bs
-        self.offset_ubar = offset_p + self.Vbar.dofmap.index_map.size_local*self.Vbar.dofmap.index_map_bs
-
-    def create_direct_solver(self, A: PETSc.Mat):
-        solver = PETSc.KSP().create(self.comm)
-        solver.setOperators(A)
-        solver.setType("preonly")
-        pc = solver.getPC()
-        pc.setType("lu")
-        pc.setFactorSolverType("mumps")
-        pc.setFactorSetUpSolverType()
-
-        self.solver = solver
-
-    def initialize_navier_stokes(self):
-        """ Initialize the linear system of the Navier-Stokes problem,
-            and create a linear solver for the problem. """
-        self.A = create_matrix_block(self.a)
-        self.A.assemble()
-        self.b = create_vector_block(self.L) # Right-hand side vector
-        self.x = A.createVecRight() # Solution vector
-        self.solver = self.create_direct_solver(self.A) # Linear solver
-
-    def solve_navier_stokes(self):
-        """ Assemble and solve the Navier-Stokes system of equations. """
-        self.A.zeroEntries()
-        assemble_matrix_block(self.A, self.a, bcs=self.bcs)
-        self.A.assemble()
-
-        with self.b.localForm() as b_loc: b_loc.set(0)
-        assemble_vector_block(self.b, self.L, self.a, bcs=self.bcs)
-
-        self.solver.solve(self.b, self.x)
-        assert ksp.getConvergedReason() > 0, print(ksp.getConvergedReason())
-
-        # MPI communcation
-        uh.x.scatter_forward()
-        ph.x.scatter_forward()
-
-        # Update previous timesteps
-        self.u_h.x.array[:self.offset_u] = self.x.array_r[:self.offset_u]
-        self.u_h.x.scatter_forward()
-        self.p_h.x.array[:(self.offset_p-self.offset_u)] = self.x.array_r[self.offset_u:self.offset_p]
-        self.p_h.x.scatter_forward()
-        self.p_h.x.array[:] -= calculate_mean(self.mesh, self.p_h)
-        self.ubar_.x.array[:(self.offset_ubar-self.offset_p)] = x.array_r[self.offset_p:self.offset_ubar]
-        self.ubar_.x.scatter_forward()
-
-
-if __name__=='__main__':
-    from sys import argv
-    write_cpoint = True if int(argv[1])==1 else False
-
-    # Read mesh
-    comm = MPI.COMM_WORLD
-    mesh_prefix = 'medium'
-    v_defo_input_filename = f"../output/{mesh_prefix}-mesh/deformation/checkpoints/time_dep_deformation_velocity/"
-    mesh = a4d.read_mesh(v_defo_input_filename, comm, read_from_partition=False)
-    ft   = a4d.read_meshtags(v_defo_input_filename, mesh, meshtag_name='ft')
-
-    # Setup the Navier-Stokes problem
-    a, L, bcs, V, Q, ds, \
-    v_chp, v_chp_expr, v_defo = setup_navier_stokes_problem(mesh, ft, mesh_prefix)
-
-    # Solution functions
-    uh = dfx.fem.Function(V); uh.name = 'velocity'
-    ph = dfx.fem.Function(Q); ph.name = 'pressure'
-    uh_rel = dfx.fem.Function(V)
-
-    print("Number of dofs Navier-Stokes system: ")
-    print(f"Total:\t\t{V.dofmap.index_map.size_global+Q.dofmap.index_map.size_global}")
-    print(f"Velocity:\t{V.dofmap.index_map.size_global}")
-    print(f"Pressure:\t{Q.dofmap.index_map.size_global}\n")
-
-    # I/O function: Stokes velocity in DG1
-    dg1_vec_el = element("DG", mesh.basix_cell(), 1, shape=(mesh.geometry.dim,))
-    uh_out = dfx.fem.Function(dfx.fem.functionspace(mesh, dg1_vec_el))
-    uh_out.name = 'velocity' 
-
-    output_dir = f'../output/{mesh_prefix}-mesh/flow/navier-stokes/'
-    velocity_output_filename = output_dir + 'velocity_chp+cilia+defo.pvd'
-    velocity_output = dfx.io.VTKFile(comm, velocity_output_filename, "w")
-    pressure_output_filename = output_dir + 'pressure_chp+cilia+defo.pvd'
-    pressure_output = dfx.io.VTKFile(comm, pressure_output_filename, "w")
-
-    if write_cpoint:
-        cpoint_filename = output_dir + 'checkpoints/chp+cilia+defo'
-        a4d.write_mesh(cpoint_filename, mesh, store_partition_info=True)
-        a4d.write_meshtags(cpoint_filename, mesh, ft)
-        
-    T = 2
-    dt = 0.02
-    N = int(T / dt)
-    times = np.linspace(0, T, N+1)
-
-    tic = time.perf_counter()
-
-    for t in times:
-
-        # # Update deformation velocity
-        # a4d.read_function(filename=v_defo_input_filename, u=v_defo, time=t)
-        
-        # Account for deformation in choroid plexus flux BC
-        v_chp.interpolate(v_chp_expr)
-        v_chp.x.array[:] += v_defo.x.array.copy()
-
-        # Solve the Stokes equations
-        uh, ph = solve_navier_stokes(a, L, bcs, uh, ph) 
-
-        # Interpolate velocity into DG1 output function
-        uh_out.interpolate(uh)
-
-        # Subtract mean pressure so that mean=0
-        ph.x.array[:] -= calculate_mean(mesh, ph, ufl.dx)
-
-        # Write output
-        velocity_output.write_mesh(mesh, t)
-        velocity_output.write_function(uh_out, t)
-        pressure_output.write_mesh(mesh, t)
-        pressure_output.write_function(ph, t)
-
-        if write_cpoint:
-            a4d.write_function(cpoint_filename, uh, time=t)
-            a4d.write_function(cpoint_filename, ph, time=t)
-
-        # Calculate mean pressure
-        vol = assemble_scalar(1*ufl.dx(mesh))
-        print("Mean pressure: ", 1/vol*assemble_scalar(ph*ufl.dx(mesh)))
-
-    print(f"Solution loop time elapsed: {time.perf_counter()-tic:.4f} sec")
-
-    # Close output files
-    velocity_output.close()
-    pressure_output.close()
+# Simulation parameters
+comm = MPI.COMM_WORLD # MPI communicator
+N = 32 # Mesh cells
+t = 0.0
+num_time_steps = 20
+t_end = 2
+delta_t = t_end/num_time_steps # Timestep size
+Re = 1  # Reynolds Number
+k = 1 # Polynomial degree
 
 # Create mesh and boundary tags
+mesh, ft = create_square_mesh_with_tags(N=N, comm=comm)
 gdim = mesh.geometry.dim
+LEFT=1; RIGHT=2; BOT=3; TOP=4
 
 dirichlet_tags = (LEFT, BOT, TOP)
 neumann_tags = [RIGHT]
@@ -289,7 +139,7 @@ a_blocked = dfx.fem.form(ufl.extract_blocks(a), entity_maps=subentities_map)
 # Define the linear form
 f = dfx.fem.Function(V)
 u_D = dfx.fem.Function(Vbar)
-u_D.interpolate(u_quadratic)
+u_D.interpolate(u_parabolic)
 u_flux = dfx.fem.Function(Vbar)
 L = inner(f, v) * dx + (
     # Time derivative

@@ -1,3 +1,5 @@
+from mpi4py import MPI
+
 import ufl
 import numpy   as np
 import dolfinx as dfx
@@ -213,3 +215,20 @@ def compute_cell_boundary_int_entities(mesh: dfx.mesh.Mesh):
     n_c = mesh.topology.index_map(tdim).size_local
 
     return np.vstack((np.repeat(np.arange(n_c), n_f), np.tile(np.arange(n_f), n_c))).T.flatten()
+
+def calculate_norm_L2(comm: MPI.Comm, v: dfx.fem.Function, dX: ufl.Measure):
+    """ Compute the L2-norm of v with the integration measure dX. """
+    return np.sqrt(
+              comm.allreduce(dfx.fem.assemble_scalar(dfx.fem.form(inner(v, v) * dX)),
+              op=MPI.SUM)
+              )
+
+def calculate_mean(mesh: dfx.mesh.Mesh, v: dfx.fem.Function, dX: ufl.Measure):
+    """ Calculate the average of a function over the domain defined by mesh,
+        using the integration measure dX. """
+    vol = mesh.comm.allreduce(
+        dfx.fem.assemble_scalar(dfx.fem.form(
+                                dfx.fem.Constant(mesh, dfx.default_real_type(1.0)) * dX)
+                                ), op=MPI.SUM
+    )
+    return (1/vol) * mesh.comm.allreduce(dfx.fem.assemble_scalar(dfx.fem.form(v * dX)), op=MPI.SUM)
