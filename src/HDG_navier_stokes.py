@@ -12,14 +12,14 @@ from dolfinx.fem.petsc import assemble_matrix_block, assemble_vector_block
 
 # Helper functions
 def norm_L2(comm: MPI.Comm, v: dfx.fem.Function):
-    """Compute the L2(Ω)-norm of v"""
+    """ Compute the L2-norm of v. """
     return np.sqrt(
               comm.allreduce(dfx.fem.assemble_scalar(dfx.fem.form(inner(v, v) * dx)),
               op=MPI.SUM)
               )
 
 def domain_average(mesh: dfx.mesh.Mesh, v: dfx.fem.Function):
-    """Compute the average of a function over the domain"""
+    """ Compute the average of a function over the domain defined by mesh. """
     vol = comm.allreduce(
         dfx.fem.assemble_scalar(dfx.fem.form(
                                 dfx.fem.Constant(mesh, dfx.default_real_type(1.0)) * dx)
@@ -27,45 +27,23 @@ def domain_average(mesh: dfx.mesh.Mesh, v: dfx.fem.Function):
     )
     return (1/vol) * comm.allreduce(dfx.fem.assemble_scalar(dfx.fem.form(v * dx)), op=MPI.SUM)
 
-def u_e_expr(x):
-    """Expression for the exact velocity solution to Kovasznay flow"""
-    return np.vstack(
-        (
-            1
-            - np.exp((Re/2 - np.sqrt(Re**2 / 4 + 4 * np.pi**2)) * x[0])
-            * np.cos(2 * np.pi * x[1]),
-            (Re / 2 - np.sqrt(Re**2 / 4 + 4 * np.pi**2))
-            / (2 * np.pi)
-            * np.exp((Re / 2 - np.sqrt(Re**2 / 4 + 4 * np.pi**2)) * x[0])
-            * np.sin(2 * np.pi * x[1]),
-        )
-    )
-
 def u_quadratic(x):
     return np.vstack((Re*(x[1]-x[1]**2),
                       np.zeros_like(x[1])
     ))
-
-def p_e_expr(x):
-    """Expression for the exact pressure solution to Kovasznay flow"""
-    return (1 / 2) * (1 - np.exp(2 * (Re / 2 - np.sqrt(Re**2 / 4 + 4 * np.pi**2)) * x[0]))
-
-def f_expr(x):
-    """Expression for the applied force"""
-    return np.vstack((np.zeros_like(x[0]), np.zeros_like(x[0])))
 
 # Jump operator
 jump = lambda phi, n: outer(phi('+'), n('+')) + outer(phi('-'), n('-'))
 
 # Simulation parameters
 comm = MPI.COMM_WORLD # MPI communicator
-N = 16 # Mesh cells
+N = 32 # Mesh cells
 t = 0.0
 num_time_steps = 20
 t_end = 2
 delta_t = t_end/num_time_steps # Timestep size
-Re = 25  # Reynolds Number
-k = 2 # Polynomial degree
+Re = 1  # Reynolds Number
+k = 1 # Polynomial degree
 
 # Create mesh and boundary tags
 mesh, ft = create_square_mesh_with_tags(N=N, comm=comm)
@@ -103,7 +81,7 @@ for tag in np.unique(ft.values):
 V = dfx.fem.functionspace(mesh, ('Discontinuous Brezzi-Douglas-Marini', k+1))
 Q = dfx.fem.functionspace(mesh, ('Discontinuous Lagrange', k))
 Vbar = dfx.fem.functionspace(submesh, ('Discontinuous Lagrange', k+1, (gdim,)))
-Qbar = dfx.fem.functionspace(submesh, ('Discontinuous Lagrange', k))
+Qbar = dfx.fem.functionspace(submesh, ('Discontinuous Lagrange', k+1))
 M = ufl.MixedFunctionSpace(V, Q, Vbar, Qbar)
 
 # Function space for visualising the velocity field
@@ -118,7 +96,7 @@ u_ = dfx.fem.Function(V)
 ubar_ = dfx.fem.Function(Vbar)
 
 dt = dfx.fem.Constant(mesh, dfx.default_real_type(delta_t))
-alpha = dfx.fem.Constant(mesh, dfx.default_real_type(6*6.0 * k**2))
+alpha = dfx.fem.Constant(mesh, dfx.default_real_type(gdim*10 * k**2))
 nu = dfx.fem.Constant(mesh, dfx.default_real_type(1.0))
 
 # Mesh cell diameter and facet normal vector
@@ -163,9 +141,9 @@ a = (
     + inner(outer(u, u_) - outer(u - ubar, lmbda*u_), outer(v - vbar, n)) * ds_interior
 
     # Neumann BC terms
-    + (1-lmbda) * dot(ubar_, n) * dot(ubar, vbar) * ds_N
-    - inner(dot(ubar, n), qbar) * ds_N
-    - inner(dot(vbar, n), pbar) * ds_N
+   + (1-lmbda) * dot(ubar_, n) * dot(ubar, vbar) * ds_N
+   - inner(dot(ubar, n), qbar) * ds_N
+   - inner(dot(vbar, n), pbar) * ds_N
 
     # b(u_h, q_h) terms
     - inner(q, div(u)) * dx
@@ -185,13 +163,10 @@ L = inner(f, v) * dx + (
     # Dirichlet BC terms
     + inner(dot(u_D, n), qbar) * ds_D1
     + inner(dot(u_flux, n), qbar) * ds_D2
-    + inner(dfx.fem.Constant(mesh, 0.0)*n, vbar) * ds_N
+    - inner(dfx.fem.Constant(mesh, 0.0)*n, vbar) * ds_N # Zero pressure
 )
-# Add zero blocks to pressure, facet velocity and facet pressure 
-# or else PETSc will complain
+# Add zero block to pressure or else PETSc will complain
 L += inner(dfx.fem.Constant(mesh, dfx.default_real_type(0.0)), q) * dx
-L += inner(dfx.fem.Function(Vbar), vbar) * ds_interior
-L += inner(dfx.fem.Constant(mesh, (dfx.default_scalar_type(0.0))), qbar) * ds_interior
 L_blocked = dfx.fem.form(ufl.extract_blocks(L), entity_maps=subentities_map)
 
 # Boundary conditions
@@ -202,23 +177,26 @@ bc_u = dfx.fem.dirichletbc(u_D, inflow_dofs)
 bcs = [bc_u]
 
 # Flux boundary condition: First
-flux_facets_submesh = mesh_to_submesh[np.concatenate(([ft.find(tag) for tag in [BOT, TOP]]))]
-# flux_facets_mesh = np.concatenate(([ft.find(tag) for tag in [BOT, TOP]]))
-# flux_expr_mesh = create_normal_contribution_bc(V, -Re*n, flux_facets_mesh)
-# f_to_c = mesh.topology.connectivity(facet_dim, mesh.topology.dim)
-# flux_facet_cells = []
-# for facet in flux_facets_mesh:
-#     [flux_facet_cells.append(cell) for cell in f_to_c.links(facet) if cell not in flux_facet_cells]
-# flux_facet_cells = np.array(flux_facet_cells, dtype=np.int32)
-# u_flux_mesh = dfx.fem.Function(V)
-# u_flux_mesh.interpolate(flux_expr_mesh)
-# interpolation_data = dfx.fem.create_interpolation_data(V_to=Vbar, V_from=V, cells=flux_facets_submesh)
+flux_facets_mesh = np.concatenate(([ft.find(tag) for tag in [BOT, TOP]]))
+flux_facets_submesh = mesh_to_submesh[flux_facets_mesh]
 
+# Create the flux function in a (non-broken) BDM space on the mesh
+flux_space = dfx.fem.functionspace(mesh, ('Brezzi-Douglas-Marini', k+1))
+flux_expr_mesh = create_normal_contribution_bc(flux_space, -n, flux_facets_mesh)
+u_flux_mesh = dfx.fem.Function(flux_space)
+u_flux_mesh.interpolate(flux_expr_mesh)
 
-# u_flux.interpolate_nonmatching(u_flux_mesh, flux_facet_cells, interpolation_data=interpolation_data)
-u_flux.x.array[:] = 2.0
+# Interpolate the function from the mesh onto the submesh
+interpolation_data = dfx.fem.create_interpolation_data(V_to=Vbar,
+                                                       V_from=flux_space,
+                                                       cells=flux_facets_submesh)
+u_flux.interpolate_nonmatching(u_flux_mesh,
+                               cells=flux_facets_submesh,
+                               interpolation_data=interpolation_data)
+
+# Set the BC                               
 flux_dofs = dfx.fem.locate_dofs_topological(Vbar, facet_dim, flux_facets_submesh)
-bcs.append(dfx.fem.dirichletbc(u_flux, flux_dofs))                                              
+bcs.append(dfx.fem.dirichletbc(u_flux, flux_dofs))                                                                                      
 
 # Assemble the Navier-Stokes problem
 A = assemble_matrix_block(a_blocked, bcs=bcs)
@@ -298,10 +276,17 @@ e_div_u = norm_L2(comm, div(u_h))
 # assert np.isclose(e_div_u, 0.0, atol=float(1.0e5 * np.finfo(dfx.default_real_type).eps))
 
 # Compute flux on boundaries with flux BC
-flux = assemble_scalar(dot(u_h, n)*ds((BOT, TOP)))
+flux = assemble_scalar(dot(u_h, n)*ds((TOP)))
 total_flux = assemble_scalar(dot(u_h, n)*ds)
 
+# Compute L2 error norm
+u_e = dfx.fem.Function(dfx.fem.functionspace(mesh, ('Discontinuous Brezzi-Douglas-Marini', k+3)))
+u_e.interpolate(u_quadratic)
+
+e_u = norm_L2(comm, u_e-u_h)
+
 if comm.rank == 0:
+    print(f"e_u = {e_u}")
     print(f"e_div_u = {e_div_u}")
     print(f"Flux = {flux}")
     print(f"Total flux = {total_flux}")

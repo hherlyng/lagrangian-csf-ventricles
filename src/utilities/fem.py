@@ -156,7 +156,7 @@ def create_normal_contribution_bc(Q: dfx.fem.FunctionSpace, expr: ufl.core.expr.
     facet_cel = dfx.cpp.fem.CoordinateElement_float64(
         facet_cmap.basix_element._e)
     reference_facet_points = None
-    from IPython import embed;embed()
+    
     for i, points in enumerate(interpolation_points[fdim]):
         geom = ref_geom[ref_top[fdim][i]]
         ref_points = facet_cel.pull_back(points, geom)
