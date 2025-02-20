@@ -196,7 +196,7 @@ def create_normal_contribution_bc(Q: dfx.fem.FunctionSpace, expr: ufl.core.expr.
     
     return qh
 
-def compute_cell_boundary_int_entities(mesh: dfx.mesh.Mesh):
+def compute_cell_boundary_integration_entities(mesh: dfx.mesh.Mesh):
     """Compute the integration entities for integrals around the
     boundaries of all cells in msh.
 
@@ -210,7 +210,7 @@ def compute_cell_boundary_int_entities(mesh: dfx.mesh.Mesh):
     Copyright (C) Joe Dean 2025.
     """
     tdim = mesh.topology.dim
-    fdim = tdim - 1
+    fdim = tdim-1
     n_f = dfx.cpp.mesh.cell_num_entities(mesh.topology.cell_type, fdim)
     n_c = mesh.topology.index_map(tdim).size_local
 

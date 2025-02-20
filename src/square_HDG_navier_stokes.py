@@ -6,7 +6,7 @@ import numpy   as np
 import dolfinx as dfx
 from ufl    import div, dot, grad, inner, outer
 from scifem import assemble_scalar
-from utilities.fem     import create_normal_contribution_bc, compute_cell_boundary_int_entities, calculate_mean, calculate_norm_L2
+from utilities.fem     import create_normal_contribution_bc, compute_cell_boundary_integration_entities, calculate_mean, calculate_norm_L2
 from utilities.mesh    import create_square_mesh_with_tags
 from dolfinx.fem.petsc import assemble_matrix_block, assemble_vector_block
 
@@ -45,7 +45,7 @@ submesh, submesh_to_mesh = dfx.mesh.create_submesh(mesh, facet_dim, facets)[:2]
 submesh.topology.create_connectivity(submesh.topology.dim, submesh.topology.dim)
 
 # Generate integration entities for the submesh
-cell_facet_map = compute_cell_boundary_int_entities(mesh)
+cell_facet_map = compute_cell_boundary_integration_entities(mesh)
 cell_interior_bdry_tag = 0
 facet_integral_entities = [(cell_interior_bdry_tag, cell_facet_map)]
 
