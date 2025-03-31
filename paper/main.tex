@@ -18,6 +18,7 @@
 \usepackage{stmaryrd} % double brackets for jump operator
 \usepackage{graphicx}
 
+
 % Bibliography tools
 \usepackage{csquotes}
 
@@ -117,10 +118,24 @@ trajectories and finite-time Lyapunov exponent fields.
 \section{Methods}
 \subsection{Finite-Time Lyapunov exponent field}
 
-\subsection{The governing equations of Stokes flow}
-We consider flow of an incompressible, Newtonian fluid of density $\rho$ in a domain $\Omega$ with boundary $\Gamma$. Due to low Reynolds numbers in CSF flow in brain ventricles~\cite{Liu2024UsingBreathing}, we neglect inertial effects and drop the nonlinear term $(\uu\cdot\nabla)\uu$. Further assuming that there are no body forces, we get the governing equation for time-dependent Stokes flow:
+\subsection{The Navier-Stokes equations}
+We consider flow of an incompressible, Newtonian fluid of density $\rho$ and dynamic viscosity
+$\mu$ in a domain $\Omega$ with boundary $\partial\Omega=\Gamma$. No body forces are acting on the fluid.
+The flow is governed by the Navier-Stokes equations, in which the momentum equation reads
 \begin{equation}
-    \rho\pdifft{\uu} - \nabla\cdot\bm{\sigma} = \mathbf{0},
+\rho\frac{D\uu}{\mathrm dt} = \rho\Big(\pdifft{\uu} + (\uu\cdot\nabla)\uu\Big) = -\nabla p + \mu\nabla^2\uu,
+\end{equation}
+and the continuity equation (mass conservation) is
+\begin{equation}
+    \nabla\cdot\uu = 0.
+\end{equation}
+
+\subsection{The governing equations of Stokes flow}
+Due to low Reynolds numbers in CSF flow in zebrafish brain
+ventricles, we neglect inertial effects. Thus the left-hand side of~\Cref{eq:navier_stokes}
+is dropped yielding the governing equation for Stokes flow:
+\begin{equation}
+    - \nabla\cdot\bm{\sigma} = \mathbf{0},
     \label{eq:time_dependent_stokes}
 \end{equation}
 where $\uu$ and $p$ are the fluid velocity and pressure, respectively. The stress tensor $\sigma$ is defined as
@@ -221,7 +236,9 @@ secretion and cilia forces.
 
 \subsection{To do}
 \begin{itemize}
-    \item 
+    \item get input/inspiration from doctors/biologists/physiologists on what to quantify/consider of
+    flow structures/properties in the ventricles
+
 \end{itemize}
 
 
@@ -242,7 +259,16 @@ Application of boundary conditions in the normal and tangential directions is do
 
 \subsection{Discretization}
 
-We consider a divergence-conforming discretization of the Stokes equations using Brezzi-Douglas-Marini (BDM) elements for the velocity and discontinuous Galerkin (DG) elements for the pressure. The BDM elements have degrees of freedom associated with the normal component of vectors on the facets of the mesh cells. Thus, setting boundary conditions strongly for BDM-discretized variables constitutes fixing the normal component of the discretized variable on a facet. We can therefore impose~\eqref{eq:impermeability_BC} on the boundary strongly by setting the degrees of freedom to zero. Owing to this strong imposition, the normal component integral in~\eqref{eq:bdry_int_decomposed} is dropped, because $\vv\cdot\nn=0$ on the boundary when $\uu\cdot\nn=0$ is imposed. Inserting the tangential stress boundary condition~\eqref{eq:tangent_stress_BC} into~\eqref{eq:bdry_int_decomposed}, we then have
+We consider an $\mathbf{H}(\mathrm{div})$-conforming discretization of the Stokes equations using
+Brezzi-Douglas-Marini (BDM) elements for the velocity and discontinuous Galerkin (DG)
+elements for the pressure. The BDM elements have degrees of freedom associated with
+the normal component of vectors on the facets of the mesh cells. Thus, setting boundary
+conditions strongly for BDM-discretized variables constitutes fixing the normal
+component of the discretized variable on a facet. We can therefore impose~\eqref{eq:impermeability_BC}
+on the boundary strongly by setting the degrees of freedom to zero. Owing to this strong imposition,
+the normal component integral in~\eqref{eq:bdry_int_decomposed} is dropped, because $\vv\cdot\nn=0$ on
+the boundary when $\uu\cdot\nn=0$ is imposed. Inserting the tangential stress boundary
+condition~\eqref{eq:tangent_stress_BC} into~\eqref{eq:bdry_int_decomposed}, we then have
 \begin{equation}
     \intG{\bm{\sigma}\nn\cdot\vv} = \intG{(\bm{\sigma}\nn\cdot\nn)(\vv\cdot\nn)} + \intG{P_{\nn}(\bm{\sigma}\nn)\cdot P_{\nn}(\vv)} = \intG{\bm{\tau}\cdot P_{\nn}(\vv)}.
 \end{equation}
@@ -276,7 +302,7 @@ We recognize that this equation can be written as $b(\uu, q) = 0$. The resulting
 \label{eq:stokes_weak_form_abstract}%
 \end{subequations}%
 
-The discretization considered here is based on the work by~\textcite{Hong2016AEquations}. We let the subscript $h$ denote discretized variables. Consider~\eqref{eq:stokes_weak_form_abstract} with discrete variables:
+The discretization considered here is based on the work by Hong~\emph{et al.}~\cite{Hong2016AEquations}. We let the subscript $h$ denote discretized variables. Consider~\eqref{eq:stokes_weak_form_abstract} with discrete variables:
 \begin{subequations}
 \begin{alignat}{2}
     a(\uu_h, \vv_h) + b(p_h, \vv_h) &= L(\vv_h), &&\quad\forall\vv_h\in\VV_h, \\

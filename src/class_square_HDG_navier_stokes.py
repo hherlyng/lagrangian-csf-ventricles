@@ -5,69 +5,38 @@ import ufl
 import time
 import numpy   as np
 import dolfinx as dfx
-import adios4dolfinx as a4d
+
 from ufl    import div, dot, grad, inner, outer
 from scifem import assemble_scalar
 from utilities.fem     import tangent, create_normal_contribution_bc, compute_cell_boundary_integration_entities, calculate_mean, calculate_norm_L2
+from utilities.mesh    import create_square_mesh_with_tags
 from dolfinx.fem.petsc import assemble_matrix_block, assemble_vector_block
-
-print = PETSc.Sys.Print
-
-# Facet tags
-CANAL_WALL = 13 
-CANAL_OUT = 23
-THIRD_VENTRICLE_WALL = 14
-THIRD_VENTRICLE_FORAMINA = 46
-AQUEDUCT_WALL = 15
-AQUEDUCT_TOP = 45
-AQUEDUCT_BOT = 58
-FORAMINA_34_WALL = 16
-LATERAL_VENTRICLES_FORAMINA = 67
-LATERAL_VENTRICLES_WALL = 17
-FOURTH_VENTRICLE_WALL = 18
-FOURTH_VENTRICLE_OUT = 38
-CHOROID_PLEXUS_LATERAL = 101
-CHOROID_PLEXUS_THIRD = 103
-CHOROID_PLEXUS_FOURTH = 104
-LATERAL_APERTURES = 28
-
-# Cell tags
-CANAL = 3
-THIRD_VENTRICLE = 4
-AQUEDUCT = 5
-FORAMINA_34 = 6
-LATERAL_VENTRICLES = 7
-FOURTH_VENTRICLE = 8
-
-cilia_tags = (AQUEDUCT_WALL, FORAMINA_34_WALL, LATERAL_VENTRICLES_WALL, FOURTH_VENTRICLE_WALL,
-              CANAL_WALL, THIRD_VENTRICLE_WALL, CHOROID_PLEXUS_LATERAL, CHOROID_PLEXUS_THIRD, CHOROID_PLEXUS_FOURTH)
-choroid_plexus_tags = (CHOROID_PLEXUS_LATERAL, CHOROID_PLEXUS_THIRD, CHOROID_PLEXUS_FOURTH)
-deformation_tags = [tag for tag in cilia_tags if tag not in choroid_plexus_tags]
-normal_pressure_tags = [CANAL_OUT, LATERAL_APERTURES]
 
 # Jump operator
 jump = lambda phi, n: outer(phi('+'), n('+')) + outer(phi('-'), n('-'))
+
+LEFT=1; RIGHT=2; BOT=3; TOP=4
 
 class NavierStokesProblem:
 
     # Simulation parameters
     t = 0.0
-    t_end = 0.0001
+    t_end = 5.0
     num_time_steps = 10
     times = np.linspace(0, t_end, num_time_steps+1)    
     delta_t = t_end/num_time_steps # Timestep size
     polynomial_degree = 1 # Polynomial degree
-    penalty_value = 500 * polynomial_degree**2
-    mu_value = 0.7e-3 # Dynamic viscosity [Pa * s]
-    rho_value = 1000 # Density [kg / m^3]
-    nu_value = mu_value/rho_value # Kinematic viscosity [m^2 / s]
+    penalty_value = 10 * polynomial_degree**2
+    nu_value = 1.0 # Kinematic viscosity
 
     interior_tag = 0
-    neumann_tags = normal_pressure_tags
-    dirichlet_tags = deformation_tags
-    flux_tags = choroid_plexus_tags
-    cilia_tags = cilia_tags
-    boundary_tags = [tag for tags in [neumann_tags, dirichlet_tags, flux_tags] for tag in tags]
+    boundary_tags = [LEFT, RIGHT, BOT, TOP]
+    neumann_tags = [RIGHT, LEFT]
+    dirichlet_tags = []
+    flux_tags = [BOT]
+    # neumann_tags = [RIGHT]
+    # dirichlet_tags = [LEFT]
+    # flux_tags = [BOT, TOP]
 
     def __init__(self, mesh: dfx.mesh.Mesh, ft: dfx.mesh.MeshTags) -> None:
         """ Constructor.
@@ -90,7 +59,6 @@ class NavierStokesProblem:
         # Solution functions
         u_h = dfx.fem.Function(V); u_h.name = 'velocity'
         p_h = dfx.fem.Function(Q); p_h.name = 'pressure'
-        u_h_rel = dfx.fem.Function(V)
 
         # I/O function: Stokes velocity in DG1
         u_h_out = dfx.fem.Function(W)
@@ -105,13 +73,6 @@ class NavierStokesProblem:
 
             self.t += self.delta_t
 
-            # # Update deformation velocity
-            # a4d.read_function(filename=v_defo_input_filename, u=v_defo, time=t)
-            
-            # # Account for deformation in choroid plexus flux BC
-            # v_chp.interpolate(v_chp_expr)
-            # v_chp.x.array[:] += v_defo.x.array.copy()
-
             # Solve the Navier-Stokes equations
             u_h, p_h = self.solve_navier_stokes(u_h, p_h) 
 
@@ -124,10 +85,6 @@ class NavierStokesProblem:
             pressure_output.write_mesh(mesh, self.t)
             pressure_output.write_function(p_h, self.t)
 
-            # if write_cpoint:
-            #     a4d.write_function(cpoint_filename, u_h, time=t)
-            #     a4d.write_function(cpoint_filename, p_h, time=t)
-
         print(f"Solution loop time elapsed: {time.perf_counter()-tic:.4f} sec")
 
         # Close output files
@@ -136,11 +93,11 @@ class NavierStokesProblem:
 
         # Compute divergence L2 norm to check mass conservation
         e_div_u = calculate_norm_L2(self.comm, div(u_h), dX=self.dx)
-        # assert np.isclose(e_div_u, 0.0, atol=float(1.0e5 * np.finfo(dfx.default_real_type).eps))
+        assert np.isclose(e_div_u, 0.0, atol=float(1.0e5 * np.finfo(dfx.default_real_type).eps))
 
         # Compute flux on boundaries with flux BC
         n = ufl.FacetNormal(self.mesh)
-        flux = assemble_scalar(dot(u_h, n)*self.ds(self.flux_tags))
+        flux = assemble_scalar(dot(u_h, n)*self.ds(tuple(self.flux_tags)))
         total_flux = assemble_scalar(dot(u_h, n)*self.ds)
 
         if comm.rank == 0:
@@ -158,11 +115,11 @@ class NavierStokesProblem:
         dt = dfx.fem.Constant(mesh, dfx.default_scalar_type(self.delta_t)) # Timestep size
         nu = dfx.fem.Constant(mesh, dfx.default_scalar_type(self.nu_value)) # Kinematic viscosity
         alpha = dfx.fem.Constant(mesh, dfx.default_scalar_type(self.penalty_value*mesh.geometry.dim)) # Interior penalty parameter
-        ds_interior = self.ds(self.interior_tag) # Facet integral for submesh interior cells
+        ds_interior = self.ds(self.interior_tag) # Interior cell integrals (on submesh)
         ds_N = self.ds(tuple(self.neumann_tags)) # Neumann BC boundary integral
         ds_D = self.ds(tuple(self.dirichlet_tags)) # Dirichlet BC boundary integral
         ds_flux = self.ds(tuple(self.flux_tags)) # Flux BC boundary integral
-        ds_cilia = self.ds(tuple(self.cilia_tags))
+
         dx = self.dx # Cell integrals (on mesh)
 
         # Trial and test functions
@@ -176,7 +133,8 @@ class NavierStokesProblem:
         # Upwind velocity operator
         lmbda = ufl.conditional(ufl.gt(dot(self.u_, n), 0), 1, 0)
 
-        traction_vector = 1e-6*ufl.as_vector((0.0, -1.0, 1.0))
+        # Tangential traction
+        tangent_vector = ufl.as_vector((0.1, 0.0))
 
         # Bilinear form
         a = (
@@ -213,10 +171,12 @@ class NavierStokesProblem:
         self.u_flux = dfx.fem.Function(self.V_bar)
 
         L = inner(f, v) * dx + (
-            inner(self.u_ / dt, v) * dx # Time derivative
-            + inner(dot(self.u_D, n), qbar) * ds_D # Deformation velocity
-            + inner(dot(self.u_flux, n), qbar) * ds_flux # Flux velocity
-            + inner(tangent(traction_vector, n), vbar) * ds_cilia # Tangential traction
+            # Time derivative
+            inner(self.u_ / dt, v) * dx
+            # Dirichlet BC terms
+            + inner(dot(self.u_D, n), qbar) * ds_D
+            + inner(tangent_vector, vbar)*self.ds(TOP)
+            + inner(dot(self.u_flux, n), qbar) * ds_flux
             - inner(dfx.fem.Constant(mesh, 0.0)*n, vbar) * ds_N # Zero pressure
         )
         # Add zero block to pressure or else PETSc will complain
@@ -228,22 +188,23 @@ class NavierStokesProblem:
 
         # Boundary conditions
         # Prescribed profile
-        inflow_facets = self.mesh_to_submesh[np.concatenate(([self.ft.find(tag) for tag in self.dirichlet_tags]))]
-        inflow_dofs = dfx.fem.locate_dofs_topological(self.V_bar, self.facet_dim, inflow_facets)
-        
-        # u_parabolic = lambda x: np.vstack((.5*(x[1]-x[1]**2),
-        #                                     np.zeros_like(x[1])))
-        # self.u_D.interpolate(u_parabolic)
-        bc_u = dfx.fem.dirichletbc(self.u_D, inflow_dofs)
-        self.bcs = [bc_u]
+        if len(self.dirichlet_tags)>0:
+            inflow_facets = self.mesh_to_submesh[np.concatenate(([self.ft.find(tag) for tag in self.dirichlet_tags]))]
+            inflow_dofs = dfx.fem.locate_dofs_topological(self.V_bar, self.facet_dim, inflow_facets)
+            u_parabolic = lambda x: np.vstack((.5*(x[1]-x[1]**2),
+                                                np.zeros_like(x[1])))
+            self.u_D.interpolate(u_parabolic)
+            bc_u = dfx.fem.dirichletbc(self.u_D, inflow_dofs)
+            self.bcs = [bc_u]
+        else:
+            self.bcs = []
 
         # Flux boundary condition: First
         flux_facets_mesh = np.concatenate(([self.ft.find(tag) for tag in self.flux_tags]))
         flux_facets_submesh = self.mesh_to_submesh[flux_facets_mesh]
 
         # Create the flux function in a (non-broken) BDM space on the mesh
-        chp_area = assemble_scalar(1*ds_flux)
-        flux_expr_mesh = create_normal_contribution_bc(self.V_flux, -1e-9/chp_area*n, flux_facets_mesh)
+        flux_expr_mesh = create_normal_contribution_bc(self.V_flux, -0.10*n, flux_facets_mesh)
         u_flux_mesh = dfx.fem.Function(self.V_flux)
         u_flux_mesh.interpolate(flux_expr_mesh)
 
@@ -254,7 +215,7 @@ class NavierStokesProblem:
         self.u_flux.interpolate_nonmatching(u_flux_mesh,
                                     cells=flux_facets_submesh,
                                     interpolation_data=interpolation_data)
-        self.u_flux.x.array[:] = -1e-8
+
         # Set the BC                               
         flux_dofs = dfx.fem.locate_dofs_topological(self.V_bar, self.facet_dim, flux_facets_submesh)
         self.bcs.append(dfx.fem.dirichletbc(self.u_flux, flux_dofs))   
@@ -292,8 +253,8 @@ class NavierStokesProblem:
         k = self.polynomial_degree
 
         # Function spaces for the weak form
-        self.V = dfx.fem.functionspace(mesh, ('Discontinuous Raviart-Thomas', k+1))
-        self.Q = dfx.fem.functionspace(mesh, ('Discontinuous Lagrange', k))
+        self.V = dfx.fem.functionspace(mesh, ('Discontinuous Brezzi-Douglas-Marini', k))
+        self.Q = dfx.fem.functionspace(mesh, ('Discontinuous Lagrange', k-1))
         self.V_bar = dfx.fem.functionspace(submesh, ('Discontinuous Lagrange', k, (mesh.geometry.dim,)))
         self.Q_bar = dfx.fem.functionspace(submesh, ('Discontinuous Lagrange', k))
         self.M = ufl.MixedFunctionSpace(self.V, self.Q, self.V_bar, self.Q_bar)
@@ -307,15 +268,15 @@ class NavierStokesProblem:
         print(f'Size of global dofmap: {dofmap_size}')
 
         # Function space for visualising the velocity field
-        self.W = dfx.fem.functionspace(mesh, ('Discontinuous Lagrange', k+1, (mesh.geometry.dim,)))
+        self.W = dfx.fem.functionspace(mesh, ('Discontinuous Lagrange', k, (mesh.geometry.dim,)))
 
         # Function space for the normal flux boundary condition
-        self.V_flux = dfx.fem.functionspace(mesh, ('Raviart-Thomas', k+1))
+        self.V_flux = dfx.fem.functionspace(mesh, ('Brezzi-Douglas-Marini', k))
 
     def calculate_offsets(self):
         """ Create offsets for accessing the blocked functions
             in the local degree of freedom vectors. """
-        # V, Q, Vbar = self.function_spaces['V', 'Q', 'Vbar'] # Extract function spaces
+
         V, Q, V_bar = self.V, self.Q, self.V_bar
         offset_u = V.dofmap.index_map.size_local * V.dofmap.index_map_bs # Velocity dofs offset
         offset_p = offset_u + Q.dofmap.index_map.size_local*Q.dofmap.index_map_bs # Pressure dofs offset
@@ -409,18 +370,14 @@ class NavierStokesProblem:
 
 if __name__=='__main__':
     from sys import argv
-    write_cpoint = True if int(argv[1])==1 else False
-
     # Read mesh
     comm = MPI.COMM_WORLD
-    mesh_prefix = 'coarse'
-    v_defo_input_filename = f'../output/{mesh_prefix}-mesh/deformation/checkpoints/deformation_velocity/'
-    mesh = a4d.read_mesh(v_defo_input_filename, comm, read_from_partition=False)
-    ft   = a4d.read_meshtags(v_defo_input_filename, mesh, meshtag_name='ft')
+    N = int(argv[1])
+    mesh, ft = create_square_mesh_with_tags(N=N, comm=comm)
 
-    output_dir = f'../output/{mesh_prefix}-mesh/flow/navier-stokes/'
-    velocity_output_filename = output_dir + 'velocity_chp+cilia+defo.pvd'
-    pressure_output_filename = output_dir + 'pressure_chp+cilia+defo.pvd'
+    output_dir = f'../output/square-mesh/flow/navier-stokes/'
+    velocity_output_filename = output_dir + 'velocity.pvd'
+    pressure_output_filename = output_dir + 'pressure.pvd'
 
     problem = NavierStokesProblem(mesh=mesh, ft=ft)
     problem.create_submesh_and_subentities_map()
@@ -430,9 +387,4 @@ if __name__=='__main__':
     problem.setup_navier_stokes_linear_system()
     problem.setup_direct_solver()
     problem.solve()
-
-    # if write_cpoint:
-    #     cpoint_filename = output_dir + 'checkpoints/chp+cilia+defo'
-    #     a4d.write_mesh(cpoint_filename, mesh, store_partition_info=True)
-    #     a4d.write_meshtags(cpoint_filename, mesh, ft)
         

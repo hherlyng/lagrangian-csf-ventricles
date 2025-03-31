@@ -3,7 +3,8 @@ import numpy   as np
 import dolfinx as dfx
 
 def create_square_mesh_with_tags(N: int, comm: MPI.Comm=MPI.COMM_WORLD,
-                                 ghost_mode=dfx.mesh.GhostMode.shared_facet) \
+                                 ghost_mode=dfx.mesh.GhostMode.shared_facet,
+                                 diagonal=dfx.cpp.mesh.DiagonalType.right) \
                                  -> tuple((dfx.mesh.Mesh, dfx.mesh.MeshTags)):
         """ Create a unit square mesh with N x N cells, with boundary facet tags:
                 Left   = 1 \n
@@ -22,6 +23,9 @@ def create_square_mesh_with_tags(N: int, comm: MPI.Comm=MPI.COMM_WORLD,
         ghost_mode
             Mode for handling ghosting of mesh cells and nodes, by default dfx.mesh.GhostMode.shared_facet.
 
+        diagonal
+            Direction of the diagonal of the triangles, by default from left to right.
+
         Returns
         -------
         mesh : dfx.mesh.Mesh
@@ -33,7 +37,8 @@ def create_square_mesh_with_tags(N: int, comm: MPI.Comm=MPI.COMM_WORLD,
         mesh = dfx.mesh.create_unit_square(
                                 comm,
                                 N, N,
-                                ghost_mode=ghost_mode
+                                ghost_mode=ghost_mode,
+                                diagonal=diagonal
                                 )
         def left(x): return np.isclose(x[0], 0.0)
         def right(x): return np.isclose(x[0], 1.0)
