@@ -11,7 +11,11 @@ from basix.ufl       import element
 #  NOTE: this script only works when run in serial, not in parallell.
 #--------------------------------------------------------------------#
 
-def generate_data(input_filename: str, output_dir: str, steady_state: bool, write_xdmf_check: bool=True):
+def generate_data(input_filename: str,
+                  output_dir: str,
+                  output_prefix: str,
+                  steady_state: bool,
+                  write_xdmf_check: bool=True):
     # Read mesh
     mesh = a4d.read_mesh(filename=input_filename,
                         comm=MPI.COMM_WORLD,
@@ -83,9 +87,9 @@ def generate_data(input_filename: str, output_dir: str, steady_state: bool, writ
     coordinates = np.array(mesh.geometry.x.reshape((1, num_nodes*cdim))[0], dtype="double") 
 
     # Write the arrays to binary files
-    with open(output_dir+"brain_adjacency.bin", "w+b")    as file_1, \
-         open(output_dir+"brain_connectivity.bin", "w+b") as file_2, \
-         open(output_dir+"brain_coordinates.bin", "w+b")  as file_3:
+    with open(output_dir+f"{output_prefix}_adjacency.bin", "w+b")    as file_1, \
+         open(output_dir+f"{output_prefix}_connectivity.bin", "w+b") as file_2, \
+         open(output_dir+f"{output_prefix}_coordinates.bin", "w+b")  as file_3:
         adjacency.tofile(file_1)
         connectivity.tofile(file_2)
         file_3.write(struct.pack("i", num_nodes)) # Write integer num_nodes
@@ -98,13 +102,15 @@ def generate_data(input_filename: str, output_dir: str, steady_state: bool, writ
     u = dfx.fem.Function(V)
 
     if write_xdmf_check:
-        xdmf_u = dfx.io.XDMFFile(MPI.COMM_WORLD, output_dir+"bin_velocity_check.xdmf", "w")
+        xdmf_u = dfx.io.XDMFFile(MPI.COMM_WORLD, output_dir+f"{output_prefix}_bin_velocity_check.xdmf", "w")
         xdmf_u.write_mesh(mesh)
 
     if steady_state:
         timestamp = 0
         # Read the velocity data
         a4d.read_function(filename=input_filename, u=u, time=timestamp)
+        from ufl import inner, div, dx
+        print(dfx.fem.assemble_scalar(dfx.fem.form(inner(div(u), div(u))*dx)))
 
         # Cast velocity as numpy.array and prepend timestamp
         velocity = u.x.array
@@ -113,8 +119,8 @@ def generate_data(input_filename: str, output_dir: str, steady_state: bool, writ
         if write_xdmf_check: xdmf_u.write_function(u, timestamp) # Write to xdmf
         
         # Write the velocity data to binary files
-        with open(output_dir+f"brain_vel.{timestamp}.bin", "w+b")   as file0, \
-             open(output_dir+f"brain_vel.{timestamp+1}.bin", "w+b") as file1:
+        with open(output_dir+f"{output_prefix}_vel.{timestamp}.bin", "w+b")   as file0, \
+             open(output_dir+f"{output_prefix}_vel.{timestamp+1}.bin", "w+b") as file1:
             velocity0.tofile(file0)
             velocity1.tofile(file1)
 
@@ -132,15 +138,19 @@ def generate_data(input_filename: str, output_dir: str, steady_state: bool, writ
             if write_xdmf_check: xdmf_u.write_function(u, timestamp) # Write to xdmf
             
             # Write the velocity data to binary file
-            with open(output_dir+f"brain_vel.{timestamp}.bin", "w+b") as file:
+            with open(output_dir+f"{output_prefix}_vel.{timestamp}.bin", "w+b") as file:
                 velocity.tofile(file) # Write to binary file
 
     if write_xdmf_check: xdmf_u.close()
 
 if __name__=='__main__':
     steady = True if int(argv[1])==1 else False
-    mesh_prefix = "medium"  
+    mesh_prefix = "zfish"  
     velocity_input_filename = \
-        f"../output/{mesh_prefix}-mesh/flow/checkpoints/velocity_projection_defo"
-    output_dir = f"/Users/hherlyng/flowVC/bin/brain/{mesh_prefix}-mesh/defo/"
-    generate_data(input_filename=velocity_input_filename, steady_state=steady, output_dir=output_dir)
+        f"../output/{mesh_prefix}-mesh/flow/checkpoints/BDM_velocity_projection"
+    output_dir = f"/Users/hherlyng/flowVC/bin/{mesh_prefix}/compare-elements/"
+    output_prefix = "BDM"
+    generate_data(input_filename=velocity_input_filename,
+                  output_dir=output_dir,
+                  output_prefix=output_prefix,
+                  steady_state=steady)

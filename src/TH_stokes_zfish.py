@@ -137,7 +137,8 @@ if __name__=="__main__":
 
     # Read mesh and facet tags from file
     with dfx.io.XDMFFile(comm,
-         f"../geometries/zfish/original_ventricles.xdmf", "r") as xdmf:
+                         f"../geometries/zfish/original_ventricles.xdmf",
+                         "r") as xdmf:
          mesh = xdmf.read_mesh() # Read mesh
          mesh.topology.create_entities(mesh.topology.dim-1) # Create facets
          ft = xdmf.read_meshtags(mesh, name="ft") # Read facet tags
@@ -159,31 +160,34 @@ if __name__=="__main__":
     print(f"Pressure:\t{Q.dofmap.index_map.size_global}")
     print(f"Multiplier:\t{Z.dofmap.index_map.size_global}")
 
-    # I/O function: Stokes velocity in DG1
-    dg1_vec_el = element("DG", mesh.basix_cell(), 1, shape=(mesh.geometry.dim,))
-    uh_out = dfx.fem.Function(dfx.fem.functionspace(mesh, dg1_vec_el))
-    uh_out.name = "uh" 
-
     velocity_output_filename = f"../output/zfish-mesh/flow/TH_velocity.bp"
-    velocity_output = dfx.io.VTXWriter(comm, velocity_output_filename, [uh_out], "BP4")
+    velocity_output = dfx.io.VTXWriter(comm, velocity_output_filename, [uh], "BP4")
     pressure_output_filename = f"../output/zfish-mesh/flow/TH_pressure.bp"
     pressure_output = dfx.io.VTXWriter(comm, pressure_output_filename, [ph], "BP4")
 
     if write_cpoint:
         cpoint_filename = f"../output/zfish-mesh/flow/checkpoints/TH_velocity"
         a4d.write_mesh(cpoint_filename, mesh, store_partition_info=True)
+        uh_cg1 = dfx.fem.Function(
+                        dfx.fem.functionspace(mesh,
+                                             element("Lagrange",
+                                                     mesh.basix_cell(),
+                                                     degree=1,
+                                                     shape=(mesh.geometry.dim,)
+                                                )
+                                            )
+                                        )
 
     # Timestamp
     tic = time.perf_counter()
 
     # Solve the steady state Stokes equations
-    uh_, ph_ = solve_stokes(a, L, bcs, uh, ph, zh) 
+    uh, ph = solve_stokes(a, L, bcs, uh, ph, zh) 
     
     print(f"Solution time elapsed: {time.perf_counter()-tic:.4f} sec")
     
     # Interpolate velocity into DG1 output function
-    uh_out.interpolate(uh_)
-    ph.interpolate(ph_)
+    uh_cg1.interpolate(uh)
 
     # Write output and close files
     velocity_output.write(0)
@@ -192,18 +196,18 @@ if __name__=="__main__":
     pressure_output.close()
 
     # Write checkpoint
-    if write_cpoint: a4d.write_function(cpoint_filename, uh_)
+    if write_cpoint: a4d.write_function(cpoint_filename, uh_cg1)
 
     # Calculate mean pressure
     vol = assemble_scalar(1*ufl.dx(mesh))
-    print("Mean pressure: ", 1/vol*assemble_scalar(ph_*ufl.dx(mesh)))
+    print("Mean pressure: ", 1/vol*assemble_scalar(ph*ufl.dx(mesh)))
 
     # Calculate divergence
-    div_u = assemble_scalar(inner(div(uh_out), div(uh_out))*ufl.dx(mesh))
+    div_u = assemble_scalar(inner(div(uh), div(uh))*ufl.dx(mesh))
     print("L2 norm of divergence: ", div_u)
 
-    uh_x = uh_out.sub(0).collapse().x.array
-    uh_y = uh_out.sub(1).collapse().x.array
-    uh_z = uh_out.sub(2).collapse().x.array
+    uh_x = uh.sub(0).collapse().x.array
+    uh_y = uh.sub(1).collapse().x.array
+    uh_z = uh.sub(2).collapse().x.array
     uh_mag = np.sqrt(uh_x**2 + uh_y**2 + uh_z**2)
     print("Max velocity magnitude : ", comm.allreduce(uh_mag.max(), op=MPI.MAX))

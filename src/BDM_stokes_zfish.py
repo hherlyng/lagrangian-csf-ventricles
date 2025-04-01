@@ -100,7 +100,7 @@ def setup_stokes_problem(mesh: dfx.mesh.Mesh, ft: dfx.mesh.MeshTags):
 
     bcs = [dfx.fem.dirichletbc(v_zero, v_dofs_imperm)]
 
-    return a, L, bcs, V, Q, ds
+    return a, L, bcs, V, Q
 
 def create_direct_solver(A: PETSc.Mat, comm: MPI.Comm):
     ksp = PETSc.KSP().create(comm)
@@ -148,7 +148,7 @@ if __name__=="__main__":
          ft = xdmf.read_meshtags(mesh, name="ft") # Read facet tags
 
     # Setup the Sokes problem
-    a, L, bcs, V, Q, ds = setup_stokes_problem(mesh, ft)
+    a, L, bcs, V, Q = setup_stokes_problem(mesh, ft)
     
     # Solution functions
     uh = dfx.fem.Function(V)

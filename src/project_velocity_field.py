@@ -9,9 +9,9 @@ from basix.ufl         import element
 from dolfinx.fem.petsc import LinearProblem
 
 # Velocity data
-mesh_prefix = "medium"
+mesh_prefix = "zfish"
 velocity_input_filename = \
-    f"../output/{mesh_prefix}-mesh/flow/checkpoints/velocity_defo"
+    f"../output/{mesh_prefix}-mesh/flow/checkpoints/TH_velocity"
 mesh = a4d.read_mesh(filename=velocity_input_filename,
                      comm=MPI.COMM_WORLD,
                      engine="BP4",
@@ -48,7 +48,7 @@ problem = LinearProblem(a, L, petsc_options={"ksp_type" : "preonly",
 if __name__=='__main__':
     steady = True if int(argv[1])==1 else False
 
-    output_filename = f"../output/{mesh_prefix}-mesh/flow/checkpoints/velocity_projection_defo"
+    output_filename = velocity_input_filename + "_projection"
     a4d.write_mesh(output_filename, mesh)
 
     if steady:
