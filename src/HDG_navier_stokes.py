@@ -157,6 +157,7 @@ class NavierStokesProblem:
         n = ufl.FacetNormal(mesh)
         dt = dfx.fem.Constant(mesh, dfx.default_scalar_type(self.delta_t)) # Timestep size
         nu = dfx.fem.Constant(mesh, dfx.default_scalar_type(self.nu_value)) # Kinematic viscosity
+        rho = dfx.fem.Constant(mesh, dfx.default_scalar_type(self.rho_value)) # Fluid density
         alpha = dfx.fem.Constant(mesh, dfx.default_scalar_type(self.penalty_value*mesh.geometry.dim)) # Interior penalty parameter
         ds_interior = self.ds(self.interior_tag) # Facet integral for submesh interior cells
         ds_N = self.ds(tuple(self.neumann_tags)) # Neumann BC boundary integral
@@ -190,8 +191,8 @@ class NavierStokesProblem:
             + nu*alpha/h * inner(u - ubar, v - vbar) * ds_interior
 
             # b(v_h, p_h) terms
-            - inner(p, div(v)) * dx
-            + inner(dot(v, n), pbar) * ds_interior
+            - 1/rho * inner(p, div(v)) * dx
+            + 1/rho * inner(dot(v, n), pbar) * ds_interior
 
             # c(u_h, u_h, v_h) terms
             - inner(outer(self.u_, u), grad(v)) * dx

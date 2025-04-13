@@ -1,10 +1,11 @@
 from mpi4py import MPI
 import numpy   as np
 import dolfinx as dfx
+from dolfinx.cpp.mesh import CellType
 
 def create_square_mesh_with_tags(N: int, comm: MPI.Comm=MPI.COMM_WORLD,
-                                 ghost_mode=dfx.mesh.GhostMode.shared_facet,
-                                 diagonal=dfx.cpp.mesh.DiagonalType.right) \
+                                 cell_type: CellType=CellType.triangle,
+                                 ghost_mode=dfx.mesh.GhostMode.shared_facet) \
                                  -> tuple((dfx.mesh.Mesh, dfx.mesh.MeshTags)):
         """ Create a unit square mesh with N x N cells, with boundary facet tags:
                 Left   = 1 \n
@@ -37,8 +38,8 @@ def create_square_mesh_with_tags(N: int, comm: MPI.Comm=MPI.COMM_WORLD,
         mesh = dfx.mesh.create_unit_square(
                                 comm,
                                 N, N,
-                                ghost_mode=ghost_mode,
-                                diagonal=diagonal
+                                cell_type=cell_type,
+                                ghost_mode=ghost_mode
                                 )
         def left(x): return np.isclose(x[0], 0.0)
         def right(x): return np.isclose(x[0], 1.0)

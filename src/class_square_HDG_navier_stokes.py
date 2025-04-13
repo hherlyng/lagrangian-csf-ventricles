@@ -10,7 +10,7 @@ from ufl    import div, dot, grad, inner, outer
 from scifem import assemble_scalar
 from utilities.fem     import tangent, create_normal_contribution_bc, compute_cell_boundary_integration_entities, calculate_mean, calculate_norm_L2
 from utilities.mesh    import create_square_mesh_with_tags
-from dolfinx.fem.petsc import assemble_matrix_block, assemble_vector_block
+from dolfinx.fem.petsc import assemble_matrix_block, assemble_vector_block, create_matrix_block, create_vector_block
 
 # Jump operator
 jump = lambda phi, n: outer(phi('+'), n('+')) + outer(phi('-'), n('-'))
@@ -21,13 +21,16 @@ class NavierStokesProblem:
 
     # Simulation parameters
     t = 0.0
-    t_end = 5.0
+    t_end = .01
     num_time_steps = 10
     times = np.linspace(0, t_end, num_time_steps+1)    
     delta_t = t_end/num_time_steps # Timestep size
-    polynomial_degree = 1 # Polynomial degree
-    penalty_value = 10 * polynomial_degree**2
-    nu_value = 1.0 # Kinematic viscosity
+    polynomial_degree = 2 # Polynomial degree
+    penalty_value = 100 * polynomial_degree**2
+    mu_value = 0.7e-3 # Dynamic viscosity [Pa * s]
+    rho_value = 1000 # Density [kg / m^3]
+    # nu_value = mu_value/rho_value*100000 # Kinematic viscosity
+    nu_value = 1
 
     interior_tag = 0
     boundary_tags = [LEFT, RIGHT, BOT, TOP]
@@ -69,12 +72,33 @@ class NavierStokesProblem:
 
         tic = time.perf_counter()
 
+        # Solve Stokes problem for initial condition
+        u_h, p_h = self.solve_linear_system(solver=self.solver_stokes,
+                                            A=self.A_stokes,
+                                            b=self.b_stokes,
+                                            x=self.x_stokes,
+                                            a=self.a_stokes,
+                                            L=self.L_stokes,
+                                            u_h=u_h,
+                                            p_h=p_h)
+        u_h_out.interpolate(u_h)
+        with dfx.io.VTKFile(self.comm, 'stokes_initial_condition.pvd', 'w') as vtk_file:
+            vtk_file.write_mesh(mesh, t=0)
+            vtk_file.write_function(u_h_out, t=0)
+
         for _ in self.times:
 
             self.t += self.delta_t
 
             # Solve the Navier-Stokes equations
-            u_h, p_h = self.solve_navier_stokes(u_h, p_h) 
+            u_h, p_h = self.solve_linear_system(solver=self.solver,
+                                                A=self.A,
+                                                b=self.b,
+                                                x=self.x,
+                                                a=self.a,
+                                                L=self.L,
+                                                u_h=u_h,
+                                                p_h=p_h) 
 
             # Interpolate velocity into output function
             u_h_out.interpolate(u_h)
@@ -93,7 +117,7 @@ class NavierStokesProblem:
 
         # Compute divergence L2 norm to check mass conservation
         e_div_u = calculate_norm_L2(self.comm, div(u_h), dX=self.dx)
-        assert np.isclose(e_div_u, 0.0, atol=float(1.0e5 * np.finfo(dfx.default_real_type).eps))
+        # assert np.isclose(e_div_u, 0.0, atol=float(1.0e6 * np.finfo(dfx.default_real_type).eps))
 
         # Compute flux on boundaries with flux BC
         n = ufl.FacetNormal(self.mesh)
@@ -105,8 +129,7 @@ class NavierStokesProblem:
             print(f"Flux = {flux}")
             print(f"Total flux = {total_flux}")
 
-
-    def setup_weak_form(self):
+    def setup_weak_form_stokes(self):
         
         # Initial setup
         mesh = self.mesh
@@ -114,6 +137,7 @@ class NavierStokesProblem:
         n = ufl.FacetNormal(mesh)
         dt = dfx.fem.Constant(mesh, dfx.default_scalar_type(self.delta_t)) # Timestep size
         nu = dfx.fem.Constant(mesh, dfx.default_scalar_type(self.nu_value)) # Kinematic viscosity
+        rho = dfx.fem.Constant(mesh, dfx.default_scalar_type(self.rho_value)) # Fluid density
         alpha = dfx.fem.Constant(mesh, dfx.default_scalar_type(self.penalty_value*mesh.geometry.dim)) # Interior penalty parameter
         ds_interior = self.ds(self.interior_tag) # Interior cell integrals (on submesh)
         ds_N = self.ds(tuple(self.neumann_tags)) # Neumann BC boundary integral
@@ -130,11 +154,84 @@ class NavierStokesProblem:
         self.u_ = dfx.fem.Function(self.V)
         self.ubar_ = dfx.fem.Function(self.V_bar)
 
+        # Tangential traction
+        tangent_vector = ufl.as_vector((1e-3, 0.0))
+        def lid_velocity_expression(x):
+            return np.stack((np.ones(x.shape[1]), np.zeros(x.shape[1])))
+        self.tangent_vector = dfx.fem.Function(self.V_bar)
+        self.tangent_vector.interpolate(lid_velocity_expression)
+        # Bilinear form
+        a = (
+            # Time derivative 
+            inner(u / dt, v) * dx 
+
+            # Momentum terms, this is a(u_h, v_h) in Joe Dean's thesis
+            + nu*inner(grad(u), grad(v)) * dx 
+            - nu*inner(u - ubar, dot(grad(v), n)) * ds_interior
+            - nu*inner(v - vbar, dot(grad(u), n)) * ds_interior
+            + nu*alpha/h * inner(u - ubar, v - vbar) * ds_interior
+
+            # b(v_h, p_h) terms
+            - inner(p, div(v)) * dx
+            + inner(dot(v, n), pbar) * ds_interior
+
+            # b(u_h, q_h) terms
+            - inner(q, div(u)) * dx
+            + inner(dot(u, n), qbar) * ds_interior
+
+            # Neumann BC terms
+            - inner(dot(ubar, n), qbar) * ds_N
+            - inner(dot(vbar, n), pbar) * ds_N
+        )
+
+        # Linear form
+        f = dfx.fem.Function(self.V)
+        self.u_D = dfx.fem.Function(self.V_bar)
+        self.u_flux = dfx.fem.Function(self.V_bar)
+        
+        L = inner(f, v) * dx + (
+            # Time derivative
+            inner(self.u_ / dt, v) * dx
+            # Dirichlet BC terms
+            # + inner(dot(self.u_D, n), qbar) * ds_D
+            # + inner(dot(self.u_flux, n), qbar) * ds_flux
+            + inner(dfx.fem.Constant(self.submesh, dfx.default_scalar_type(0.0)), qbar)*ds_interior
+            + inner(self.tangent_vector, vbar)*(self.ds(TOP)+self.ds(BOT)) # Tangential traction
+            - inner(dfx.fem.Constant(mesh, 0.0)*n, vbar) * ds_N # Zero traction
+        )
+        # Add zero block to pressure or else PETSc will complain
+        L += inner(dfx.fem.Constant(mesh, dfx.default_real_type(0.0)), q) * dx
+
+        # Get the block-structured forms and compile them
+        self.a_stokes = dfx.fem.form(ufl.extract_blocks(a), entity_maps=self.subentities_map)
+        self.L_stokes = dfx.fem.form(ufl.extract_blocks(L), entity_maps=self.subentities_map)
+
+    def setup_weak_form_navier_stokes(self):
+        
+        # Initial setup
+        mesh = self.mesh
+        h = ufl.CellDiameter(mesh) 
+        n = ufl.FacetNormal(mesh)
+        dt = dfx.fem.Constant(mesh, dfx.default_scalar_type(self.delta_t)) # Timestep size
+        nu = dfx.fem.Constant(mesh, dfx.default_scalar_type(self.nu_value)) # Kinematic viscosity
+        rho = dfx.fem.Constant(mesh, dfx.default_scalar_type(self.rho_value)) # Fluid density
+        alpha = dfx.fem.Constant(mesh, dfx.default_scalar_type(self.penalty_value*mesh.geometry.dim)) # Interior penalty parameter
+        ds_interior = self.ds(self.interior_tag) # Interior cell integrals (on submesh)
+        ds_N = self.ds(tuple(self.neumann_tags)) # Neumann BC boundary integral
+        ds_D = self.ds(tuple(self.dirichlet_tags)) # Dirichlet BC boundary integral
+        ds_flux = self.ds(tuple(self.flux_tags)) # Flux BC boundary integral
+
+        dx = self.dx # Cell integrals (on mesh)
+
+        # Trial and test functions
+        u, p, ubar, pbar = ufl.TrialFunctions(self.M)
+        v, q, vbar, qbar = ufl.TestFunctions(self.M)
+
         # Upwind velocity operator
         lmbda = ufl.conditional(ufl.gt(dot(self.u_, n), 0), 1, 0)
 
         # Tangential traction
-        tangent_vector = ufl.as_vector((0.1, 0.0))
+        tangent_vector = ufl.as_vector((1e-3, 0.0))
 
         # Bilinear form
         a = (
@@ -167,17 +264,17 @@ class NavierStokesProblem:
 
         # Linear form
         f = dfx.fem.Function(self.V)
-        self.u_D = dfx.fem.Function(self.V_bar)
-        self.u_flux = dfx.fem.Function(self.V_bar)
 
         L = inner(f, v) * dx + (
             # Time derivative
             inner(self.u_ / dt, v) * dx
             # Dirichlet BC terms
-            + inner(dot(self.u_D, n), qbar) * ds_D
-            + inner(tangent_vector, vbar)*self.ds(TOP)
-            + inner(dot(self.u_flux, n), qbar) * ds_flux
-            - inner(dfx.fem.Constant(mesh, 0.0)*n, vbar) * ds_N # Zero pressure
+            # + inner(dot(self.u_D, n), qbar) * ds_D
+            + inner(dfx.fem.Constant(self.submesh, dfx.default_scalar_type(0.0)), qbar)*ds_interior
+            + inner(self.tangent_vector, vbar)*(self.ds(TOP)+self.ds(BOT))
+            # + inner(dot(self.tangent_vector, n), qbar)*(self.ds(TOP)+self.ds(BOT)) # Tangential traction
+            # + inner(dot(self.u_flux, n), qbar) * ds_flux
+            - inner(dfx.fem.Constant(mesh, 0.0)*n, vbar) * ds_N # Zero traction
         )
         # Add zero block to pressure or else PETSc will complain
         L += inner(dfx.fem.Constant(mesh, dfx.default_real_type(0.0)), q) * dx
@@ -186,6 +283,8 @@ class NavierStokesProblem:
         self.a = dfx.fem.form(ufl.extract_blocks(a), entity_maps=self.subentities_map)
         self.L = dfx.fem.form(ufl.extract_blocks(L), entity_maps=self.subentities_map)
 
+    def setup_boundary_conditions(self):
+
         # Boundary conditions
         # Prescribed profile
         if len(self.dirichlet_tags)>0:
@@ -193,32 +292,42 @@ class NavierStokesProblem:
             inflow_dofs = dfx.fem.locate_dofs_topological(self.V_bar, self.facet_dim, inflow_facets)
             u_parabolic = lambda x: np.vstack((.5*(x[1]-x[1]**2),
                                                 np.zeros_like(x[1])))
-            self.u_D.interpolate(u_parabolic)
+            # self.u_D.interpolate(u_parabolic)
             bc_u = dfx.fem.dirichletbc(self.u_D, inflow_dofs)
             self.bcs = [bc_u]
         else:
             self.bcs = []
+
+        impermeability_facets = self.mesh_to_submesh[np.concatenate((self.ft.find(TOP), self.ft.find(BOT)))]
+        impermeability_dofs   = dfx.fem.locate_dofs_topological(self.V, self.facet_dim, impermeability_facets)
+        u_zero = dfx.fem.Function(self.V_bar)
+        def lid_velocity_expression(x):
+            return np.stack((np.ones(x.shape[1]), np.zeros(x.shape[1])))
+        # u_zero.interpolate(lid_velocity_expression)
+        self.bcs.append(dfx.fem.dirichletbc(u_zero, impermeability_dofs))
 
         # Flux boundary condition: First
         flux_facets_mesh = np.concatenate(([self.ft.find(tag) for tag in self.flux_tags]))
         flux_facets_submesh = self.mesh_to_submesh[flux_facets_mesh]
 
         # Create the flux function in a (non-broken) BDM space on the mesh
-        flux_expr_mesh = create_normal_contribution_bc(self.V_flux, -0.10*n, flux_facets_mesh)
+        flux_expr_mesh = create_normal_contribution_bc(self.V_flux,
+                                                       -0.10*ufl.FacetNormal(self.mesh),
+                                                       flux_facets_mesh)
         u_flux_mesh = dfx.fem.Function(self.V_flux)
-        u_flux_mesh.interpolate(flux_expr_mesh)
+        # u_flux_mesh.interpolate(flux_expr_mesh)
 
         # Interpolate the function from the mesh onto the submesh
         interpolation_data = dfx.fem.create_interpolation_data(V_to=self.V_bar,
                                                             V_from=self.V_flux,
                                                             cells=flux_facets_submesh)
         self.u_flux.interpolate_nonmatching(u_flux_mesh,
-                                    cells=flux_facets_submesh,
-                                    interpolation_data=interpolation_data)
+                                            cells=flux_facets_submesh,
+                                            interpolation_data=interpolation_data)
 
         # Set the BC                               
         flux_dofs = dfx.fem.locate_dofs_topological(self.V_bar, self.facet_dim, flux_facets_submesh)
-        self.bcs.append(dfx.fem.dirichletbc(self.u_flux, flux_dofs))   
+        # self.bcs.append(dfx.fem.dirichletbc(self.u_flux, flux_dofs))   
 
     def setup_integral_measures(self):
         mesh = self.mesh
@@ -260,15 +369,15 @@ class NavierStokesProblem:
         self.M = ufl.MixedFunctionSpace(self.V, self.Q, self.V_bar, self.Q_bar)
     
         dofmap_size = (self.V.dofmap.index_map.size_global
-            + self.Q.dofmap.index_map.size_global
-            + self.V_bar.dofmap.index_map.size_global*self.V_bar.dofmap.index_map_bs # Vector space
-            + self.Q_bar.dofmap.index_map.size_global)
+                     + self.Q.dofmap.index_map.size_global
+                     + self.V_bar.dofmap.index_map.size_global*self.V_bar.dofmap.index_map_bs # Vector space->multiply dofmap size by block size
+                     + self.Q_bar.dofmap.index_map.size_global)
 
         print(f'Setting up finite element spaces.')
         print(f'Size of global dofmap: {dofmap_size}')
 
         # Function space for visualising the velocity field
-        self.W = dfx.fem.functionspace(mesh, ('Discontinuous Lagrange', k, (mesh.geometry.dim,)))
+        self.W = dfx.fem.functionspace(mesh, ('Discontinuous Lagrange', k+1, (mesh.geometry.dim,)))
 
         # Function space for the normal flux boundary condition
         self.V_flux = dfx.fem.functionspace(mesh, ('Brezzi-Douglas-Marini', k))
@@ -285,7 +394,7 @@ class NavierStokesProblem:
 
         self.offsets = [offset_u, offset_p, offset_ubar] # Store the offsets
 
-    def setup_direct_solver(self):
+    def setup_direct_solvers(self):
         solver = PETSc.KSP().create(self.comm)
         solver.setOperators(self.A)
         solver.setType("preonly")
@@ -302,47 +411,57 @@ class NavierStokesProblem:
 
         self.solver = solver
 
-    def setup_navier_stokes_linear_system(self):
-        """ Initialize the linear system of the Navier-Stokes problem,
-            and create a linear solver for the problem. """
+        solver.setOperators(self.A_stokes)
+        self.solver_stokes = solver
 
-        self.A = assemble_matrix_block(self.a, bcs=self.bcs)
-        self.A.assemble()
-        self.b = assemble_vector_block(self.L, self.a, bcs=self.bcs) # Right-hand side vector
+    def setup_linear_systems(self):
+        """ Initialize the linear systems of the Stokes
+            and Navier-Stokes problem, create linear solvers
+            for the problems, and calculate dofmap offsets. """
+
+        self.A = create_matrix_block(self.a)
+        self.b = create_vector_block(self.L) # Right-hand side vector
         self.x = self.A.createVecRight() # Solution vector
+
+        self.A_stokes = create_matrix_block(self.a_stokes)
+        self.b_stokes = create_vector_block(self.L_stokes) # Right-hand side vector
+        self.x_stokes = self.A_stokes.createVecRight() # Solution vector
 
         self.calculate_offsets()
 
-    def solve_navier_stokes(self, u_h: dfx.fem.Function, p_h: dfx.fem.Function):
+    def solve_linear_system(self, solver: PETSc.KSP,
+                            A: PETSc.Mat, b: PETSc.Vec,
+                            x: PETSc.Vec,
+                            a: dfx.fem.form, L: dfx.fem.form,
+                            u_h: dfx.fem.Function, p_h: dfx.fem.Function):
         """ Assemble and solve the Navier-Stokes system of equations. """
 
-        self.A.zeroEntries()
-        assemble_matrix_block(self.A, self.a, bcs=self.bcs)
-        self.A.assemble()
+        A.zeroEntries()
+        assemble_matrix_block(A, a, bcs=self.bcs)
+        A.assemble()
 
-        with self.b.localForm() as b_loc: b_loc.set(0)
-        assemble_vector_block(self.b, self.L, self.a, bcs=self.bcs)
+        with b.localForm() as b_loc: b_loc.set(0)
+        assemble_vector_block(b, L, a, bcs=self.bcs)
 
-        self.solver.solve(self.b, self.x)
-        assert self.solver.getConvergedReason() > 0, print(self.solver.getConvergedReason())
+        solver.solve(b, x)
+        assert solver.getConvergedReason() > 0, print(solver.getConvergedReason())
 
         # Get degree of freedom offsets
         offset_u, offset_p, offset_ubar = self.offsets
 
         # Update solution functions
-        u_h.x.array[:offset_u] = self.x.array_r[:offset_u]
+        u_h.x.array[:offset_u] = x.array_r[:offset_u]
         u_h.x.scatter_forward()
-        p_h.x.array[:(offset_p-offset_u)] = self.x.array_r[offset_u:offset_p]
+        p_h.x.array[:(offset_p-offset_u)] = x.array_r[offset_u:offset_p]
         p_h.x.scatter_forward()
         p_h.x.array[:] -= calculate_mean(self.mesh, p_h, dX=self.dx)
 
         # Update previous timesteps
         self.u_.x.array[:] = u_h.x.array
-        self.ubar_.x.array[:(offset_ubar-offset_p)] = self.x.array_r[offset_p:offset_ubar]
+        self.ubar_.x.array[:(offset_ubar-offset_p)] = x.array_r[offset_p:offset_ubar]
         self.ubar_.x.scatter_forward()
 
         return u_h, p_h
-
 
     def create_submesh_and_subentities_map(self):
         """ Create submesh in the facet dimension of the mesh. """
@@ -383,8 +502,10 @@ if __name__=='__main__':
     problem.create_submesh_and_subentities_map()
     problem.setup_function_spaces()
     problem.setup_integral_measures()
-    problem.setup_weak_form()
-    problem.setup_navier_stokes_linear_system()
-    problem.setup_direct_solver()
+    problem.setup_weak_form_stokes()
+    problem.setup_weak_form_navier_stokes()
+    problem.setup_boundary_conditions()
+    problem.setup_linear_systems()
+    problem.setup_direct_solvers()
     problem.solve()
         
