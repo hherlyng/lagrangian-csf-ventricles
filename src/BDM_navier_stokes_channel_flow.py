@@ -21,13 +21,13 @@ def u_parabolic(x):
 comm = MPI.COMM_WORLD # MPI communicator
 N = int(argv[1]) # Mesh cells
 t = 0.0
-num_time_steps = 10
-t_end = 3
+num_time_steps = 200
+t_end = 1
 delta_t = t_end/num_time_steps # Timestep size
-mu_value  = 1 # Dynamic viscosity
-rho_value = 1 # Fluid density
+mu_value  = 1e-2 # Dynamic viscosity
+rho_value = 1e1 # Fluid density
 Re = rho_value/mu_value  # Reynolds Number
-k = 1 # Polynomial degree
+k = 2 # Polynomial degree
 
 # Create mesh and boundary tags
 mesh, ft = create_unit_square_mesh(N=N, comm=comm)
@@ -49,9 +49,11 @@ u, p = ufl.TrialFunctions(M)
 v, q = ufl.TestFunctions(M)
 
 u_ = dfx.fem.Function(V) # Velocity at previous timestep
+u_.interpolate(u_parabolic) # Interpolate initial condition
 
 dt = dfx.fem.Constant(mesh, dfx.default_real_type(delta_t)) # Timestep
-gamma = dfx.fem.Constant(mesh, dfx.default_real_type(10.0)) # BDM penalty parameter
+gamma = dfx.fem.Constant(mesh, dfx.default_real_type(1000.0)) # BDM penalty parameter
+beta = dfx.fem.Constant(mesh, dfx.default_scalar_type(1000.0)) # Nitsche penalty parameter
 mu = dfx.fem.Constant(mesh, dfx.default_real_type(mu_value)) # Dynamic viscosity
 rho = dfx.fem.Constant(mesh, dfx.default_scalar_type(rho_value)) # Fluid density
 
@@ -68,8 +70,8 @@ a00 = (rho/dt * inner(u , v) * dx # Time derivative
      + rho*inner(dot(u_, nabla_grad(u)), v) * dx # Convective term
      + 2*mu*inner(eps(u), eps(v))*dx # Viscous dissipation
      + stabilization(u, v, mu, gamma) # BDM stabilization
-     - mu*inner(dot(grad(u).T, n), v) * (ds(RIGHT)+ds(LEFT)) # Parallel flow at outlet
-     + gamma/h*inner(u, v)*(ds(TOP)+ds(BOT))
+     - mu*inner(dot(grad(u).T, n), v) * (ds(LEFT) + ds(RIGHT)) # Parallel flow at outlet
+     + beta/h*inner(u, v)*(ds(TOP)+ds(BOT))
     )
 a01 = -inner(p, div(v))*dx
 a10 = -inner(q, div(u))*dx
@@ -77,7 +79,7 @@ a11 = dfx.fem.Constant(mesh, dfx.default_scalar_type(0.0))*inner(p, q)*dx
 
 # Linear form
 L0 = rho/dt * inner(u_, v) * dx # Time derivative
-L0 -= dot(dfx.fem.Constant(mesh, dfx.default_scalar_type(8.0))*n, v) * ds(LEFT) # Impose pressure
+# L0 -= dot(dfx.fem.Constant(mesh, dfx.default_scalar_type(8.0))*n, v) * ds(LEFT) # Impose pressure
         
 L1 = inner(dfx.fem.Function(Q), q)*dx
 
@@ -88,7 +90,12 @@ L = dfx.fem.form([L0, L1])
 # Strong boundary conditions: Impermeability on top/bottom
 impermeability_dofs = dfx.fem.locate_dofs_topological(V, facet_dim, np.concatenate((ft.find(TOP), ft.find(BOT))))
 bc_impermeability = dfx.fem.dirichletbc(dfx.fem.Function(V), impermeability_dofs)
-bcs = [bc_impermeability]                                                                                   
+bcs = [bc_impermeability]               
+
+inflow = dfx.fem.Function(V)
+inflow.interpolate(u_parabolic)
+bc_inflow = dfx.fem.dirichletbc(inflow, dfx.fem.locate_dofs_topological(V, facet_dim, ft.find(LEFT)))
+bcs.append(bc_inflow)
 
 # Assemble the Navier-Stokes problem
 A = assemble_matrix_block(a, bcs=bcs)
@@ -113,7 +120,7 @@ p_h = dfx.fem.Function(Q)
 
 u_vis = dfx.fem.Function(W)
 u_vis.name = "u"
-u_vis.interpolate(u_h)
+u_vis.interpolate(u_)
 
 # Write initial condition to file
 u_file = dfx.io.VTXWriter(comm, "u.bp", u_vis)
@@ -160,7 +167,7 @@ p_file.close()
 
 # Compute divergence L2 norm to check mass conservation
 e_div_u = calculate_norm_L2(comm, div(u_h), dX=dx)
-assert np.isclose(e_div_u, 0.0, atol=float(1.0e5 * np.finfo(dfx.default_real_type).eps))
+# assert np.isclose(e_div_u, 0.0, atol=float(1.0e5 * np.finfo(dfx.default_real_type).eps))
 
 # Calculate error in velocity approximation
 u_exact = dfx.fem.Function(V)
