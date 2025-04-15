@@ -12,17 +12,14 @@ from utilities.fem     import tangent, create_normal_contribution_bc, compute_ce
 from utilities.mesh    import create_square_mesh_with_tags
 from dolfinx.fem.petsc import assemble_matrix_block, assemble_vector_block, create_matrix_block, create_vector_block
 
-# Jump operator
-jump = lambda phi, n: outer(phi('+'), n('+')) + outer(phi('-'), n('-'))
-
 LEFT=1; RIGHT=2; BOT=3; TOP=4
 
 class NavierStokesProblem:
 
     # Simulation parameters
     t = 0.0
-    t_end = .01
-    num_time_steps = 10
+    t_end = .5
+    num_time_steps = 100
     times = np.linspace(0, t_end, num_time_steps+1)    
     delta_t = t_end/num_time_steps # Timestep size
     polynomial_degree = 2 # Polynomial degree
@@ -196,7 +193,7 @@ class NavierStokesProblem:
             # + inner(dot(self.u_D, n), qbar) * ds_D
             # + inner(dot(self.u_flux, n), qbar) * ds_flux
             + inner(dfx.fem.Constant(self.submesh, dfx.default_scalar_type(0.0)), qbar)*ds_interior
-            + inner(self.tangent_vector, vbar)*(self.ds(TOP)+self.ds(BOT)) # Tangential traction
+            # + inner(self.tangent_vector, vbar)*(self.ds(TOP)+self.ds(BOT)) # Tangential traction
             - inner(dfx.fem.Constant(mesh, 0.0)*n, vbar) * ds_N # Zero traction
         )
         # Add zero block to pressure or else PETSc will complain
@@ -271,7 +268,7 @@ class NavierStokesProblem:
             # Dirichlet BC terms
             # + inner(dot(self.u_D, n), qbar) * ds_D
             + inner(dfx.fem.Constant(self.submesh, dfx.default_scalar_type(0.0)), qbar)*ds_interior
-            + inner(self.tangent_vector, vbar)*(self.ds(TOP)+self.ds(BOT))
+            # + inner(self.tangent_vector, vbar)*(self.ds(TOP)+self.ds(BOT))
             # + inner(dot(self.tangent_vector, n), qbar)*(self.ds(TOP)+self.ds(BOT)) # Tangential traction
             # + inner(dot(self.u_flux, n), qbar) * ds_flux
             - inner(dfx.fem.Constant(mesh, 0.0)*n, vbar) * ds_N # Zero traction
@@ -299,11 +296,11 @@ class NavierStokesProblem:
             self.bcs = []
 
         impermeability_facets = self.mesh_to_submesh[np.concatenate((self.ft.find(TOP), self.ft.find(BOT)))]
-        impermeability_dofs   = dfx.fem.locate_dofs_topological(self.V, self.facet_dim, impermeability_facets)
+        impermeability_dofs   = dfx.fem.locate_dofs_topological(self.V_bar, self.facet_dim, impermeability_facets)
         u_zero = dfx.fem.Function(self.V_bar)
         def lid_velocity_expression(x):
             return np.stack((np.ones(x.shape[1]), np.zeros(x.shape[1])))
-        # u_zero.interpolate(lid_velocity_expression)
+        u_zero.interpolate(lid_velocity_expression)
         self.bcs.append(dfx.fem.dirichletbc(u_zero, impermeability_dofs))
 
         # Flux boundary condition: First
@@ -362,8 +359,8 @@ class NavierStokesProblem:
         k = self.polynomial_degree
 
         # Function spaces for the weak form
-        self.V = dfx.fem.functionspace(mesh, ('Discontinuous Brezzi-Douglas-Marini', k))
-        self.Q = dfx.fem.functionspace(mesh, ('Discontinuous Lagrange', k-1))
+        self.V = dfx.fem.functionspace(mesh, ('Discontinuous Raviart-Thomas', k+1))
+        self.Q = dfx.fem.functionspace(mesh, ('Discontinuous Lagrange', k))
         self.V_bar = dfx.fem.functionspace(submesh, ('Discontinuous Lagrange', k, (mesh.geometry.dim,)))
         self.Q_bar = dfx.fem.functionspace(submesh, ('Discontinuous Lagrange', k))
         self.M = ufl.MixedFunctionSpace(self.V, self.Q, self.V_bar, self.Q_bar)
