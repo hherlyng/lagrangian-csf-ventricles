@@ -24,7 +24,7 @@ LATERAL_APERTURES = 28
 # Solve linear elasticity equation on the ventricles. Wall motion is 
 # prescribed in time at a single point (close to corpus callosum).
 comm = MPI.COMM_WORLD
-mesh_prefix = 'medium'
+mesh_prefix = 'coarse'
 with dfx.io.XDMFFile(comm, f"../geometries/{mesh_prefix}_ventricles_mesh_tagged.xdmf", "r") as xdmf:
     mesh = xdmf.read_mesh()
     
@@ -52,7 +52,7 @@ print("Value of Lamé parameters:")
 print(f"mu \t= {mu_value:.2f}\nlambda \t= {lam_value:.2f}")
 
 # Timestep size [s]
-deltaT = 0.02
+deltaT = 0.001
 dt = dfx.fem.Constant(mesh, deltaT) 
 
 # Finite elements
@@ -74,7 +74,11 @@ L = rho*inner(2*wh_n-wh_nmin, dw)*dx
 # Dirichlet BC on corpus callosum
 cc_disp_expr = WallDeformationCorpusCallosum(derivative=False)
 cc_disp_func = dfx.fem.Function(W)
-cc_dofs = dfx.fem.locate_dofs_topological(W, facet_dim, np.array([51378], dtype=np.int32))
+if mesh_prefix=='coarse':
+    cc_facet = 7340
+elif mesh_prefix=='medium':
+    cc_facet = 51378
+cc_dofs = dfx.fem.locate_dofs_topological(W, facet_dim, np.array([cc_facet], dtype=np.int32))
 num_cc_dofs = comm.allreduce(len(cc_dofs), op=MPI.SUM)
 print("Number of corpus callosum dofs: ", num_cc_dofs)
 assert num_cc_dofs>0, print("No corpus callosum dofs located.")
@@ -150,7 +154,7 @@ projection_problem = projection_problem_CG2_to_BDM1(dw_dt, dw_dt_bdm)
 
 for idx, t in enumerate(times):
     
-    print(f"\nTime t = {t:.3g}")
+    print(f"\nTime t = {t:.4g}")
         
     if t > period:
         # Ensure BC function time value is within
@@ -181,7 +185,7 @@ for idx, t in enumerate(times):
 
     # Project deformation velocity into BDM 1 space for checkpointing
     projection_problem.solve()
-    a4d.write_function(filename=vh_cpoint_filename, u=dw_dt_bdm, time=t)
+    a4d.write_function(filename=vh_cpoint_filename, u=dw_dt_bdm, time=float(f"{t:.4g}"))
 
     # Interpolate the velocity into CG1 and write XDMF output
     vh_out.interpolate(dw_dt) 

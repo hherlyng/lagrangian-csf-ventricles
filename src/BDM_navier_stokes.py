@@ -166,14 +166,15 @@ if __name__=='__main__':
     k = 1 # Element degree
 
     # Read mesh and meshtags
-    mesh_prefix = 'medium'
+    mesh_prefix = 'coarse'
+    # v_defo_input_filename = f"../output/{mesh_prefix}-mesh/deformation/checkpoints/deformation_velocity/"
     v_defo_input_filename = f"../output/{mesh_prefix}-mesh/deformation/checkpoints/time_dep_deformation_velocity/"
     mesh = a4d.read_mesh(v_defo_input_filename, comm, read_from_partition=False)
     ft   = a4d.read_meshtags(v_defo_input_filename, mesh, meshtag_name='ft')
 
     # Temporal parameters
     T = 2
-    delta_t = 0.02
+    delta_t = 0.001
     N = int(T / delta_t)
     times = np.linspace(0, T, N+1)
 
@@ -257,15 +258,18 @@ if __name__=='__main__':
     # Write initial condition to file
     velocity_output.write(times[0])
     pressure_output.write(times[0])
+    if write_cpoint:
+        a4d.write_function(cpoint_filename, uh, time=times[0])
+        a4d.write_function(cpoint_filename, ph, time=times[0])
 
     # Set Navier-Stokes system matrix as KSP operator
     ksp.setOperators(A)
 
     for t in times[1:]:
-        print(f"Time = {t:.2f}")
+        print(f"Time = {t:.4g}")
 
         # Update deformation velocity
-        a4d.read_function(filename=v_defo_input_filename, u=v_defo, time=t)
+        a4d.read_function(filename=v_defo_input_filename, u=v_defo, time=float(f"{t:.4g}"))
         
         # Account for deformation in choroid plexus flux BC
         v_chp.interpolate(v_chp_expr)

@@ -54,7 +54,7 @@ for infile_name in [infile_name1, infile_name2]:
     point_bot_aq = mesh.geometry.x[vertex_bot_aq, :]
     length_aq = np.sqrt(np.sum((point_top_aq-point_bot_aq)**2))
 
-    T = 2
+    T = 0.52
     dt = 0.02
     N = int(T / dt)
     times = np.linspace(0, T, N+1)[1:]
@@ -97,13 +97,15 @@ for infile_name in [infile_name1, infile_name2]:
 
 
 fig, ax = plt.subplots(figsize=[16, 9])
-pl1, = ax.plot(times, flowrates_top_aq_navier_stokes-flowrates_top_aq_stokes, color='k', label='flowrate diff')
-ax.set_ylabel('ml/s', fontsize=40)
+flowrate_diff = (flowrates_top_aq_navier_stokes-flowrates_top_aq_stokes)/flowrates_top_aq_navier_stokes*100
+pl1, = ax.plot(times, flowrate_diff, color='k', label='flowrate diff')
+ax.set_ylabel('% ml/s', fontsize=40)
 ax.tick_params(axis='both', labelsize=30)
 
 ax_twin = ax.twinx()
-pl2, = ax_twin.plot(times, pressure_gradients_aq_navier_stokes-pressure_gradients_aq_stokes, color='r', label='pressure gradient diff')
-ax_twin.set_ylabel('mmHg/m', color=pl2.get_color(), fontsize=40)
+pressure_gradient_diff = (pressure_gradients_aq_navier_stokes-pressure_gradients_aq_stokes)/pressure_gradients_aq_navier_stokes*100
+pl2, = ax_twin.plot(times, pressure_gradient_diff, color='r', label='pressure gradient diff')
+ax_twin.set_ylabel('% mmHg/m', color=pl2.get_color(), fontsize=40)
 ax_twin.tick_params(axis='y', colors=pl2.get_color(), labelsize=30)
 
 ax.set_xlabel('Time [s]', fontsize=40) 
@@ -122,13 +124,11 @@ fig2.tight_layout()
 
 fig3, ax3 = plt.subplots(figsize=[16, 9])
 ax3.plot(times, pressure_gradients_aq_navier_stokes, color='k', label='navier-stokes')
-ax3.plot(times, pressure_gradients_aq_stokes, 'r--', label='stokes')
+ax3.plot(times, -10*pressure_gradients_aq_stokes, 'r--', label='stokes')
 ax3.set_ylabel('mmHg/m', fontsize=40)
 ax3.tick_params(axis='both', labelsize=30)
 ax3.set_xlabel('Time [s]', fontsize=40) 
 ax3.legend(fontsize=20, loc='upper right', frameon=True, fancybox=False, edgecolor='k')
 fig3.tight_layout()
-
-from IPython import embed;embed()
 
 plt.show()
