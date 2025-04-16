@@ -9,7 +9,7 @@ from ufl    import div, dot, grad, inner, nabla_grad
 from scifem import assemble_scalar
 from utilities.fem     import calculate_mean, calculate_norm_L2, eps, stabilization, create_normal_contribution_bc, tangent
 from utilities.mesh    import create_unit_square_mesh
-from dolfinx.fem.petsc import assemble_matrix_block, assemble_vector_block, create_matrix_block, create_vector_block
+from dolfinx.fem.petsc import assemble_matrix_block, assemble_vector_block, create_matrix_block
 
 # Simulation parameters
 comm = MPI.COMM_WORLD # MPI communicator
@@ -189,7 +189,7 @@ p_file.close()
 
 # Compute divergence L2 norm to check mass conservation
 e_div_u = calculate_norm_L2(comm, div(u_h), dX=dx)
-# assert np.isclose(e_div_u, 0.0, atol=float(1.0e5 * np.finfo(dfx.default_real_type).eps))
+assert np.isclose(e_div_u, 0.0, atol=float(1.0e5 * np.finfo(dfx.default_real_type).eps))
 
 flux = assemble_scalar(
             dfx.fem.form(

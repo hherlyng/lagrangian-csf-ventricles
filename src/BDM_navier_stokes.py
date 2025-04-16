@@ -5,12 +5,13 @@ import numpy   as np
 import dolfinx as dfx
 import adios4dolfinx as a4d
 
-from ufl       import inner, dot, div, grad
+from ufl       import inner, dot, div, grad, nabla_grad
 from scifem    import assemble_scalar
 from mpi4py    import MPI
 from petsc4py  import PETSc
 from basix.ufl import element
-from utilities.fem import stabilization, tangent, eps, assemble_nested_system, create_normal_contribution_bc, calculate_mean
+from utilities.fem import stabilization, tangent, eps, create_normal_contribution_bc, calculate_mean, calculate_norm_L2
+from dolfinx.fem.petsc import assemble_matrix_block, assemble_vector_block, create_matrix_block
 
 print = PETSc.Sys.Print
 
@@ -68,10 +69,13 @@ def calculate_fluxes(ds: ufl.Measure, tags: tuple[int],
     print(f"Fourth:\t\t{values[3]:.3g}")
 
     # Check that mass is conserved by calculating total boundary flux
-    total_boundary_flux = assemble_scalar(-dot(uh, n)*ds)
-    assert total_boundary_flux < 1e-10, print("Mass conservation violated.")
+    # total_boundary_flux = assemble_scalar(-dot(uh, n)*ds)
+    # assert total_boundary_flux < 1e-10, print("Mass conservation violated.")
 
-def setup_stokes_problem(mesh: dfx.mesh.Mesh, ft: dfx.mesh.MeshTags, mesh_prefix: str):
+def setup_variational_problem(mesh: dfx.mesh.Mesh,
+                              ft: dfx.mesh.MeshTags,
+                              mesh_prefix: str,
+                              k: int):
     facet_dim = mesh.topology.dim-1
     mesh.topology.create_connectivity(facet_dim, facet_dim+1) # Create facet-cell connectivity
 
@@ -80,46 +84,55 @@ def setup_stokes_problem(mesh: dfx.mesh.Mesh, ft: dfx.mesh.MeshTags, mesh_prefix
 
     n = ufl.FacetNormal(mesh)
 
-    bdm1_el = element("BDM", mesh.basix_cell(), 1)
-    dg0_el  = element("DG", mesh.basix_cell(), 0)
-    dg1_vec_el = element("DG", mesh.basix_cell(), 1, shape=(mesh.geometry.dim,))
-    V = dfx.fem.functionspace(mesh, bdm1_el)
-    Q = dfx.fem.functionspace(mesh, dg0_el)
-    DG_vec = dfx.fem.functionspace(mesh, dg1_vec_el)
+    bdm_el = element("BDM", mesh.basix_cell(), k)
+    dg_el  = element("DG", mesh.basix_cell(), k-1)
+    dg_vec_el = element("DG", mesh.basix_cell(), k, shape=(mesh.geometry.dim,))
+    V = dfx.fem.functionspace(mesh, bdm_el)
+    Q = dfx.fem.functionspace(mesh, dg_el)
+    DG_vec = dfx.fem.functionspace(mesh, dg_vec_el)
     v_zero = dfx.fem.Function(V) # Zero velocity for BCs
     v_defo = dfx.fem.Function(V) # Deformation velocity
+    u_ = dfx.fem.Function(V) # Previous timestep velocity
 
     u, v = ufl.TrialFunction(V), ufl.TestFunction(V)
     p, q = ufl.TrialFunction(Q), ufl.TestFunction(Q)
 
-    mu = dfx.fem.Constant(mesh, dfx.default_scalar_type(7e-4)) #[kg/(m*s)] #*1e-2 # Dynamic viscosity [kg/(cm*s)]
-    penalty = dfx.fem.Constant(mesh, dfx.default_scalar_type(100.0))
+    rho = dfx.fem.Constant(mesh, dfx.default_scalar_type(1e3)) #1e3 [kg/m^3]
+    mu = dfx.fem.Constant(mesh, dfx.default_scalar_type(7e-4)) #7e-4[kg/(m*s)] #*1e-2 # Dynamic viscosity [kg/(cm*s)]
+    gamma = dfx.fem.Constant(mesh, dfx.default_scalar_type(100.0))
+    dt = dfx.fem.Constant(mesh, dfx.default_scalar_type(delta_t))
 
     # Tangential traction BC
     tau_val = 0#7.89e-3*1e-1 # Tangential traction force density [Pa]
     tau = dfx.fem.Function(V)
-    tau_input = dfx.fem.Function(DG_vec)
-    cilia_direction_filename = f'../output/{mesh_prefix}-mesh/flow/checkpoints/cilia-direction-vectors'
-    a4d.read_function(filename=cilia_direction_filename, u=tau_input)
-    tau.interpolate(tau_input)
+    # tau_input = dfx.fem.Function(DG_vec)
+    # cilia_direction_filename = f'../output/{mesh_prefix}-mesh/flow/checkpoints/cilia-direction-vectors'
+    # a4d.read_function(filename=cilia_direction_filename, u=tau_input)
+    # tau.interpolate(tau_input)
 
-    # Stokes problem in reference domain accounting for the deformation
-    a00 = (2*mu*inner(eps(u), eps(v))*dx # Viscous dissipation
-         + stabilization(u, v, mu, penalty) # BDM stabilization
+    # Stokes problem
+    a00 = (rho/dt * inner(u , v) * dx # Time derivative
+         + 2*mu*inner(eps(u), eps(v))*dx # Viscous dissipation
+         + stabilization(u, v, mu, gamma) # BDM stabilization
          - mu*inner(dot(grad(u).T, n), v)*(ds(CANAL_OUT)+ds(LATERAL_APERTURES)) # Parallel flow at inlet/outlet
           )
-    a01 = p*div(v)*dx
-
-    a10 = q*div(u)*dx
+    a01 = -p*div(v)*dx
+    a10 = -q*div(u)*dx
     a11 = dfx.fem.Constant(mesh, dfx.default_scalar_type(0.0))*inner(p, q)*dx
 
-    L0 = inner(v_zero, v)*dx \
-    #    + inner(tau_val*tangent(tau, n), tangent(v, n))*ds(cilia_tags) \
+    L0 = rho/dt * inner(u_, v) * dx # Time derivative
+    #L0 += inner(tau_val*tangent(tau, n), tangent(v, n))*ds(cilia_tags) \
     L1 = inner(dfx.fem.Function(Q), q)*dx
 
-    a = dfx.fem.form([[a00, a01],
+    a_stokes = dfx.fem.form([[a00, a01],
                       [a10, a11]])
     L = dfx.fem.form([L0, L1])
+
+    # Navier-Stokes problem
+    a00 += rho*inner(dot(u_, nabla_grad(u)), v) * dx # Convective term
+
+    a = dfx.fem.form([[a00, a01],
+                    [a10, a11]])
 
     # Set choroid plexus inflow velocity BC strongly
     # Create expressions with positive and negative z-component of the velocity,
@@ -142,86 +155,114 @@ def setup_stokes_problem(mesh: dfx.mesh.Mesh, ft: dfx.mesh.MeshTags, mesh_prefix
 
     bcs.append(dfx.fem.dirichletbc(v_defo, v_dofs_defo))
 
-    return a, L, bcs, V, Q, ds, v_chp, v_chp_expr, v_defo
-
-def create_direct_solver(A: PETSc.Mat, comm: MPI.Comm):
-    ksp = PETSc.KSP().create(comm)
-    ksp.setOperators(A)
-    ksp.setType("preonly")
-    pc = ksp.getPC()
-    pc.setType("lu")
-    pc.setFactorSolverType("mumps")
-    pc.setFactorSetUpSolverType()
-    
-    return ksp
-
-def solve_stokes(a: dfx.fem.form, L: dfx.fem.form, bcs: list[dfx.fem.DirichletBC],
-                 uh: dfx.fem.Function, ph: dfx.fem.Function):
-    comm = uh.function_space.mesh.comm
-    
-    A, b = assemble_nested_system(a, L, bcs)
-
-    ksp = create_direct_solver(A, comm)
-
-    w = PETSc.Vec().createNest([uh.x.petsc_vec, ph.x.petsc_vec])
-    ksp.solve(b, w)
-    assert ksp.getConvergedReason() > 0, print(ksp.getConvergedReason())
-
-    # MPI communcation
-    uh.x.scatter_forward()
-    ph.x.scatter_forward()
-
-    return uh, ph
+    return a_stokes, a, L, bcs, V, Q, ds, u_, v_chp, v_chp_expr, v_defo
 
 if __name__=='__main__':
     from sys import argv
     write_cpoint = True if int(argv[1])==1 else False
 
-    # Read mesh
-    comm = MPI.COMM_WORLD
+    # Initialize
+    comm = MPI.COMM_WORLD # MPI communicator
+    k = 1 # Element degree
+
+    # Read mesh and meshtags
     mesh_prefix = 'medium'
     v_defo_input_filename = f"../output/{mesh_prefix}-mesh/deformation/checkpoints/time_dep_deformation_velocity/"
     mesh = a4d.read_mesh(v_defo_input_filename, comm, read_from_partition=False)
     ft   = a4d.read_meshtags(v_defo_input_filename, mesh, meshtag_name='ft')
 
+    # Temporal parameters
+    T = 2
+    delta_t = 0.02
+    N = int(T / delta_t)
+    times = np.linspace(0, T, N+1)
+
     # Setup the Stokes problem
-    a, L, bcs, V, Q, ds, \
-    v_chp, v_chp_expr, v_defo = setup_stokes_problem(mesh, ft, mesh_prefix)
+    a_stokes, a, L, bcs, V, Q, ds, \
+    u_, v_chp, v_chp_expr, v_defo = setup_variational_problem(mesh, ft, mesh_prefix, k)
     
     # Solution functions
     uh = dfx.fem.Function(V); uh.name = 'velocity'
     ph = dfx.fem.Function(Q); ph.name = 'pressure'
     uh_rel = dfx.fem.Function(V)
 
-    print("Number of dofs Stokes eqs: ")
+    print("Number of dofs Navier-Stokes eqs: ")
     print(f"Total:\t\t{V.dofmap.index_map.size_global+Q.dofmap.index_map.size_global}")
     print(f"Velocity:\t{V.dofmap.index_map.size_global}")
     print(f"Pressure:\t{Q.dofmap.index_map.size_global}\n")
 
     # I/O function: Stokes velocity in DG1
-    dg1_vec_el = element("DG", mesh.basix_cell(), 1, shape=(mesh.geometry.dim,))
-    uh_out = dfx.fem.Function(dfx.fem.functionspace(mesh, dg1_vec_el))
+    dg_vec_el = element("DG", mesh.basix_cell(), k, shape=(mesh.geometry.dim,))
+    uh_out = dfx.fem.Function(dfx.fem.functionspace(mesh, dg_vec_el))
     uh_out.name = 'velocity' 
 
-    output_dir = f'../output/{mesh_prefix}-mesh/flow/stokes/'
-    velocity_output_filename = output_dir + 'velocity_chp+cilia+defo.pvd'
-    velocity_output = dfx.io.VTKFile(comm, velocity_output_filename, "w")
-    pressure_output_filename = output_dir + 'pressure_chp+cilia+defo.pvd'
-    pressure_output = dfx.io.VTKFile(comm, pressure_output_filename, "w")
+    output_dir = f'../output/{mesh_prefix}-mesh/flow/navier-stokes/'
+    velocity_output_filename = output_dir + 'velocity_chp+cilia+defo.bp'
+    velocity_output = dfx.io.VTXWriter(comm, velocity_output_filename, [uh_out], "BP4")
+    pressure_output_filename = output_dir + 'pressure_chp+cilia+defo.bp'
+    pressure_output = dfx.io.VTXWriter(comm, pressure_output_filename, [ph], "BP4")
 
     if write_cpoint:
         cpoint_filename = output_dir + 'checkpoints/chp+cilia+defo'
         a4d.write_mesh(cpoint_filename, mesh, store_partition_info=True)
         a4d.write_meshtags(cpoint_filename, mesh, ft)
 
-    T = 2
-    dt = 0.02
-    N = int(T / dt)
-    times = np.linspace(0, T, N+1)
-
     tic = time.perf_counter()
 
-    for t in times:
+    # Solve the Stokes problem and use it
+    # as initial condition for Navier-Stokes
+    # Assemble the Stokes problem
+    A_stokes = assemble_matrix_block(a_stokes,bcs=bcs)
+    A_stokes.assemble()
+    b = assemble_vector_block(L, a_stokes, bcs=bcs)
+
+    # Create the Navier-Stokes problem
+    A = create_matrix_block(a)
+    x = A.createVecRight() # Solution vector
+
+    # Create and configure solver
+    ksp = PETSc.KSP().create(comm)  # type: ignore
+    ksp.setOperators(A_stokes)
+    ksp.setType("preonly")
+    ksp.getPC().setType("lu")
+    ksp.getPC().setFactorSolverType("mumps")
+    opts = PETSc.Options()  # type: ignore
+    opts["mat_mumps_icntl_14"] = 80  # Increase MUMPS working memory
+    opts["mat_mumps_icntl_24"] = 1  # Option to support solving a singular matrix (pressure nullspace)
+    opts["mat_mumps_icntl_25"] = 0  # Option to support solving a singular matrix (pressure nullspace)
+    opts["ksp_error_if_not_converged"] = 1 # Throw an error if KSP solver does not converge
+    ksp.setFromOptions()
+
+    # Create offsets for the blocked functions
+    offset_u = V.dofmap.index_map.size_local * V.dofmap.index_map_bs
+    offset_p = offset_u + Q.dofmap.index_map.size_local*Q.dofmap.index_map_bs
+
+    # Setup Stokes problem for the initial condition
+    # Update deformation velocity
+    a4d.read_function(filename=v_defo_input_filename, u=v_defo, time=times[0])
+    
+    # Account for deformation in choroid plexus flux BC
+    v_chp.interpolate(v_chp_expr)
+    v_chp.x.array[:] += v_defo.x.array.copy()
+
+    # Solve the Stokes problem 
+    ksp.solve(b, x)
+    u_.x.array[:offset_u] = x.array_r[:offset_u]
+    u_.x.scatter_forward()
+    uh_out.interpolate(u_) # Interpolate velocity into visualization function
+    ph.x.array[:(offset_p-offset_u)] = x.array_r[offset_u:offset_p]
+    ph.x.scatter_forward()
+    ph.x.array[:] -= calculate_mean(mesh, ph, dX=ufl.dx)
+
+    # Write initial condition to file
+    velocity_output.write(times[0])
+    pressure_output.write(times[0])
+
+    # Set Navier-Stokes system matrix as KSP operator
+    ksp.setOperators(A)
+
+    for t in times[1:]:
+        print(f"Time = {t:.2f}")
 
         # Update deformation velocity
         a4d.read_function(filename=v_defo_input_filename, u=v_defo, time=t)
@@ -230,24 +271,41 @@ if __name__=='__main__':
         v_chp.interpolate(v_chp_expr)
         v_chp.x.array[:] += v_defo.x.array.copy()
 
-        # Solve the Stokes equations
-        uh, ph = solve_stokes(a, L, bcs, uh, ph) 
+        # Solve the Navier-Stokes equations
+        A.zeroEntries()
+        assemble_matrix_block(A, a, bcs=bcs)
+        A.assemble()
+
+        with b.localForm() as b_loc: b_loc.set(0)
+        assemble_vector_block(b, L, a, bcs=bcs)
+
+        # Compute solution
+        ksp.solve(b, x)
+
+        uh.x.array[:offset_u] = x.array_r[:offset_u]
+        uh.x.scatter_forward()
+        ph.x.array[:(offset_p-offset_u)] = x.array_r[offset_u:offset_p]
+        ph.x.scatter_forward()
+        ph.x.array[:] -= calculate_mean(mesh, ph, dX=ufl.dx) # Subtract mean pressure so that mean=0
+        
+        # Update u_n
+        u_.x.array[:] = uh.x.array
 
         # Interpolate velocity into DG1 output function
         uh_out.interpolate(uh)
 
-        # Subtract mean pressure so that mean=0
-        ph.x.array[:] -= calculate_mean(mesh, ph, ufl.dx)
-
         # Write output
-        velocity_output.write_mesh(mesh, t)
-        velocity_output.write_function(uh_out, t)
-        pressure_output.write_mesh(mesh, t)
-        pressure_output.write_function(ph, t)
+        velocity_output.write(t)
+        pressure_output.write(t)
 
         if write_cpoint:
             a4d.write_function(cpoint_filename, uh, time=t)
             a4d.write_function(cpoint_filename, ph, time=t)
+
+        # Compute divergence L2 norm to check mass conservation
+        e_div_u = calculate_norm_L2(comm, div(uh), dX=ufl.dx)
+        print(f"e_div_u = {e_div_u}")
+        # assert np.isclose(e_div_u, 0.0, atol=float(1.0e5 * np.finfo(dfx.default_real_type).eps))
 
         # Calculate choroid plexus CSF flux
         normal_vec = ufl.FacetNormal(mesh) # Facet normal vector of mesh

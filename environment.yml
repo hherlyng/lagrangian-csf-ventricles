@@ -15,4 +15,3 @@ dependencies:
   - mpich
   - colormaps
   - imageio
-  - conda-ecosystem-user-package-isolation

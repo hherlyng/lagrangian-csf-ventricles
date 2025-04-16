@@ -19,8 +19,10 @@ AQUEDUCT_BOT = 58
 pa_to_mmhg = 1/133.3 # Pascal [Pa] to millimeters Mercury [mmHg]
 m3_to_ml = 1e6 # Meters cubed [m^3] to milliliters [ml]
 
+k = 1 # Element degree
+
 comm = MPI.COMM_WORLD
-infile_name = '../output/medium-mesh/flow/checkpoints/chp+cilia+defo/'
+infile_name = '../output/medium-mesh/flow/navier-stokes/checkpoints/chp+cilia+defo/'
 mesh = a4d.read_mesh(filename=infile_name, comm=comm, read_from_partition=True)
 ft   = a4d.read_meshtags(filename=infile_name, mesh=mesh, meshtag_name='ft')
 
@@ -28,8 +30,8 @@ with dfx.io.XDMFFile(comm, "check.xdmf", "w") as xdmf:
     xdmf.write_mesh(mesh)
     xdmf.write_meshtags(ft, mesh.geometry)
 # exit()
-bdm_el = element("BDM", mesh.basix_cell(), 1)
-dg_el  = element("DG", mesh.basix_cell(), 0)
+bdm_el = element("BDM", mesh.basix_cell(), k)
+dg_el  = element("DG", mesh.basix_cell(), k-1)
 V = dfx.fem.functionspace(mesh, bdm_el)
 Q = dfx.fem.functionspace(mesh, dg_el)
 uh = dfx.fem.Function(V)
@@ -55,6 +57,7 @@ T = 2
 dt = 0.02
 N = int(T / dt)
 times = np.linspace(0, T, N+1)
+times = times[1:]
 
 flowrates_top_aq = []
 flowrates_bot_aq = []
