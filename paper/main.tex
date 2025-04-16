@@ -234,12 +234,17 @@ cilia forces in this flow model. For the human brain, we impose both deformation
 secretion and cilia forces.
 
 
-\subsection{To do}
-\begin{itemize}
-    \item get input/inspiration from doctors/biologists/physiologists on what to quantify/consider of
-    flow structures/properties in the ventricles
+\subsection{Numerical methods}
+Initially, we solve the Stokes equations and use the solution
+$\uu_{\mathrm{Stk}}$ as initial condition for the Navier-Stokes equation;
+$\uu_0=\uu(\xx, t=0)=\uu_{\mathrm{Stk}}$. The convective term
+is linearized as
+\begin{equation*}
+    (\uu^{n+1}\cdot\nabla)\uu^{n+1} \approx (\uu^n\cdot\nabla)\uu^{n+1},
+\end{equation*}
+where $n$ denotes timestep.
 
-\end{itemize}
+We employ a BDM-DG scheme for both the Stokes and the Navier-Stokes equations.
 
 
 \clearpage
@@ -327,7 +332,17 @@ where $\mathcal{E}$ are all internal facets of the mesh. Furthermore, $\gamma > 
 where $\bm{\phi}\vert_{+}$ is used to denote the value of the variable $\bm{\phi}$ on the side of the edge $\mathcal{E}$ where $\nn$ is pointing out of the cell. Correspondingly, $\bm{\phi}\vert_{-}$ is the variable value on the side of the edge $\mathcal{E}$ where  $\nn$ is pointing inwards.
 
 \section{Results}
-We present the CSF flow simulated in the brain ventricles. To assess the validity of the flow, we compare some
+We present the CSF flow simulated in the brain ventricles. 
+
+
+\section{Verification}
+Convergence properties of the discretization scheme were assessed with two
+model problems. To assess spatial convergence, we solved a channel flow
+problem on increasingly refined meshes. Temporal convergence was assessed
+with a Taylor vortex problem~\cite{Karniadakis2005Verification}.
+The method converges.
+
+To assess the physiological validity of the flow, we compare some
 quantities of interest with previous works~\cite{Kurtcuoglu2007ComputationalSylvius, Causemann2022HumanFramework}:
 \begin{itemize}
     \item The pressure gradient in the cerebral aqueduct
