@@ -27,10 +27,10 @@ def p_taylor(t, x):
 comm = MPI.COMM_WORLD # MPI communicator
 N = int(argv[1]) # Mesh cells
 t = 0.0
-num_time_steps = 64
+num_time_steps = 8
 t_end = 6
 delta_t = t_end/num_time_steps # Timestep size
-mu_value  = 1e-3 # Dynamic viscosity
+mu_value  = 1 # Dynamic viscosity
 rho_value = 1 # Fluid density
 Re = rho_value/mu_value  # Reynolds Number
 k = 3 # Polynomial degree
@@ -59,8 +59,10 @@ print(f'Size of dofmap: {V.dofmap.index_map.size_global+Q.dofmap.index_map.size_
 u, p = ufl.TrialFunctions(M)
 v, q = ufl.TestFunctions(M)
 
-u_ = dfx.fem.Function(V) # Velocity at previous timestep
-u_.interpolate(lambda x: u_taylor(delta_t, x)) # Interpolate initial condition
+u_  = dfx.fem.Function(V) # Velocity at timestep n
+u__ = dfx.fem.Function(V) # Velocity at timestep n-1
+u_.interpolate(lambda x: u_taylor(delta_t, x))  # Interpolate initial condition
+u__.interpolate(lambda x: u_taylor(delta_t, x)) # Interpolate initial condition
 u_bc_taylor = dfx.fem.Function(V)
 
 dt = dfx.fem.Constant(mesh, dfx.default_real_type(delta_t)) # Timestep
@@ -77,7 +79,7 @@ dx = ufl.Measure('dx', mesh) # Cell integral
 ds = ufl.Measure('ds', mesh, subdomain_data=ft) # Facet integral
 
 # Navier-Stokes equations bilinear form in block form
-a00 = (rho/dt * inner(u , v) * dx # Time derivative
+a00 = (3/2*rho/dt * inner(u, v) * dx # Time derivative
      + rho*inner(dot(u_, nabla_grad(u)), v) * dx # Convective term
      + 2*mu*inner(eps(u), eps(v))*dx # Viscous dissipation
      + stabilization(u, v, mu, gamma) # BDM stabilization
@@ -88,7 +90,7 @@ a10 = -inner(q, div(u))*dx
 a11 = dfx.fem.Constant(mesh, dfx.default_scalar_type(0.0))*inner(p, q)*dx
 
 # Linear form
-L0 = rho/dt * inner(u_, v) * dx # Time derivative
+L0 = 2*rho/dt * inner(u_, v) * dx - 1/2*rho/dt * inner(u__, v) * dx # Time derivative
 L0 += gamma/h * inner(u_bc_taylor, v) * ds # Nitsche BC
         
 L1 = inner(dfx.fem.Function(Q), q)*dx
@@ -163,8 +165,9 @@ for _ in range(num_time_steps):
     u_file.write(t)
     p_file.write(t)
 
-    # Update u_n
-    u_.x.array[:] = u_h.x.array
+    # Update u_n and u_{n-1}
+    u__.x.array[:] = u_.x.array.copy()
+    u_.x.array[:] = u_h.x.array.copy()
 
 u_file.close()
 p_file.close()

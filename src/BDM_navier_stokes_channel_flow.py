@@ -5,7 +5,7 @@ import ufl
 import numpy   as np
 import dolfinx as dfx
 from sys    import argv
-from ufl    import div, dot, grad, inner, nabla_grad
+from ufl    import div, dot, grad, inner, jump, avg, nabla_grad, outer
 from scifem import assemble_scalar
 from utilities.fem     import calculate_mean, calculate_norm_L2, eps, stabilization
 from utilities.mesh    import create_unit_square_mesh
@@ -21,13 +21,13 @@ def u_parabolic(x):
 comm = MPI.COMM_WORLD # MPI communicator
 N = int(argv[1]) # Mesh cells
 t = 0.0
-num_time_steps = 200
-t_end = 1
+num_time_steps = 20
+t_end = 4
 delta_t = t_end/num_time_steps # Timestep size
-mu_value  = 1e-2 # Dynamic viscosity
-rho_value = 1e1 # Fluid density
+mu_value  = 7e-2 # Dynamic viscosity
+rho_value = 1e2 # Fluid density
 Re = rho_value/mu_value  # Reynolds Number
-k = 2 # Polynomial degree
+k = 1 # Polynomial degree
 
 # Create mesh and boundary tags
 mesh, ft = create_unit_square_mesh(N=N, comm=comm)
@@ -48,12 +48,14 @@ print(f'Size of dofmap: {V.dofmap.index_map.size_global+Q.dofmap.index_map.size_
 u, p = ufl.TrialFunctions(M)
 v, q = ufl.TestFunctions(M)
 
-u_ = dfx.fem.Function(V) # Velocity at previous timestep
+u_  = dfx.fem.Function(V) # Velocity at timestep n
+u__ = dfx.fem.Function(V) # Velocity at timestep n-1
 u_.interpolate(u_parabolic) # Interpolate initial condition
+u__.interpolate(u_parabolic) # Interpolate initial condition
 
 dt = dfx.fem.Constant(mesh, dfx.default_real_type(delta_t)) # Timestep
-gamma = dfx.fem.Constant(mesh, dfx.default_real_type(1000.0)) # BDM penalty parameter
-beta = dfx.fem.Constant(mesh, dfx.default_scalar_type(1000.0)) # Nitsche penalty parameter
+gamma = dfx.fem.Constant(mesh, dfx.default_real_type(10.0)) # BDM penalty parameter
+beta = dfx.fem.Constant(mesh, dfx.default_scalar_type(50.0)) # Nitsche penalty parameter
 mu = dfx.fem.Constant(mesh, dfx.default_real_type(mu_value)) # Dynamic viscosity
 rho = dfx.fem.Constant(mesh, dfx.default_scalar_type(rho_value)) # Fluid density
 
@@ -63,23 +65,35 @@ n = ufl.FacetNormal(mesh)
 
 # Integral measures
 dx = ufl.Measure('dx', mesh) # Cell integral
-ds = ufl.Measure('ds', mesh, subdomain_data=ft) # Facet integral
+ds = ufl.Measure('ds', mesh, subdomain_data=ft) # Exterior facet integral
+dS = ufl.Measure('dS', mesh) # Interior facet integral
+
+# Upwind velocity operator (equals 1 on inflow boundary, 0 on outflow boundary)
+zeta = ufl.conditional(ufl.lt(dot(u_, n), 0), 1, 0)
 
 # Navier-Stokes equations bilinear form in block form
-a00 = (rho/dt * inner(u , v) * dx # Time derivative
-     + rho*inner(dot(u_, nabla_grad(u)), v) * dx # Convective term
+a00 = (
+    3/2*rho/dt * inner(u, v) * dx # Time derivative
+    + rho*inner(dot(u_, nabla_grad(u)), v) * dx # Convective term
+    #  - rho*inner(outer(u_, u), grad(v)) * dx # Convective term
+    #  - zeta*rho*dot(dot(outer(u_, u), n), v) * (ds(LEFT) + ds(RIGHT)) # Convective term
      + 2*mu*inner(eps(u), eps(v))*dx # Viscous dissipation
      + stabilization(u, v, mu, gamma) # BDM stabilization
      - mu*inner(dot(grad(u).T, n), v) * (ds(LEFT) + ds(RIGHT)) # Parallel flow at outlet
-     + beta/h*inner(u, v)*(ds(TOP)+ds(BOT))
+     + beta/h*inner(u, v)*(ds(TOP)+ds(BOT)) # Enforce noslip
     )
+# Add convective term stabilization
+a00 += (-rho*1/2*dot(jump(u_), n('+')) * avg(dot(u, v)) * dS 
+      - rho*dot(avg(u_), n('+')) * dot(jump(u), avg(v)) * dS 
+      - zeta*rho*1/2*dot(u_, n) * dot(u, v) * (ds(LEFT) + ds(RIGHT))
+)
 a01 = -inner(p, div(v))*dx
 a10 = -inner(q, div(u))*dx
 a11 = dfx.fem.Constant(mesh, dfx.default_scalar_type(0.0))*inner(p, q)*dx
 
 # Linear form
-L0 = rho/dt * inner(u_, v) * dx # Time derivative
-# L0 -= dot(dfx.fem.Constant(mesh, dfx.default_scalar_type(8.0))*n, v) * ds(LEFT) # Impose pressure
+L0 = 2*rho/dt * inner(u_, v) * dx - 1/2*rho/dt * inner(u__, v) * dx # Time derivative
+L0 -= dot(dfx.fem.Constant(mesh, dfx.default_scalar_type(8.0))*n, v) * ds(LEFT) # Impose pressure
         
 L1 = inner(dfx.fem.Function(Q), q)*dx
 
@@ -95,7 +109,7 @@ bcs = [bc_impermeability]
 inflow = dfx.fem.Function(V)
 inflow.interpolate(u_parabolic)
 bc_inflow = dfx.fem.dirichletbc(inflow, dfx.fem.locate_dofs_topological(V, facet_dim, ft.find(LEFT)))
-bcs.append(bc_inflow)
+# bcs.append(bc_inflow)
 
 # Assemble the Navier-Stokes problem
 A = create_matrix_block(a)
@@ -122,8 +136,8 @@ u_vis.name = "u"
 u_vis.interpolate(u_)
 
 # Write initial condition to file
-u_file = dfx.io.VTXWriter(comm, "u.bp", u_vis)
-p_file = dfx.io.VTXWriter(comm, "p.bp", p_h)
+u_file = dfx.io.VTXWriter(comm, "../output/square-mesh/flow/navier-stokes/channel_flow_velocity.bp", u_vis)
+p_file = dfx.io.VTXWriter(comm, "../output/square-mesh/flow/navier-stokes/channel_flow_pressure.bp", p_h)
 u_file.write(t)
 p_file.write(t)
 
@@ -157,8 +171,9 @@ for _ in range(num_time_steps):
     u_file.write(t)
     p_file.write(t)
 
-    # Update u_n
-    u_.x.array[:] = u_h.x.array
+    # Update u_n and u_{n-1}
+    u__.x.array[:] = u_.x.array.copy()
+    u_.x.array[:] = u_h.x.array.copy()
 
 u_file.close()
 p_file.close()

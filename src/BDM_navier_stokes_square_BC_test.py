@@ -5,7 +5,7 @@ import ufl
 import numpy   as np
 import dolfinx as dfx
 from sys    import argv
-from ufl    import div, dot, grad, inner, nabla_grad
+from ufl    import div, dot, grad, inner, nabla_grad, jump, avg
 from scifem import assemble_scalar
 from utilities.fem     import calculate_mean, calculate_norm_L2, eps, stabilization, create_normal_contribution_bc, tangent
 from utilities.mesh    import create_unit_square_mesh
@@ -18,8 +18,8 @@ t = 0.0
 num_time_steps = 100
 t_end = 1
 delta_t = t_end/num_time_steps # Timestep size
-mu_value  = 1e-2 # Dynamic viscosity
-rho_value = 1e1 # Fluid density
+mu_value  = 7e-4 # Dynamic viscosity
+rho_value = 1e3 # Fluid density
 Re = rho_value/mu_value  # Reynolds Number
 k = 2 # Polynomial degree
 
@@ -42,7 +42,8 @@ print(f'Size of dofmap: {V.dofmap.index_map.size_global+Q.dofmap.index_map.size_
 u, p = ufl.TrialFunctions(M)
 v, q = ufl.TestFunctions(M)
 
-u_ = dfx.fem.Function(V) # Velocity at previous timestep
+u_  = dfx.fem.Function(V) # Velocity at timestep n
+u__ = dfx.fem.Function(V) # Velocity at timestep n-1
 
 dt = dfx.fem.Constant(mesh, dfx.default_real_type(delta_t)) # Timestep
 gamma = dfx.fem.Constant(mesh, dfx.default_real_type(10.0)) # BDM penalty parameter
@@ -55,14 +56,15 @@ n = ufl.FacetNormal(mesh)
 
 # Integral measures
 dx = ufl.Measure('dx', mesh) # Cell integral
-ds = ufl.Measure('ds', mesh, subdomain_data=ft) # Facet integral
+ds = ufl.Measure('ds', mesh, subdomain_data=ft) # Exterior facet integral
+dS = ufl.Measure('dS', mesh) # Interior facet integral
 
 # Tangential traction BC
 tangential_traction = ufl.as_vector((1.0, 0.0))
 
 # Create stokes problem to solve for initial condition
 # Stokes equations bilinear form in block form
-a00 = (rho/dt * inner(u , v) * dx # Time derivative
+a00 = (3/2*rho/dt * inner(u, v) * dx # Time derivative
      + 2*mu*inner(eps(u), eps(v))*dx # Viscous dissipation
      + stabilization(u, v, mu, gamma) # BDM stabilization
      - mu*inner(dot(grad(u).T, n), v) * (ds(LEFT) + ds(RIGHT)) # Parallel flow at outlet
@@ -72,7 +74,7 @@ a10 = -inner(q, div(u))*dx
 a11 = dfx.fem.Constant(mesh, dfx.default_scalar_type(0.0))*inner(p, q)*dx
 
 # Linear form
-L0  = rho/dt * inner(u_, v) * dx # Time derivative
+L0 = 2*rho/dt * inner(u_, v) * dx - 1/2*rho/dt * inner(u__, v) * dx # Time derivative
 L0 += inner(tangential_traction, tangent(v, n)) * ds(TOP)
         
 L1 = inner(dfx.fem.Function(Q), q)*dx
@@ -83,6 +85,12 @@ L = dfx.fem.form([L0, L1])
 
 # Navier-Stokes equations bilinear form in block form
 a00 += rho*inner(dot(u_, nabla_grad(u)), v) * dx # Convective term
+# Add convective term stabilization
+zeta = ufl.conditional(ufl.lt(dot(u_, n), 0), 1, 0) # Upwind velocity operator (equals 1 on inflow boundary, 0 on outflow boundary)
+a00 += (-rho*1/2*dot(jump(u_), n('+')) * avg(dot(u, v)) * dS 
+      - rho*dot(avg(u_), n('+')) * dot(jump(u), avg(v)) * dS 
+      - zeta*rho*1/2*dot(u_, n) * dot(u, v) * (ds(LEFT) + ds(RIGHT))
+)
 
 a = dfx.fem.form([[a00, a01],
                   [a10, a11]])
@@ -132,8 +140,8 @@ u_vis = dfx.fem.Function(W)
 u_vis.name = "u"
 
 # Create output files
-u_file = dfx.io.VTXWriter(comm, "u.bp", u_vis)
-p_file = dfx.io.VTXWriter(comm, "p.bp", p_h)
+u_file = dfx.io.VTXWriter(comm, "../output/square-mesh/flow/navier-stokes/square_BC_test_velocity.bp", u_vis)
+p_file = dfx.io.VTXWriter(comm, "../output/square-mesh/flow/navier-stokes/square_BC_test_pressure.bp", p_h)
 
 # Create offsets for the blocked functions
 offset_u = V.dofmap.index_map.size_local * V.dofmap.index_map_bs
@@ -144,6 +152,7 @@ ksp.solve(b, x)
 u_.x.array[:offset_u] = x.array_r[:offset_u]
 u_.x.scatter_forward()
 u_vis.interpolate(u_) # Interpolate velocity into visualization function
+u__.interpolate(u_) # Update timestep n-1 velocity
 p_h.x.array[:(offset_p-offset_u)] = x.array_r[offset_u:offset_p]
 p_h.x.scatter_forward()
 p_h.x.array[:] -= calculate_mean(mesh, p_h, dX=dx)
@@ -181,8 +190,9 @@ for _ in range(num_time_steps):
     u_file.write(t)
     p_file.write(t)
 
-    # Update u_n
-    u_.x.array[:] = u_h.x.array
+    # Update u_n and u_{n-1}
+    u__.x.array[:] = u_.x.array.copy()
+    u_.x.array[:] = u_h.x.array.copy()
 
 u_file.close()
 p_file.close()
