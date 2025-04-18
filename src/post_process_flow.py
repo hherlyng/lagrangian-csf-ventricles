@@ -22,14 +22,11 @@ m3_to_ml = 1e6 # Meters cubed [m^3] to milliliters [ml]
 k = 1 # Element degree
 
 comm = MPI.COMM_WORLD
-infile_name = '../output/medium-mesh/flow/navier-stokes/checkpoints/chp+cilia+defo/'
+mesh_prefix = 'coarse'
+infile_name = f'../output/{mesh_prefix}-mesh/flow/navier-stokes/checkpoints/chp+cilia+defo/'
 mesh = a4d.read_mesh(filename=infile_name, comm=comm, read_from_partition=True)
 ft   = a4d.read_meshtags(filename=infile_name, mesh=mesh, meshtag_name='ft')
 
-with dfx.io.XDMFFile(comm, "check.xdmf", "w") as xdmf:
-    xdmf.write_mesh(mesh)
-    xdmf.write_meshtags(ft, mesh.geometry)
-# exit()
 bdm_el = element("BDM", mesh.basix_cell(), k)
 dg_el  = element("DG", mesh.basix_cell(), k-1)
 V = dfx.fem.functionspace(mesh, bdm_el)

@@ -5,7 +5,7 @@ import ufl
 import numpy   as np
 import dolfinx as dfx
 from sys    import argv
-from ufl    import div, dot, inner, nabla_grad
+from ufl    import div, dot, inner, nabla_grad, jump, avg
 from scifem import assemble_scalar
 from utilities.fem     import calculate_mean, calculate_norm_L2, eps, stabilization
 from utilities.mesh    import create_rectangle_mesh
@@ -27,7 +27,7 @@ def p_taylor(t, x):
 comm = MPI.COMM_WORLD # MPI communicator
 N = int(argv[1]) # Mesh cells
 t = 0.0
-num_time_steps = 8
+num_time_steps = 16
 t_end = 6
 delta_t = t_end/num_time_steps # Timestep size
 mu_value  = 1 # Dynamic viscosity
@@ -76,7 +76,11 @@ n = ufl.FacetNormal(mesh)
 
 # Integral measures
 dx = ufl.Measure('dx', mesh) # Cell integral
-ds = ufl.Measure('ds', mesh, subdomain_data=ft) # Facet integral
+ds = ufl.Measure('ds', mesh, subdomain_data=ft) # Exterior facet integral
+dS = ufl.Measure('dS', mesh) # Interior facet integral
+
+# Upwind velocity operator (equals 1 on inflow boundary, 0 on outflow boundary)
+zeta = ufl.conditional(ufl.lt(dot(u_, n), 0), 1, 0)
 
 # Navier-Stokes equations bilinear form in block form
 a00 = (3/2*rho/dt * inner(u, v) * dx # Time derivative
@@ -85,6 +89,11 @@ a00 = (3/2*rho/dt * inner(u, v) * dx # Time derivative
      + stabilization(u, v, mu, gamma) # BDM stabilization
      + gamma/h*inner(u, v) * ds
     )
+# Add convective term stabilization
+a00 += (-rho*1/2*dot(jump(u_), n('+')) * avg(dot(u, v)) * dS 
+      - rho*dot(avg(u_), n('+')) * dot(jump(u), avg(v)) * dS 
+      - zeta*rho*1/2*dot(u_, n) * dot(u, v) * (ds(LEFT) + ds(RIGHT))
+)
 a01 = -inner(p, div(v))*dx
 a10 = -inner(q, div(u))*dx
 a11 = dfx.fem.Constant(mesh, dfx.default_scalar_type(0.0))*inner(p, q)*dx

@@ -85,6 +85,7 @@ L = dfx.fem.form([L0, L1])
 
 # Navier-Stokes equations bilinear form in block form
 a00 += rho*inner(dot(u_, nabla_grad(u)), v) * dx # Convective term
+
 # Add convective term stabilization
 zeta = ufl.conditional(ufl.lt(dot(u_, n), 0), 1, 0) # Upwind velocity operator (equals 1 on inflow boundary, 0 on outflow boundary)
 a00 += (-rho*1/2*dot(jump(u_), n('+')) * avg(dot(u, v)) * dS 

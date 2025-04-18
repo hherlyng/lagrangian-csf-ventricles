@@ -54,7 +54,7 @@ for infile_name in [infile_name1, infile_name2]:
     point_bot_aq = mesh.geometry.x[vertex_bot_aq, :]
     length_aq = np.sqrt(np.sum((point_top_aq-point_bot_aq)**2))
 
-    T = 0.52
+    T = 2.0
     dt = 0.02
     N = int(T / dt)
     times = np.linspace(0, T, N+1)[1:]

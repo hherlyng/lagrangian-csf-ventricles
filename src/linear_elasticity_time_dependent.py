@@ -24,7 +24,7 @@ LATERAL_APERTURES = 28
 # Solve linear elasticity equation on the ventricles. Wall motion is 
 # prescribed in time at a single point (close to corpus callosum).
 comm = MPI.COMM_WORLD
-mesh_prefix = 'coarse'
+mesh_prefix = 'medium'
 with dfx.io.XDMFFile(comm, f"../geometries/{mesh_prefix}_ventricles_mesh_tagged.xdmf", "r") as xdmf:
     mesh = xdmf.read_mesh()
     
@@ -52,7 +52,7 @@ print("Value of Lamé parameters:")
 print(f"mu \t= {mu_value:.2f}\nlambda \t= {lam_value:.2f}")
 
 # Timestep size [s]
-deltaT = 0.001
+deltaT = 0.02
 dt = dfx.fem.Constant(mesh, deltaT) 
 
 # Finite elements

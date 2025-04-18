@@ -5,7 +5,7 @@ import numpy   as np
 import dolfinx as dfx
 import adios4dolfinx as a4d
 
-from ufl       import inner, dot, div, grad, nabla_grad
+from ufl       import inner, dot, div, grad, nabla_grad, avg, jump
 from scifem    import assemble_scalar
 from mpi4py    import MPI
 from petsc4py  import PETSc
@@ -79,10 +79,10 @@ def setup_variational_problem(mesh: dfx.mesh.Mesh,
     facet_dim = mesh.topology.dim-1
     mesh.topology.create_connectivity(facet_dim, facet_dim+1) # Create facet-cell connectivity
 
-    ds = ufl.Measure('ds', domain=mesh, subdomain_data=ft)
-    dx = ufl.Measure('dx', domain=mesh)
-
-    n = ufl.FacetNormal(mesh)
+    n  = ufl.FacetNormal(mesh)
+    dx = ufl.Measure('dx', domain=mesh) # Cell integral
+    ds = ufl.Measure('ds', domain=mesh, subdomain_data=ft) # Exterior facet integral
+    dS = ufl.Measure('dS', mesh) # Interior facet integral
 
     bdm_el = element("BDM", mesh.basix_cell(), k)
     dg_el  = element("DG", mesh.basix_cell(), k-1)
@@ -111,7 +111,7 @@ def setup_variational_problem(mesh: dfx.mesh.Mesh,
     # tau.interpolate(tau_input)
 
     # Stokes problem
-    a00 = (rho/dt * inner(u , v) * dx # Time derivative
+    a00 = (rho/dt * inner(u, v) * dx # Time derivative
          + 2*mu*inner(eps(u), eps(v))*dx # Viscous dissipation
          + stabilization(u, v, mu, gamma) # BDM stabilization
          - mu*inner(dot(grad(u).T, n), v)*(ds(CANAL_OUT)+ds(LATERAL_APERTURES)) # Parallel flow at inlet/outlet
@@ -131,8 +131,15 @@ def setup_variational_problem(mesh: dfx.mesh.Mesh,
     # Navier-Stokes problem
     a00 += rho*inner(dot(u_, nabla_grad(u)), v) * dx # Convective term
 
+    # Add convective term stabilization
+    zeta = ufl.conditional(ufl.lt(dot(u_, n), 0), 1, 0) # Upwind velocity operator (equals 1 on inflow boundary, 0 on outflow boundary)
+    a00 += (- rho*1/2*dot(jump(u_), n('+')) * avg(dot(u, v))  * dS 
+            - rho*dot(avg(u_), n('+')) * dot(jump(u), avg(v)) * dS 
+            - zeta*rho*1/2*dot(u_, n) * dot(u, v) * (ds(CANAL_OUT)+ds(LATERAL_APERTURES))
+    )
+
     a = dfx.fem.form([[a00, a01],
-                    [a10, a11]])
+                      [a10, a11]])
 
     # Set choroid plexus inflow velocity BC strongly
     # Create expressions with positive and negative z-component of the velocity,
@@ -166,15 +173,14 @@ if __name__=='__main__':
     k = 1 # Element degree
 
     # Read mesh and meshtags
-    mesh_prefix = 'coarse'
-    # v_defo_input_filename = f"../output/{mesh_prefix}-mesh/deformation/checkpoints/deformation_velocity/"
+    mesh_prefix = 'medium'
     v_defo_input_filename = f"../output/{mesh_prefix}-mesh/deformation/checkpoints/time_dep_deformation_velocity/"
     mesh = a4d.read_mesh(v_defo_input_filename, comm, read_from_partition=False)
     ft   = a4d.read_meshtags(v_defo_input_filename, mesh, meshtag_name='ft')
 
     # Temporal parameters
     T = 2
-    delta_t = 0.001
+    delta_t = 0.02
     N = int(T / delta_t)
     times = np.linspace(0, T, N+1)
 
