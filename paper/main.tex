@@ -289,6 +289,8 @@ where $n$ denotes timestep.
 
 We employ a BDM-DG scheme for both the Stokes and the Navier-Stokes equations.
 
+In time, we consider the implicit, second-order discretization scheme BDF2\cite{Volker2016}.
+
 
 \clearpage
 
@@ -367,7 +369,10 @@ Discretizing the variables in~\eqref{eq:stokes_weak_form_discrete} with $\mathrm
                                                 &+2\mu\frac{\gamma}{h_a}\intE{\jump{P_{\nn}(\uu_h)}\cdot\jump{P_{\nn}(\vv_h)}}, \\
     \end{aligned}
 \end{equation}
-where $\mathcal{E}$ are all internal facets of the mesh. Furthermore, $\gamma > 0$ is a penalty parameter which must be chosen large enough and $h_a$ is the average cell diameter of two neighboring elements. The jump and average operators $[[\cdot]]$ and $\{\cdot\}$ of a variable $\bm{\phi}$ are defined as
+where $\mathcal{E}$ are all internal facets of the mesh. Furthermore,
+$\gamma > 0$ is a penalty parameter which must be chosen large enough and
+$h_a$ is the average cell diameter of two neighboring elements.
+The jump and average operators $[[\cdot]]$ and $\{\cdot\}$ of a variable $\bm{\phi}$ are defined as
 \begin{align}
     \jump{\bm{\phi}} &= \bm{\phi}\vert_{+} - \bm{\phi}\vert_{-}, \\
     \avg{\bm{\phi}}  &= \frac{1}{2}\big((\bm{\phi}\cdot\nn)\vert_{+} - (\bm{\phi}\cdot\nn)\vert_{-} \big),
@@ -375,11 +380,23 @@ where $\mathcal{E}$ are all internal facets of the mesh. Furthermore, $\gamma > 
 where $\bm{\phi}\vert_{+}$ is used to denote the value of the variable $\bm{\phi}$ on the side of the edge $\mathcal{E}$ where $\nn$ is pointing out of the cell. Correspondingly, $\bm{\phi}\vert_{-}$ is the variable value on the side of the edge $\mathcal{E}$ where  $\nn$ is pointing inwards.
 
 \section{Results}
-\subsection{Finit element flow simulations}
+\subsection{Finite element flow simulations}
 We present the CSF flow simulated in the brain ventricles. 
+\begin{figure}
+    \centering
+    \includegraphics[width=\textwidth]{graphics/figure1.png}
+    \caption{Caption.}
+    \label{fig:fig1}
+\end{figure}
 
 \subsection{FTLE fields}
 We present FTLE fields for the different brains.
+\begin{figure}
+    \centering
+    \includegraphics[width=\textwidth]{graphics/figure2.png}
+    \caption{Caption.}
+    \label{fig:fig2}
+\end{figure}
 
 
 \section{Verification}
