@@ -11,7 +11,7 @@
 \usepackage[skip=10pt]{caption}
 \usepackage{color}
 \usepackage{xcolor,colortbl}
-\usepackage[pdftex, bookmarks, colorlinks, breaklinks]{hyperref}
+\usepackage[pdftex, bookmarks, colorlinks, breaklinks, allcolors=blue]{hyperref}
 \usepackage{soul}
 \hypersetup{colorlinks, citecolor=blue}
 \usepackage[capitalise]{cleveref}
@@ -31,6 +31,7 @@
 %% Some new commands
 % Partial derivatives
 \newcommand{\pdifft}[1]{\frac{\partial  #1}{\partial t}}
+\newcommand{\pdiffdifft}[1]{\frac{\partial^2 #1}{\partial t^2}}
 \newcommand{\pdiffx}[1]{\frac{\partial #1}{\partial x}}
 \newcommand{\pdiffy}[1]{\frac{\partial #1}{\partial y}}
 \newcommand{\pdiffxi}[1]{\frac{\partial #1}{\partial x_i}}
@@ -62,15 +63,15 @@
 \newcommand{\jump}[1]{\llbracket#1\rrbracket}
 
 % Bold faced math characters
-\newcommand{\ff}{\mathbf{f}}
-\newcommand{\nn}{\mathbf{n}}
-\newcommand{\rr}{\mathbf{r}}
-\newcommand{\uu}{\mathbf{u}}
-\newcommand{\vv}{\mathbf{v}}
-\newcommand{\ww}{\mathbf{w}}
-\newcommand{\xx}{\mathbf{x}}
-\newcommand{\JJ}{\mathbf{J}}
-\newcommand{\VV}{\mathbf{V}}
+\newcommand{\ff}{\bm{f}}
+\newcommand{\nn}{\bm{n}}
+\newcommand{\rr}{\bm{r}}
+\newcommand{\uu}{\bm{u}}
+\newcommand{\vv}{\bm{v}}
+\newcommand{\ww}{\bm{w}}
+\newcommand{\xx}{\bm{x}}
+\newcommand{\JJ}{\v{J}}
+\newcommand{\VV}{\bm{V}}
 \newcommand{\bsigma}{\bm{\sigma}}
 \newcommand{\bsigmahat}{\hat{\bm{\sigma}}}
 \newcommand{\btau}{\bm{\tau}}
@@ -108,22 +109,42 @@
 \end{abstract}
 
 \section{Introduction}
-Cerebrospinal fluid (CSF) flow is an important contributor to the regulatory processes of the brain.
+Cerebrospinal fluid (CSF) flow is an important contributor to brain homeostasis
+and the regulatory processes of the brain.
 
-In this work, we study intraventricular CSF flow in larval zebrafish and adult human brain ventricles.
-The geometries are segmented from medical imaging data. First we simulate CSF flow using a finite
-element method, then the velocity fields are used to analyze flow topology using particle
+In this work, we study intraventricular CSF flow in embryonic zebrafish and adult human brain ventricles.
+The geometries are segmented from medical imaging data. First,we simulate CSF flow using a finite
+element method. The CSF velocity fields are used to analyze flow topology using particle
 trajectories and finite-time Lyapunov exponent fields.
 
 \section{Methods}
 \subsection{Finite-Time Lyapunov exponent field}
+Consider the dynamical system
+\begin{equation}
+    \dot{\xx}(t; t_0, \xx_0) = \frac{\mathrm d\xx}{\mathrm d t} = \uu(\xx(t; t_0, \xx_0), t),
+    \label{eq:dx_dt_equals_u}
+\end{equation}
+where $\xx(t)\in$ are the spatial coordinates of the domain $\mathcal{D}\subset\mathbb{R}^d$,
+$t$ denotes time, $\uu$ is a velocity, and $\xx_0=\xx(t_0; t_0, x_0)$ is the initial
+position at the initial time $t_0$.
+\Cref{eq:dx_dt_equals_u} can be integrated to yield the position at a time $T$:
+\begin{equation}
+    \xx(T) = \xx(t_0) + \int_{t_0}^T \uu(\xx, t)\mathrm d t.
+\end{equation}
+We define this relation as the mapping
+\begin{equation}
+    \phi_{t_0}^t : \mathcal{D} \rightarrow \mathcal{D} : \xx_0 \mapsto \phi_{t_0}^t(\xx_0) = \xx(t; t_0, \xx_0),
+\end{equation}
+where $\phi_{t_0}^t$ is the flow map.
+
 
 \subsection{The Navier-Stokes equations}
 We consider flow of an incompressible, Newtonian fluid of density $\rho$ and dynamic viscosity
-$\mu$ in a domain $\Omega$ with boundary $\partial\Omega=\Gamma$. No body forces are acting on the fluid.
+$\mu$ in a domain $\mathcal{D}\subset\mathbb{R}^d$ with boundary $\partial\mathcal{D}=\mathcal{S}$.
+No body forces are acting on the fluid.
 The flow is governed by the Navier-Stokes equations, in which the momentum equation reads
 \begin{equation}
-\rho\frac{D\uu}{\mathrm dt} = \rho\Big(\pdifft{\uu} + (\uu\cdot\nabla)\uu\Big) = -\nabla p + \mu\nabla^2\uu,
+\rho\frac{D\uu}{\mathrm Dt} = \rho\Big(\pdifft{\uu} + (\uu\cdot\nabla)\uu\Big) = -\nabla p + \mu\nabla^2\uu,
 \end{equation}
 and the continuity equation (mass conservation) is
 \begin{equation}
@@ -166,11 +187,33 @@ We consider three fluid motion-inducing mechanisms, and model them as follows:
 \end{itemize}
 
 \subsubsection{Brain ventricles deformation}
-We model the brain ventricles deformation by imposing a motion on the parts of the geometry,
-then solving the linear elasticity equations for the
-deformation $\mathbf{d}(\xx, t)$ of the ventricles.
-The deformation velocity is then $\pdifft{\mathbf{d}}$, which is used in the boundary
-conditions for the Stokes equations when solving for the CSF velocity $\uu$.
+To model ventricular wall deformations associated with the
+cardiac and respiratory cycles, we impose a
+deformation velocity $\pdifft{\ww}$ as a boundary
+condition when solving the flow equations.
+We model the deformation $\ww(\xx, t)$
+by imposing a motion on the parts of the geometry,
+then solving the equations of linear elasticity, namely
+\begin{equation}
+    \rho\pdiffdifft{\ww} - \nabla\cdot\bsigma_s = \bm{0} \quad\mathrm{in \ \mathcal{D}},
+    \label{eq:strong_linear_elasticity_1}
+\end{equation}
+where $\bsigma_s = 2\eta\beps(\ww) + \lambda\mathrm{tr}(\beps(\ww))\delta$ is the
+solid stress tensor, in which $\eta$ and $\lambda$ are the Lamé parameters of the ventricular wall
+and $\delta$ is the Kronecker delta. Applying the divergence operator, \Cref{eq:strong_linear_elasticity_1}
+takes the form
+\begin{equation}
+    \rho\pdiffdifft{\ww} - 2\eta\nabla\cdot\beps(\ww) - \lambda\nabla(\nabla\cdot\ww) = \bm{0}, \quad\mathrm{in \ \mathcal{D}}.
+\end{equation}
+The boundary conditions are
+\begin{align}
+    \ww &= \bm{g} \quad\mathrm{on \ \mathcal{S}_1}, \\
+    \bsigma_s\nn &= \bm{0} \quad\mathrm{on \ \mathcal{S}_2 = \mathcal{S}\setminus\mathcal{S}_1}.
+\end{align}
+On $\mathcal{S}_1$ we impose a given deformation $\bm{g}$, whereas
+$\mathcal{S}_2$ is considered traction-free.
+
+
 We assume that the deformation $\mathbf{d}$ only has a $z$ component (feet-head axis).
 The displacement is based on measurements~\cite{Kurtcuoglu2007ComputationalSylvius,
 Enzmann1992BrainImaging}.
@@ -332,7 +375,11 @@ where $\mathcal{E}$ are all internal facets of the mesh. Furthermore, $\gamma > 
 where $\bm{\phi}\vert_{+}$ is used to denote the value of the variable $\bm{\phi}$ on the side of the edge $\mathcal{E}$ where $\nn$ is pointing out of the cell. Correspondingly, $\bm{\phi}\vert_{-}$ is the variable value on the side of the edge $\mathcal{E}$ where  $\nn$ is pointing inwards.
 
 \section{Results}
+\subsection{Finit element flow simulations}
 We present the CSF flow simulated in the brain ventricles. 
+
+\subsection{FTLE fields}
+We present FTLE fields for the different brains.
 
 
 \section{Verification}
