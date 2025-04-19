@@ -1,6 +1,11 @@
 \documentclass[11pt]{article}
 \usepackage[utf8]{inputenc}
-\usepackage[margin=1.0in]{geometry}
+\usepackage[left=2cm,
+            right=2cm,
+            top=2.25cm,
+            bottom=2.25cm,
+            headheight=12pt,
+            a4paper]{geometry}
 \usepackage{amsmath}
 \usepackage{amssymb}
 \usepackage{amsfonts}
@@ -23,8 +28,8 @@
 \usepackage{csquotes}
 
 % Set some length parameters
-\setlength{\parindent}{0pt}
-\setlength{\parskip}{10pt}
+% \setlength{\parindent}{0pt}
+% \setlength{\parskip}{10pt}
 \setlength{\tabcolsep}{0.35cm}
 
 
@@ -70,12 +75,13 @@
 \newcommand{\vv}{\bm{v}}
 \newcommand{\ww}{\bm{w}}
 \newcommand{\xx}{\bm{x}}
-\newcommand{\JJ}{\v{J}}
+\newcommand{\yy}{\bm{y}}
 \newcommand{\VV}{\bm{V}}
 \newcommand{\bsigma}{\bm{\sigma}}
 \newcommand{\bsigmahat}{\hat{\bm{\sigma}}}
 \newcommand{\btau}{\bm{\tau}}
 \newcommand{\beps}{\bm{\varepsilon}}
+\newcommand{\bphi}{\bm{\phi}}
 
 % Comments
 \newcommand{\lyng}[1]{\textcolor{blue}{HH: #1}}
@@ -113,43 +119,90 @@ Cerebrospinal fluid (CSF) flow is an important contributor to brain homeostasis
 and the regulatory processes of the brain.
 
 In this work, we study intraventricular CSF flow in embryonic zebrafish and adult human brain ventricles.
-The geometries are segmented from medical imaging data. First,we simulate CSF flow using a finite
+The geometries are segmented from medical imaging data. First, we simulate CSF flow using a finite
 element method. The CSF velocity fields are used to analyze flow topology using particle
 trajectories and finite-time Lyapunov exponent fields.
 
 \section{Methods}
-\subsection{Finite-Time Lyapunov exponent field}
+\subsection{Finite-time Lyapunov exponent fields}
 Consider the dynamical system
 \begin{equation}
     \dot{\xx}(t; t_0, \xx_0) = \frac{\mathrm d\xx}{\mathrm d t} = \uu(\xx(t; t_0, \xx_0), t),
     \label{eq:dx_dt_equals_u}
 \end{equation}
 where $\xx(t)\in$ are the spatial coordinates of the domain $\mathcal{D}\subset\mathbb{R}^d$,
-$t$ denotes time, $\uu$ is a velocity, and $\xx_0=\xx(t_0; t_0, x_0)$ is the initial
-position at the initial time $t_0$.
+$t$ denotes time, $\uu$ is a velocity, and $\xx_0=\xx(t_0; t_0, \xx_0)$ is the initial
+position at the initial time $t_0$. 
 \Cref{eq:dx_dt_equals_u} can be integrated to yield the position at a time $T$:
 \begin{equation}
     \xx(T) = \xx(t_0) + \int_{t_0}^T \uu(\xx, t)\mathrm d t.
 \end{equation}
 We define this relation as the mapping
 \begin{equation}
-    \phi_{t_0}^t : \mathcal{D} \rightarrow \mathcal{D} : \xx_0 \mapsto \phi_{t_0}^t(\xx_0) = \xx(t; t_0, \xx_0),
+    \bphi_{t_0}^t : \mathcal{D} \rightarrow \mathcal{D} : \xx_0 \mapsto \bphi_{t_0}^t(\xx_0) = \xx(t; t_0, \xx_0),
 \end{equation}
-where $\phi_{t_0}^t$ is the flow map.
+where $\phi_{t_0}^t$ is the flow map~\cite{shadden2005definition}.
+We have thus far emphasized the dependence of 
+the dynamical system and the flow map on the parameters $t_0, \xx_0$, but will in the 
+following omit this notation for brevity. Using the gradient of the flow map,
+we define the (right) Cauchy-Green deformation tensor
+\begin{equation}
+    \mathbf{C} = \left(\nabla\bphi_{t_0}^T\right)^*\nabla\bphi_{t_0}^T
+\end{equation}
+where $\mathbf{A}^*$ denotes the transpose of a tensor $\mathbf{A}$. 
+In the flow field $\uu(\xx, t)$, the maximum stretching that occurs between
+two points $\xx$ and $\yy$ aligns with the eigenvector associated with
+the maximum eigenvalue $\lambda_{\mathrm{max}}$ of $\mathbf{C}$~\cite{shadden2005definition}.
+The finite-time Lyapunov exponent is defined as
+\begin{equation}
+    \sigma_{t_0}^T(\xx) = \frac{1}{\vert T\vert}\log{\sqrt{\lambda_{\mathrm{max}}}}
+\end{equation}
+and provides a measure of the stretching of the flow. Note the absolute value of
+the integration time $T$, which is employed because integration forward in time
+($T>0$) provides stable manifolds, whereas integration backward in time ($T<0$)
+provides unstable manifolds.
 
-
-\subsection{The Navier-Stokes equations}
+\subsection{The governing equations of cerebrospinal fluid flow}
 We consider flow of an incompressible, Newtonian fluid of density $\rho$ and dynamic viscosity
 $\mu$ in a domain $\mathcal{D}\subset\mathbb{R}^d$ with boundary $\partial\mathcal{D}=\mathcal{S}$.
-No body forces are acting on the fluid.
-The flow is governed by the Navier-Stokes equations, in which the momentum equation reads
+No body forces are acting on the fluid. The flow is governed by the Navier-Stokes equations,
+in which the momentum equation reads
 \begin{equation}
-\rho\frac{D\uu}{\mathrm Dt} = \rho\Big(\pdifft{\uu} + (\uu\cdot\nabla)\uu\Big) = -\nabla p + \mu\nabla^2\uu,
+\rho\frac{D\uu}{\mathrm Dt} - \nabla\cdot\mathbb{T} = \bm{0},
 \end{equation}
-and the continuity equation (mass conservation) is
+where
+\begin{equation}
+    \rho\frac{D\uu}{\mathrm Dt} = \rho\left(\pdifft{\uu} + (\uu\cdot\nabla)\uu\right)
+    \label{eq:material_derivative}
+\end{equation}
+is the material derivative of the velocity $\uu$ and
+the stress tensor $\mathbb{T}$ is defined as
+\begin{equation}
+    \mathbb{T} = 2\mu\beps(\uu) - p\mathbf{I}.
+\end{equation}
+Here, the identity tensor in dimension $d$ is $\mathbf{I}$ and
+$\beps(\uu)=\frac{1}{2}\left(\nabla\uu + (\nabla\uu)^T\right)$ is the
+strain-rate tensor, or symmetric gradient, of $\uu$.
+In addition to the momentum equation, mass conservation
+is stated with the continuity equation for an
+incompressible fluid:
 \begin{equation}
     \nabla\cdot\uu = 0.
 \end{equation}
+We define the Reynolds number
+\begin{equation*}
+    \mathrm{Re} = \frac{\mathrm{inertial \ forces}}{\mathrm{viscous \ forces}} = \frac{\rho UL}{\mu},
+\end{equation*}
+where $U$ and $L$ are characteristic velocity and length scales, respectively.
+In the case that viscous forces dominate ($\mathrm{Re} \ll 1$), the intertial
+terms (\Cref{eq:material_derivative}) can be neglected, yielding the
+Stokes equations:
+\begin{equation}
+    - \nabla\cdot\mathbb{T} = \bm{0}.
+\end{equation}
+In the human brain, flow measurements indicate Reynolds numbers in the
+order of hundreds\cite{}
+
 
 \subsection{The governing equations of Stokes flow}
 Due to low Reynolds numbers in CSF flow in zebrafish brain
@@ -218,7 +271,7 @@ We assume that the deformation $\mathbf{d}$ only has a $z$ component (feet-head 
 The displacement is based on measurements~\cite{Kurtcuoglu2007ComputationalSylvius,
 Enzmann1992BrainImaging}.
 
-\subsubsection{Choroid plexus secretion.}
+\subsubsection{Choroid plexus secretion}
 The secretion is modeled by imposing a normal velocity at the
 boundary $\Gamma_{\mathrm{chp}}$ such that the total flux through the choroid plexus boundary is
 \begin{equation}
