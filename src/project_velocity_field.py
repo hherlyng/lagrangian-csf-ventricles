@@ -9,14 +9,18 @@ from basix.ufl         import element
 from dolfinx.fem.petsc import LinearProblem
 
 # Velocity data
-mesh_prefix = "zfish"
+mesh_prefix = "medium"
+solver_type = "navier-stokes"
 velocity_input_filename = \
-    f"../output/{mesh_prefix}-mesh/flow/checkpoints/TH_velocity"
+    f"../output/{mesh_prefix}-mesh/flow/{solver_type}/checkpoints/chp+cilia+defo"
 mesh = a4d.read_mesh(filename=velocity_input_filename,
                      comm=MPI.COMM_WORLD,
                      engine="BP4",
                      ghost_mode=dfx.mesh.GhostMode.shared_facet)
-timestamps = np.linspace(0, 1, 31)
+T = 2
+dt = 0.02
+N = int(T / dt)
+timestamps = np.linspace(0, T, N+1)
 cg1_el = element("Lagrange", mesh.basix_cell(), 1, shape=(mesh.topology.dim,))
 
 discontinuous_input = True
@@ -30,7 +34,7 @@ else:
     cg2_el = element("Lagrange", mesh.basix_cell(), 2, shape=(mesh.topology.dim,))
     CG2 = dfx.fem.functionspace(mesh=mesh, element=cg2_el)
     u_project = dfx.fem.Function(CG2)
-# u_project.name = "uh" # Needs to have the same name as the checkpoint function
+u_project.name = "velocity" # Needs to have the same name as the checkpoint function
 
 # Define the output velocity function space: CG1
 CG = dfx.fem.functionspace(mesh=mesh, element=cg1_el)

@@ -115,9 +115,29 @@
 \end{abstract}
 
 \section{Introduction}
+% I1: What is the problem - from big picture to our precise topic - why is it interesting?
 Cerebrospinal fluid (CSF) flow is an important contributor to brain homeostasis
-and the regulatory processes of the brain.
+and the regulatory processes of the brain. Volume transmission is a theory that outlines
+the importance of CSF flow in the neuromodulatory processes of the brain.
 
+% I2: What do we know about the problem and the topic?
+The underlying mechanisms of brain ventricular CSF flow have been studied extensively
+in the last decades. Still a topic of debate, mounting evidence suggests that
+the bulk pulsatile flow is associated with the cardiac and respiratory cycles.
+Smaller flow scales are affected by beating of motile cilia lining the ventricular 
+walls. Neural activity has also been shown to impact CSF flow patterns.
+
+% I3: What do we not know about the problem and what do we want to
+% know? What are the precise research questions we want to address?
+% Refer to specific studies and what specifically we do not know.
+Lagrangian Coherent Structures (LCS) have proved themselves to be 
+an informative way of studying advective transport in fluid flows
+\cite{shadden2005definition, haller2015lagrangian}. We want to
+study LCS in brain ventricles, with the aim of gaining further
+insights on flow and mixing in the ventricles, which impacts
+CSF composition and thus neuromodulatory processes.
+
+% I4: How do we address the problem and what do we find out?
 In this work, we study intraventricular CSF flow in embryonic zebrafish and adult human brain ventricles.
 The geometries are segmented from medical imaging data. First, we simulate CSF flow using a finite
 element method. The CSF velocity fields are used to analyze flow topology using particle
@@ -231,11 +251,11 @@ where line two results from integration by parts of the stress term.
 \subsection{Flow mechanisms and boundary conditions}
 We consider three fluid motion-inducing mechanisms, and model them as follows:
 \begin{itemize}
-    \item Ventricles deformation related to the cardiac and respiratory cycles,
+    \item Deformations of the brain ventricles related to the cardiac and respiratory cycles,
     modeled with an imposed deformation velocity
     \item Secretion of CSF from the choroid plexus,
     modeled with an influx boundary condition on the velocity
-    \item Motile cilia beating, modeled as a tangential boundary traction acting on the fluid
+    \item Ciliary beating, modeled as a tangential traction acting on the fluid at the boundary
      
 \end{itemize}
 
@@ -265,7 +285,6 @@ The boundary conditions are
 \end{align}
 On $\mathcal{S}_1$ we impose a given deformation $\bm{g}$, whereas
 $\mathcal{S}_2$ is considered traction-free.
-
 
 We assume that the deformation $\mathbf{d}$ only has a $z$ component (feet-head axis).
 The displacement is based on measurements~\cite{Kurtcuoglu2007ComputationalSylvius,
@@ -314,7 +333,7 @@ $\uu_{\mathrm{prod}}$, is normalized in length to yield the direction of the cil
 
 The parameter $\tau$ determines the magnitude of $\btau$. In previous work on zebrafish modeling,
 we determined $\tau$ heuristically by comparing simulated CSF velocity fields with \emph{in vivo}
-flow data~\cite{Olstad, Herlyng}.
+flow data~\cite{Olstad2019CiliaryDevelopment, Herlyng2025AdvectionDiffusion}.
 
 Cilia directionality reference: Yamadori T. The directions of ciliary beat on the wall of the fourth ventricle in the mouse. Arch Histol Jpn 1977; 40: 283–296
 
@@ -362,13 +381,12 @@ Application of boundary conditions in the normal and tangential directions is do
 
 \subsection{Discretization}
 
-We consider an $\mathbf{H}(\mathrm{div})$-conforming discretization of the Stokes equations using
+We consider an $\mathbf{H}(\mathrm{div})$-conforming discretization of equations using
 Brezzi-Douglas-Marini (BDM) elements for the velocity and discontinuous Galerkin (DG)
 elements for the pressure. The BDM elements have degrees of freedom associated with
-the normal component of vectors on the facets of the mesh cells. Thus, setting boundary
-conditions strongly for BDM-discretized variables constitutes fixing the normal
-component of the discretized variable on a facet. We can therefore impose~\eqref{eq:impermeability_BC}
-on the boundary strongly by setting the degrees of freedom to zero. Owing to this strong imposition,
+the normal component of vectors on the facets of the mesh cells.
+We can therefore impose~\eqref{eq:impermeability_BC}
+on the boundary strongly. Owing to this strong imposition,
 the normal component integral in~\eqref{eq:bdry_int_decomposed} is dropped, because $\vv\cdot\nn=0$ on
 the boundary when $\uu\cdot\nn=0$ is imposed. Inserting the tangential stress boundary
 condition~\eqref{eq:tangent_stress_BC} into~\eqref{eq:bdry_int_decomposed}, we then have
@@ -442,11 +460,16 @@ We present the CSF flow simulated in the brain ventricles.
     \label{fig:fig1}
 \end{figure}
 
-\subsection{FTLE fields}
+\subsection{FTLE fields demonstrate ventricular flow compartmentalization in zebrafish embryos}
 We present FTLE fields for the different brains in. The forward (repelling)
 and backward (attracting) structures in the
 anterior-middle interventricular duct in the zebrafish
-brain ventricles combine to generate a separatrix. 
+brain ventricles combine to generate a separatrix.
+This separatrix is structured such that flow is
+compartmentalized in the anterior and middle ventricles.
+These results align well with previous studies that have
+demonstrated flow compartmentalization in embryonic zebrafish
+brain ventricles~\cite{Olstad2019CiliaryDevelopment, Herlyng2025AdvectionDiffusion}.
 \begin{figure}
     \centering
     \includegraphics[width=\textwidth]{graphics/figure2.png}
@@ -454,13 +477,14 @@ brain ventricles combine to generate a separatrix.
     \label{fig:fig2}
 \end{figure}
 
-
 \section{Verification}
 Convergence properties of the discretization scheme were assessed with two
 model problems. To assess spatial convergence, we solved a channel flow
-problem on increasingly refined meshes. Temporal convergence was assessed
-with a Taylor vortex problem~\cite{Karniadakis2005Verification}.
-The method converges.
+problem, observing linear convergence in both the velocity error measured
+in the $\bm{H}^1$ semi-norm and the pressure error measured in the $L^2$ norm.
+Temporal convergence was assessed
+with a Taylor vortex problem~\cite{Karniadakis2005Verification},
+where the second-order accuracy of the BDF2 scheme was confirmed.
 
 To assess the physiological validity of the flow, we compare some
 quantities of interest with previous works~\cite{Kurtcuoglu2007ComputationalSylvius, Causemann2022HumanFramework}:

@@ -125,7 +125,7 @@ def generate_data(input_filename: str,
             velocity1.tofile(file1)
 
     else:
-        timestamps = np.arange(0, 30)
+        timestamps = np.arange(0, N)
 
         # Loop over the timestamps
         for timestamp in timestamps:
@@ -145,11 +145,18 @@ def generate_data(input_filename: str,
 
 if __name__=='__main__':
     steady = True if int(argv[1])==1 else False
-    mesh_prefix = "zfish"  
+    N = int(argv[2])
+    mesh_prefix = "medium"
+    output_prefix = "brain"
+    cpoint_prefix = "chp+cilia+defo"
+    solver_type = "navier-stokes"
     velocity_input_filename = \
-        f"../output/{mesh_prefix}-mesh/flow/checkpoints/BDM_velocity_projection"
-    output_dir = f"/Users/hherlyng/flowVC/bin/{mesh_prefix}/compare-elements/"
-    output_prefix = "BDM"
+        f"../output/{mesh_prefix}-mesh/flow/{solver_type}/checkpoints/{cpoint_prefix}_projection"
+    if output_prefix=="brain":
+        bin_dir = f"{output_prefix}/{mesh_prefix}-mesh"
+    else:
+        bin_dir = output_prefix
+    output_dir = f"/Users/hherlyng/flowVC/bin/{bin_dir}/{solver_type}/"
     generate_data(input_filename=velocity_input_filename,
                   output_dir=output_dir,
                   output_prefix=output_prefix,
