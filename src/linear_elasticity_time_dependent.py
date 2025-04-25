@@ -13,12 +13,13 @@ from basix.ufl import element
 from dolfinx.fem.petsc    import create_matrix, create_vector
 from utilities.fem        import assemble_system
 from utilities.projection import projection_problem_CG2_to_BDM1
-from utilities.deformation_data import WallDeformationCorpusCallosum, WallDeformationSpinalCanal
+from utilities.deformation_data import WallDeformationCorpusCallosum, WallDeformationSpinalCanal, WallDeformationCanalWall
 
 print = PETSc.Sys.Print
 
 # Mesh tags
-CANAL_OUT = 23
+CANAL_WALL = 13
+CANAL_OUT  = 23
 LATERAL_APERTURES = 28
 
 # Solve linear elasticity equation on the ventricles. Wall motion is 
@@ -41,8 +42,8 @@ dx = ufl.Measure('dx', domain=mesh, subdomain_data=ct) # Volume integral measure
 eps = lambda arg: sym(grad(arg)) # The symmetric gradient
 
 # Material parameters
-E = 10 # Modulus of elasticity [Pa]
-nu = 0.1 # Poisson's ratio [-]
+E = 1500 # Modulus of elasticity [Pa]
+nu = 0.35 # Poisson's ratio [-]
 mu_value = 2*E/(1+nu) # First Lamé parameter value
 lam_value = nu*E/((1+nu)*(1-2*nu)) # Second Lamé parameter value
 mu = dfx.fem.Constant(mesh, mu_value) # First Lamé parameter
@@ -52,8 +53,8 @@ print("Value of Lamé parameters:")
 print(f"mu \t= {mu_value:.2f}\nlambda \t= {lam_value:.2f}")
 
 # Timestep size [s]
-deltaT = 0.02
-dt = dfx.fem.Constant(mesh, deltaT) 
+timestep = 0.2
+dt = dfx.fem.Constant(mesh, timestep) 
 
 # Finite elements
 vec_el = element("Lagrange", mesh.basix_cell(), 2, shape=(mesh.geometry.dim,))
@@ -74,15 +75,26 @@ L = rho*inner(2*wh_n-wh_nmin, dw)*dx
 # Dirichlet BC on corpus callosum
 cc_disp_expr = WallDeformationCorpusCallosum(derivative=False)
 cc_disp_func = dfx.fem.Function(W)
+
 if mesh_prefix=='coarse':
     cc_facet = 7340
 elif mesh_prefix=='medium':
     cc_facet = 51378
+
 cc_dofs = dfx.fem.locate_dofs_topological(W, facet_dim, np.array([cc_facet], dtype=np.int32))
 num_cc_dofs = comm.allreduce(len(cc_dofs), op=MPI.SUM)
 print("Number of corpus callosum dofs: ", num_cc_dofs)
 assert num_cc_dofs>0, print("No corpus callosum dofs located.")
 bcs = [dfx.fem.dirichletbc(cc_disp_func, cc_dofs)]
+
+cw_dofs = dfx.fem.locate_dofs_topological(W, facet_dim, ft.find(CANAL_WALL))
+num_cw_dofs = comm.allreduce(len(cw_dofs), op=MPI.SUM)
+print("Number of canal wall dofs: ", num_cw_dofs)
+cw_disp_expr = WallDeformationCanalWall(derivative=False)
+cw_disp_func = dfx.fem.Function(W)
+bcs.append(dfx.fem.dirichletbc(cw_disp_func, cw_dofs))
+
+
 anchor_spinal_canal = True
 if anchor_spinal_canal: # Anchor spinal cord and lateral apertures
     canal_out_dofs = dfx.fem.locate_dofs_topological(W, facet_dim, ft.find(CANAL_OUT))
@@ -124,13 +136,13 @@ solver.setOperators(A)
 solver.setFromOptions()
 solver.setMonitor(lambda _, its, rnorm: print(f"Iteration: {its}, residual: {rnorm}"))
 
-T = 2
+T = 1
 period = 1
-N = int(T / deltaT)
+N = int(T / timestep)
 times = np.linspace(0, T, N+1)
 
-xdmf = dfx.io.XDMFFile(comm, f"../output/{mesh_prefix}-mesh/deformation/time_dep_displacement.xdmf", "w")
-xdmf_vel = dfx.io.XDMFFile(comm, f"../output/{mesh_prefix}-mesh/deformation/time_dep_deformation_velocity.xdmf", "w")
+xdmf = dfx.io.XDMFFile(comm, f"../output/{mesh_prefix}-mesh/deformation/time_dep_displacement_dt={timestep:.4g}_T={T:.4g}.xdmf", "w")
+xdmf_vel = dfx.io.XDMFFile(comm, f"../output/{mesh_prefix}-mesh/deformation/time_dep_deformation_velocity_dt={timestep:.4g}_T={T:.4g}.xdmf", "w")
 xdmf.write_mesh(mesh)
 xdmf_vel.write_mesh(mesh)
 CG1_vector_space = dfx.fem.functionspace(mesh,
@@ -145,8 +157,10 @@ dw_dt = dfx.fem.Function(W)
 bdm_el = element("BDM", mesh.basix_cell(), 1)
 BDM = dfx.fem.functionspace(mesh, bdm_el)
 dw_dt_bdm = dfx.fem.Function(BDM)
+dw_dt_bdm.name = "defo_velocity"
+wh.name = "defo_displacement"
 
-vh_cpoint_filename = f"../output/{mesh_prefix}-mesh/deformation/checkpoints/time_dep_deformation_velocity/"
+vh_cpoint_filename = f"../output/{mesh_prefix}-mesh/deformation/checkpoints/time_dep_deformation_velocity_dt={timestep:.4g}_T={T:.4g}/"
 a4d.write_mesh(filename=vh_cpoint_filename, mesh=mesh, store_partition_info=True)
 a4d.write_meshtags(vh_cpoint_filename, mesh, ft, meshtag_name='ft')
 
@@ -166,6 +180,8 @@ for idx, t in enumerate(times):
     # Update displacement BCs
     cc_disp_expr.t = bc_time
     cc_disp_func.interpolate(cc_disp_expr)
+    cw_disp_expr.t = bc_time
+    cw_disp_func.interpolate(cw_disp_expr)
 
     if not anchor_spinal_canal:
         sc_disp_expr.t = bc_time
@@ -181,12 +197,15 @@ for idx, t in enumerate(times):
     
     # Calculate deformation velocity by a central difference in time
     dw_dt.x.array[:] = \
-        (wh.x.array.copy() - 2*wh_n.x.array.copy() + wh_nmin.x.array.copy())/deltaT**2
+        (wh.x.array.copy() - 2*wh_n.x.array.copy() + wh_nmin.x.array.copy())/timestep**2
 
     # Project deformation velocity into BDM 1 space for checkpointing
     projection_problem.solve()
+    
+    # Write checkpoints
+    a4d.write_function(filename=vh_cpoint_filename, u=wh, time=float(f"{t:.4g}"))
     a4d.write_function(filename=vh_cpoint_filename, u=dw_dt_bdm, time=float(f"{t:.4g}"))
-
+    
     # Interpolate the velocity into CG1 and write XDMF output
     vh_out.interpolate(dw_dt) 
     xdmf_vel.write_function(vh_out, t) 

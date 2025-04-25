@@ -22,10 +22,14 @@ m3_to_ml = 1e6 # Meters cubed [m^3] to milliliters [ml]
 k = 1 # Element degree
 
 comm = MPI.COMM_WORLD
-mesh_prefix = 'coarse'
-infile_name = f'../output/{mesh_prefix}-mesh/flow/navier-stokes/checkpoints/chp+cilia+defo/'
+mesh_prefix = 'medium'
+solver_type = 'navier-stokes'
+infile_name = f'../output/{mesh_prefix}-mesh/flow/{solver_type}/checkpoints/BDM_deforming_velocity/'
 mesh = a4d.read_mesh(filename=infile_name, comm=comm, read_from_partition=True)
-ft   = a4d.read_meshtags(filename=infile_name, mesh=mesh, meshtag_name='ft')
+# ft   = a4d.read_meshtags(filename=infile_name, mesh=mesh, meshtag_name='ft')
+mesh.topology.create_entities(mesh.topology.dim-1)
+with dfx.io.XDMFFile(comm, '../geometries/medium_ventricles_mesh_tagged.xdmf', 'r') as xdmf:
+    ft = xdmf.read_meshtags(mesh, "ft")
 
 bdm_el = element("BDM", mesh.basix_cell(), k)
 dg_el  = element("DG", mesh.basix_cell(), k-1)
@@ -51,7 +55,7 @@ point_bot_aq = mesh.geometry.x[vertex_bot_aq, :]
 length_aq = np.sqrt(np.sum((point_top_aq-point_bot_aq)**2))
 
 T = 2
-dt = 0.02
+dt = 0.01
 N = int(T / dt)
 times = np.linspace(0, T, N+1)
 times = times[1:]
@@ -63,8 +67,8 @@ pressure_gradients_aq = []
 for t in times:
     print(f'Time t = {t:.4g}')
 
-    a4d.read_function(filename=infile_name, u=uh, time=t, name='velocity')
-    a4d.read_function(filename=infile_name, u=ph, time=t, name='pressure')
+    a4d.read_function(filename=infile_name, u=uh, time=t, name='uh')
+    # a4d.read_function(filename=infile_name, u=ph, time=t, name='ph')
 
     # Calculate flow rates
     flowrate_top_aq = assemble_scalar(u_flux('+')*dS(AQUEDUCT_TOP))*m3_to_ml

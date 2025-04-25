@@ -74,7 +74,6 @@ def calculate_fluxes(ds: ufl.Measure, tags: tuple[int],
 
 def setup_variational_problem(mesh: dfx.mesh.Mesh,
                               ft: dfx.mesh.MeshTags,
-                              mesh_prefix: str,
                               k: int):
     facet_dim = mesh.topology.dim-1
     mesh.topology.create_connectivity(facet_dim, facet_dim+1) # Create facet-cell connectivity
@@ -86,21 +85,18 @@ def setup_variational_problem(mesh: dfx.mesh.Mesh,
 
     bdm_el = element("BDM", mesh.basix_cell(), k)
     dg_el  = element("DG", mesh.basix_cell(), k-1)
-    dg_vec_el = element("DG", mesh.basix_cell(), k, shape=(mesh.geometry.dim,))
     V = dfx.fem.functionspace(mesh, bdm_el)
     Q = dfx.fem.functionspace(mesh, dg_el)
-    DG_vec = dfx.fem.functionspace(mesh, dg_vec_el)
-    v_zero = dfx.fem.Function(V) # Zero velocity for BCs
     v_defo = dfx.fem.Function(V) # Deformation velocity
     u_ = dfx.fem.Function(V) # Previous timestep velocity
 
     u, v = ufl.TrialFunction(V), ufl.TestFunction(V)
     p, q = ufl.TrialFunction(Q), ufl.TestFunction(Q)
 
-    rho = dfx.fem.Constant(mesh, dfx.default_scalar_type(1e3)) #1e3 [kg/m^3]
-    mu = dfx.fem.Constant(mesh, dfx.default_scalar_type(7e-4)) #7e-4[kg/(m*s)] #*1e-2 # Dynamic viscosity [kg/(cm*s)]
-    gamma = dfx.fem.Constant(mesh, dfx.default_scalar_type(100.0))
-    dt = dfx.fem.Constant(mesh, dfx.default_scalar_type(delta_t))
+    rho = dfx.fem.Constant(mesh, dfx.default_scalar_type(1e3)) # Fluid density [kg/m^3]
+    mu = dfx.fem.Constant(mesh, dfx.default_scalar_type(7e-4)) # Dynamic viscosity [kg/(m*s)]
+    gamma = dfx.fem.Constant(mesh, dfx.default_scalar_type(100.0)) # BDM stabilization penalty parameter
+    dt = dfx.fem.Constant(mesh, dfx.default_scalar_type(delta_t)) # Timestep
 
     # Tangential traction BC
     tau_val = 0#7.89e-3*1e-1 # Tangential traction force density [Pa]
@@ -180,7 +176,7 @@ if __name__=='__main__':
 
     # Temporal parameters
     T = 2
-    delta_t = 0.02
+    delta_t = 0.01
     N = int(T / delta_t)
     times = np.linspace(0, T, N+1)
 
@@ -246,7 +242,7 @@ if __name__=='__main__':
 
     # Setup Stokes problem for the initial condition
     # Update deformation velocity
-    a4d.read_function(filename=v_defo_input_filename, u=v_defo, time=times[0])
+    a4d.read_function(filename=v_defo_input_filename, u=v_defo, name="defo_velocity", time=times[0])
     
     # Account for deformation in choroid plexus flux BC
     v_chp.interpolate(v_chp_expr)
@@ -261,26 +257,20 @@ if __name__=='__main__':
     ph.x.scatter_forward()
     ph.x.array[:] -= calculate_mean(mesh, ph, dX=ufl.dx)
 
-    # Write initial condition to file
-    velocity_output.write(times[0])
-    pressure_output.write(times[0])
-    if write_cpoint:
-        a4d.write_function(cpoint_filename, uh, time=times[0])
-        a4d.write_function(cpoint_filename, ph, time=times[0])
-
     # Set Navier-Stokes system matrix as KSP operator
     ksp.setOperators(A)
 
-    for t in times[1:]:
+    for t in times:
         print(f"Time = {t:.4g}")
 
         # Update deformation velocity
-        a4d.read_function(filename=v_defo_input_filename, u=v_defo, time=float(f"{t:.4g}"))
+        a4d.read_function(filename=v_defo_input_filename, u=v_defo, name="defo_velocity", time=float(f"{t:.4g}"))
         
         # Account for deformation in choroid plexus flux BC
         v_chp.interpolate(v_chp_expr)
         v_chp.x.array[:] += v_defo.x.array.copy()
 
+        tic_solve = time.perf_counter()
         # Solve the Navier-Stokes equations
         A.zeroEntries()
         assemble_matrix_block(A, a, bcs=bcs)
@@ -292,9 +282,11 @@ if __name__=='__main__':
         # Compute solution
         ksp.solve(b, x)
 
-        uh.x.array[:offset_u] = x.array_r[:offset_u]
+        print(f"Solve time: {time.perf_counter()-tic_solve:.4f} sec")
+
+        uh.x.array[:offset_u] = x.array[:offset_u]
         uh.x.scatter_forward()
-        ph.x.array[:(offset_p-offset_u)] = x.array_r[offset_u:offset_p]
+        ph.x.array[:(offset_p-offset_u)] = x.array[offset_u:offset_p]
         ph.x.scatter_forward()
         ph.x.array[:] -= calculate_mean(mesh, ph, dX=ufl.dx) # Subtract mean pressure so that mean=0
         

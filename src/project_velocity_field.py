@@ -51,6 +51,7 @@ problem = LinearProblem(a, L, petsc_options={"ksp_type" : "preonly",
 
 if __name__=='__main__':
     steady = True if int(argv[1])==1 else False
+    print("Number of timestamps: ", N)
 
     output_filename = velocity_input_filename + "_projection"
     a4d.write_mesh(output_filename, mesh)

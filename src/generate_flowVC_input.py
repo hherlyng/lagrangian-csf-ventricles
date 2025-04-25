@@ -125,7 +125,7 @@ def generate_data(input_filename: str,
             velocity1.tofile(file1)
 
     else:
-        timestamps = np.arange(0, N)
+        timestamps = np.arange(1, N+1)
 
         # Loop over the timestamps
         for timestamp in timestamps:
