@@ -22,18 +22,18 @@ m3_to_ml = 1e6 # Meters cubed [m^3] to milliliters [ml]
 k = 1 # Element degree
 
 comm = MPI.COMM_WORLD
-infile_name1 = '../output/medium-mesh/flow/navier-stokes/checkpoints/chp+cilia+defo/'
-infile_name2 = '../output/medium-mesh/flow/stokes/checkpoints/chp+cilia+defo/'
+infile_name1 = '../output/coarse-mesh/flow/navier-stokes/checkpoints/chp+cilia+defo/'
+infile_name2 = '../output/coarse-mesh/flow/navier-stokes/checkpoints/BDM_deforming_velocity/'
 
-for infile_name in [infile_name1, infile_name2]:
+for idx, infile_name in enumerate([infile_name1, infile_name2]):
 
     mesh = a4d.read_mesh(filename=infile_name, comm=comm, read_from_partition=True)
     ft   = a4d.read_meshtags(filename=infile_name, mesh=mesh, meshtag_name='ft')
 
     # exit()
-    bdm_el = element("BDM", mesh.basix_cell(), k)
+    dg_vec_el = element("DG", mesh.basix_cell(), k, shape=(mesh.geometry.dim,))
     dg_el  = element("DG", mesh.basix_cell(), k-1)
-    V = dfx.fem.functionspace(mesh, bdm_el)
+    V = dfx.fem.functionspace(mesh, dg_vec_el)
     Q = dfx.fem.functionspace(mesh, dg_el)
     uh = dfx.fem.Function(V)
     ph = dfx.fem.Function(Q)
@@ -54,7 +54,7 @@ for infile_name in [infile_name1, infile_name2]:
     point_bot_aq = mesh.geometry.x[vertex_bot_aq, :]
     length_aq = np.sqrt(np.sum((point_top_aq-point_bot_aq)**2))
 
-    T = 2.0
+    T = 1.0
     dt = 0.02
     N = int(T / dt)
     times = np.linspace(0, T, N+1)[1:]
@@ -66,7 +66,7 @@ for infile_name in [infile_name1, infile_name2]:
     for t in times:
         print(f'Time t = {t:.4g}')
 
-        a4d.read_function(filename=infile_name, u=uh, time=t, name='velocity')
+        a4d.read_function(filename=infile_name, u=uh, time=t, name='relative_velocity')
         a4d.read_function(filename=infile_name, u=ph, time=t, name='pressure')
 
         # Calculate flow rates
@@ -86,24 +86,24 @@ for infile_name in [infile_name1, infile_name2]:
                                         [flowrate_top_aq,  flowrate_bot_aq,  delta_pressure_aq])]
 
     # Convert lists to numpy arrays    
-    if 'navier' in infile_name:
-        flowrates_top_aq_navier_stokes = np.array(flowrates_top_aq)
-        pressure_gradients_aq_navier_stokes = np.array(pressure_gradients_aq)
-        print(f'Sum of flow rates Navier-Stokes = {np.sum(flowrates_top_aq[1:]+np.array(flowrates_top_aq)[:-1])/2*dt:.4g}')
+    if idx==0:
+        flowrates_top_aq1 = np.array(flowrates_top_aq)
+        pressure_gradients_aq1 = np.array(pressure_gradients_aq)
+        print(f'Sum of flow rates static mesh = {np.sum(flowrates_top_aq[1:]+np.array(flowrates_top_aq)[:-1])/2*dt:.4g}')
     else:
-        flowrates_top_aq_stokes = np.array(flowrates_top_aq)
-        pressure_gradients_aq_stokes = np.array(pressure_gradients_aq)
-        print(f'Sum of flow rates Stokes = {np.sum(flowrates_top_aq[1:]+np.array(flowrates_top_aq)[:-1])/2*dt:.4g}')
+        flowrates_top_aq2 = np.array(flowrates_top_aq)
+        pressure_gradients_aq2 = np.array(pressure_gradients_aq)
+        print(f'Sum of flow rates ALE = {np.sum(flowrates_top_aq[1:]+np.array(flowrates_top_aq)[:-1])/2*dt:.4g}')
 
 
 fig, ax = plt.subplots(figsize=[16, 9])
-flowrate_diff = (flowrates_top_aq_navier_stokes-flowrates_top_aq_stokes)/flowrates_top_aq_navier_stokes*100
+flowrate_diff = (flowrates_top_aq1-flowrates_top_aq2)/flowrates_top_aq1*100
 pl1, = ax.plot(times, flowrate_diff, color='k', label='flowrate diff')
 ax.set_ylabel('% ml/s', fontsize=40)
 ax.tick_params(axis='both', labelsize=30)
 
 ax_twin = ax.twinx()
-pressure_gradient_diff = (pressure_gradients_aq_navier_stokes-pressure_gradients_aq_stokes)/pressure_gradients_aq_navier_stokes*100
+pressure_gradient_diff = (pressure_gradients_aq1-pressure_gradients_aq2)/pressure_gradients_aq1*100
 pl2, = ax_twin.plot(times, pressure_gradient_diff, color='r', label='pressure gradient diff')
 ax_twin.set_ylabel('% mmHg/m', color=pl2.get_color(), fontsize=40)
 ax_twin.tick_params(axis='y', colors=pl2.get_color(), labelsize=30)
@@ -114,8 +114,8 @@ ax.legend([pl1, pl2], [pl1.get_label(), pl2.get_label()],
 fig.tight_layout()
 
 fig2, ax2 = plt.subplots(figsize=[16, 9])
-ax2.plot(times, flowrates_top_aq_navier_stokes, color='k', label='navier-stokes')
-ax2.plot(times, flowrates_top_aq_stokes, 'r--', label='stokes')
+ax2.plot(times, flowrates_top_aq1, color='k', label='static mesh')
+ax2.plot(times, flowrates_top_aq2, 'r--', label='ALE')
 ax2.set_ylabel('ml/s', fontsize=40)
 ax2.tick_params(axis='both', labelsize=30)
 ax2.set_xlabel('Time [s]', fontsize=40) 
@@ -123,8 +123,8 @@ ax2.legend(fontsize=20, loc='upper right', frameon=True, fancybox=False, edgecol
 fig2.tight_layout()
 
 fig3, ax3 = plt.subplots(figsize=[16, 9])
-ax3.plot(times, pressure_gradients_aq_navier_stokes, color='k', label='navier-stokes')
-ax3.plot(times, -10*pressure_gradients_aq_stokes, 'r--', label='stokes')
+ax3.plot(times, pressure_gradients_aq1, color='k', label='static mesh')
+ax3.plot(times, -10*pressure_gradients_aq2, 'r--', label='ALE')
 ax3.set_ylabel('mmHg/m', fontsize=40)
 ax3.tick_params(axis='both', labelsize=30)
 ax3.set_xlabel('Time [s]', fontsize=40) 

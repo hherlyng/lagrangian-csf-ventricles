@@ -5,6 +5,7 @@ import numpy   as np
 import dolfinx as dfx
 import adios4dolfinx as a4d
 
+from sys       import argv
 from ufl       import inner, dot, grad, det, inv, jump, avg, nabla_grad
 from scifem    import assemble_scalar
 from mpi4py    import MPI
@@ -52,18 +53,31 @@ Avg = lambda arg, n: .5*(dot(arg('+'), n('+')) - dot(arg('-'), n('-')))
 # Action of (1 - n x n) on a vector yields the tangential component
 Tangent = lambda v, n: v - n*dot(v, n)
 
+zero_traction_tags = (CANAL_OUT, LATERAL_APERTURES)
 cilia_tags = (AQUEDUCT_WALL, FORAMINA_34_WALL, LATERAL_VENTRICLES_WALL, FOURTH_VENTRICLE_WALL,
-              CANAL_WALL, THIRD_VENTRICLE_WALL, CHOROID_PLEXUS_LATERAL, CHOROID_PLEXUS_THIRD, CHOROID_PLEXUS_FOURTH)
+                          CANAL_WALL, THIRD_VENTRICLE_WALL, CHOROID_PLEXUS_LATERAL, CHOROID_PLEXUS_THIRD, CHOROID_PLEXUS_FOURTH)
 choroid_plexus_tags = (CHOROID_PLEXUS_LATERAL, CHOROID_PLEXUS_THIRD, CHOROID_PLEXUS_FOURTH)
-deformation_tags = [tag for tag in cilia_tags]
-impermeability_tags = [tag for tag in cilia_tags if tag not in choroid_plexus_tags]
-zero_deformation_tags = [CANAL_OUT, LATERAL_APERTURES]
+wall_deformation_tags = [tag for tag in cilia_tags if tag not in choroid_plexus_tags]
 
-comm = MPI.COMM_WORLD
-
-# Read mesh and meshtags
-mesh_prefix = 'medium'
-defo_input_filename = f"../output/{mesh_prefix}-mesh/deformation/checkpoints/time_dep_deformation_velocity/"
+# Solve the Navier-Stokes equations in a moving domain
+# by an ALE method. Wall motion is 
+# prescribed in time, given by solutions to the 
+# time-dependent linear elasticity equations.
+comm = MPI.COMM_WORLD # MPI communicator
+T = float(argv[2]) # Final time
+timestep = float(argv[3])
+N = int(T / timestep) # Number of timesteps
+times = np.linspace(0, T, N+1)
+mesh_prefix_input = int(argv[4])
+if mesh_prefix_input==1:
+    mesh_prefix = 'coarse'
+elif mesh_prefix_input==2:
+    mesh_prefix = 'medium'
+elif mesh_prefix_input==3:
+    mesh_prefix = 'fine'
+else:
+    raise ValueError(f'Unknown mesh prefix, choose 1 (coarse), 2 (medium), or 3 (fine).')
+defo_input_filename = f"../output/{mesh_prefix}-mesh/deformation/checkpoints/time_dep_deformation_velocity_dt={timestep:.4g}_T={T:.4g}/"
 mesh = a4d.read_mesh(defo_input_filename, comm, read_from_partition=False)
 out_mesh = a4d.read_mesh(defo_input_filename, comm, read_from_partition=False)
 ft   = a4d.read_meshtags(defo_input_filename, mesh, meshtag_name='ft')
@@ -72,37 +86,14 @@ facet_dim = mesh.topology.dim-1
 mesh.topology.create_connectivity(facet_dim, facet_dim+1) # Create facet-cell connectivity
 num_facets = mesh.topology.index_map(facet_dim).size_local + mesh.topology.index_map(facet_dim).num_ghosts # Total number of facets
 
-dx = ufl.Measure('dx', domain=mesh) # Cell integral
-ds = ufl.Measure('ds', domain=mesh, subdomain_data=ft) # Exterior facet integral
-dS = ufl.Measure('dS', domain=mesh) # Interior facet integral
+quadrature_degree = 8
+dx = ufl.Measure('dx', domain=mesh, metadata={'quadrature_degree' : quadrature_degree}) # Cell integral
+ds = ufl.Measure('ds', domain=mesh, subdomain_data=ft, metadata={'quadrature_degree' : quadrature_degree}) # Exterior facet integral
+dS = ufl.Measure('dS', domain=mesh, metadata={'quadrature_degree' : quadrature_degree}) # Interior facet integral
 
-# The ALE problem needs to extend boundary deformation to the entire domain
-# to define mesh displacement field
+# Create finite element function in P2 space for the mesh displacement
 vec_el = element("Lagrange", mesh.basix_cell(), 2, shape=(mesh.geometry.dim,))
 W = dfx.fem.functionspace(mesh, vec_el)
-
-# Test and trial functions
-w, dw = ufl.TrialFunction(W), ufl.TestFunction(W)
-
-# BC functions
-u_wall = dfx.fem.Function(W)
-zero = dfx.fem.Function(W)
-
-a_ale = inner(grad(w), grad(dw))*dx
-L_ale = inner(zero, dw)*dx
-
-# BCs
-facets_defo = np.concatenate(([ft.find(tag) for tag in deformation_tags]))
-dofs_defo = dfx.fem.locate_dofs_topological(W, facet_dim, facets_defo)
-
-facets_zero_disp = np.concatenate(([ft.find(tag) for tag in zero_deformation_tags]))
-dofs_zero_disp = dfx.fem.locate_dofs_topological(W, facet_dim, facets_zero_disp)
-
-bcs_ale = [dfx.fem.dirichletbc(u_wall, dofs_defo), # Imposed wall displacement
-           dfx.fem.dirichletbc(zero, dofs_zero_disp) # Zero displacement at spinal canal outlet and lateral apertures
-           ]
-
-# This serves to define the deformation of the mesh
 wh = dfx.fem.Function(W)
 
 # Now that we have that we can define the Stokes problem in the deformed coordinates
@@ -110,7 +101,9 @@ r = ufl.SpatialCoordinate(mesh)
 chi = r + wh          
 F = grad(chi) # Deformation gradient
 J = det(F) # Jacobian 
-n = ufl.FacetNormal(mesh)
+n_hat = ufl.FacetNormal(mesh) # Facet normal on the reference mesh
+n = J*inv(F.T)*n_hat # Deformed domain facet normal and surface integral measure
+hA = ufl.avg(ufl.CellDiameter(mesh)) # Average cell diameter of reference mesh
 
 scal_el = element("Lagrange", mesh.basix_cell(), 1)
 bdm_el = element("BDM", mesh.basix_cell(), 1)
@@ -118,25 +111,24 @@ dg_el  = element("DG", mesh.basix_cell(), 0)
 dg_vec_el = element("DG", mesh.basix_cell(), 1, shape=(mesh.geometry.dim,))
 V = dfx.fem.functionspace(mesh, bdm_el)
 Q = dfx.fem.functionspace(mesh, dg_el)
+u_zero = dfx.fem.Function(V)
+u_ = dfx.fem.Function(V) # Velocity at previous timestep
+u_defo = dfx.fem.Function(V) # Deformation velocity
 
+# Trial and test functions
 u, v = ufl.TrialFunction(V), ufl.TestFunction(V)
 p, q = ufl.TrialFunction(Q), ufl.TestFunction(Q)
                   
-Grad = lambda arg: dot(grad(arg), inv(F))
-Div = lambda arg: inner(grad(arg), inv(F))
-Nabla_Grad = lambda arg: dot(nabla_grad(arg), inv(F))
-
-# Symmetric gradient
-Eps = lambda arg: dot(ufl.sym(grad(arg)), inv(F))
+# Define differential operators that map from deformed to reference configuration
+Grad = lambda arg: dot(grad(arg), inv(F)) # Gradient
+Nabla_Grad = lambda arg: dot(nabla_grad(arg), inv(F)) # Gradient operator for the convective term
+Div = lambda arg: ufl.tr(dot(grad(arg), inv(F))) # Divergence
+Eps = lambda arg: ufl.sym(Grad(arg)) # Symmetric gradient
 
 mu = dfx.fem.Constant(mesh, dfx.default_scalar_type(7e-4)) #[kg/(m*s)] #*1e-2 # Dynamic viscosity [kg/(cm*s)]
 rho = dfx.fem.Constant(mesh, dfx.default_scalar_type(1e3))
 BDM_penalty = dfx.fem.Constant(mesh, dfx.default_scalar_type(50.0))
-timestep = 0.01
-T = 2
-N = int(T / timestep)
 dt = dfx.fem.Constant(mesh, dfx.default_scalar_type(timestep))
-u_ = dfx.fem.Function(V)
 
 def stabilization(u: ufl.TrialFunction, v: ufl.TestFunction, consistent: bool=True):
     """ Displacement/Flux Stabilization term from Krauss et al paper. 
@@ -158,51 +150,51 @@ def stabilization(u: ufl.TrialFunction, v: ufl.TestFunction, consistent: bool=Tr
         Stabilization term for the bilinear form.
     """
 
-    hA = ufl.avg(ufl.CellDiameter(mesh)) # Facet normal vector and average cell diameter
-
     if consistent: # Add symmetrization terms
-        return (-inner(Avg(2*mu*Eps(u), n), Jump(Tangent(v, n)))*J('+')*dS
-                -inner(Avg(2*mu*Eps(v), n), Jump(Tangent(u, n)))*J('+')*dS
-                + 2*mu*(BDM_penalty/hA)*inner(Jump(Tangent(u, n)), Jump(Tangent(v, n)))*J('+')*dS)
+        return (-inner(Avg(2*mu*Eps(u), n), Jump(v))*dS
+                -inner(Avg(2*mu*Eps(v), n), Jump(u))*dS
+                + 2*mu*(BDM_penalty/hA)*inner(Jump(u), Jump(v))*dS)
 
     # For preconditioning
-    return 2*mu*(BDM_penalty/hA)*inner(Jump(Tangent(u, n)), Jump(Tangent(v, n)))*J('+')*dS
+    return 2*mu*(BDM_penalty/hA)*inner(Jump(u), Jump(v))*dS
 
 # Tangential traction BC
 tau_val = 7.89e-3 # Tangential traction force density [Pa]
 tau = dfx.fem.Constant(mesh, dfx.default_scalar_type(tau_val))
 tau_vec   = tau*ufl.as_vector((0, 1, 1)) # Stress vector to be projected tangentially onto the mesh
 tangent_traction_dorsal = lambda n: Tangent(tau_vec, n) # Use the tau expression to define the tangent traction vector
-
+c_vel = u_ - u_defo # Convection velocity
 # Navier-Stokes problem in reference domain accounting for the deformation
-a00 = (rho/dt * inner(u, v)*J*dx # Time derivative
-      + 2*mu*inner(Eps(u), Eps(v))*J*dx # Viscous dissipation
+a00 = (2*mu*inner(Eps(u), Eps(v))*J*dx # Viscous dissipation
       + stabilization(u, v) # BDM stabilization
-      - mu*inner(dot(Grad(u).T, n), v)*J*(ds(LATERAL_APERTURES) + ds(CANAL_OUT)) # Parallel flow at inlet/outlet
+      - mu*inner(dot(Grad(u).T, n), v)*ds(zero_traction_tags) # Parallel flow at inlet/outlet
       )
 a01 = inner(p, Div(v))*J*dx
 a10 = inner(q, Div(u))*J*dx
 a11 = dfx.fem.Constant(mesh, dfx.default_scalar_type(0.0))*inner(p, q)*J*dx
 
-L0 = inner(zero, v)*J*dx
+a_stokes = dfx.fem.form([[a00, a01], [a10, a11]])
+
+L0 = inner(u_zero, v)*J*dx
 L1 = inner(dfx.fem.Function(Q), q)*J*dx
 
 # Navier-Stokes problem
-a00 += rho*inner(dot(u_, Nabla_Grad(u)), v)*J*dx # Convective term
+a00 += rho/dt * inner(u, v)*J*dx # Time derivative
+a00 += rho*inner(dot(c_vel, Nabla_Grad(u)), v)*J*dx # Convective term
 
 # Add convective term stabilization
-zeta = ufl.conditional(ufl.lt(dot(u_, n), 0), 1, 0) # Upwind velocity operator (equals 1 on inflow boundary, 0 on outflow boundary)
-a00 += (- rho*1/2*dot(jump(u_), n('+')) * avg(dot(u, v))*J('+')  * dS 
-        - rho*dot(avg(u_), n('+')) * dot(jump(u), avg(v))*J('+') * dS 
-        - zeta*rho*1/2*dot(u_, n) * dot(u, v)*J * (ds(LATERAL_APERTURES)+ds(CANAL_OUT))
+zeta = ufl.conditional(ufl.lt(dot(c_vel, n), 0), 1, 0) # Upwind velocity operator (equals 1 on inflow boundary, 0 on outflow boundary)
+a00 += (- rho*1/2*dot(jump(c_vel), n('+')) * avg(dot(u, v))  * dS 
+        - rho*dot(avg(c_vel), n('+')) * dot(jump(u), avg(v)) * dS 
+        - zeta*rho*1/2*dot(c_vel, n) * dot(u, v) * ds(zero_traction_tags)
 )
 
 a = dfx.fem.form([[a00, a01], [a10, a11]])
 L = dfx.fem.form([L0, L1])
 
 # Set boundary conditions on velocity
-v_zero = dfx.fem.Function(V) # Wall deformation BC
-v_dofs_impermeability = dfx.fem.locate_dofs_topological(V, facet_dim, facets_defo)
+facets_wall_defo = np.concatenate(([ft.find(tag) for tag in wall_deformation_tags]))
+u_dofs_defo = dfx.fem.locate_dofs_topological(V, facet_dim, facets_wall_defo)
 
 # Set choroid plexus inflow velocity BC strongly
 # Create expressions with positive and negative z-component of the velocity,
@@ -211,11 +203,11 @@ chp_prod = 5.833e-9 # Corresponds to 504 ml production per day [Czosnyka et al.]
 chp_area = assemble_scalar(1*ds(choroid_plexus_tags)) # The area of the choroid plexus boundary
 chp_velocity = chp_prod/chp_area
 facets_chp = np.concatenate(([ft.find(tag) for tag in choroid_plexus_tags]))
-v_chp = create_normal_contribution_bc(V, -chp_velocity*n, facets_chp)
-v_dofs_chp_prod = dfx.fem.locate_dofs_topological(V, facet_dim, facets_chp)
+u_chp = create_normal_contribution_bc(V, (-chp_velocity*n_hat + dot(u_defo, n_hat)*n_hat), facets_chp)
+u_dofs_chp_prod = dfx.fem.locate_dofs_topological(V, facet_dim, facets_chp)
 
-bcs_fluid = [dfx.fem.dirichletbc(v_zero, v_dofs_impermeability),
-             dfx.fem.dirichletbc(v_chp, v_dofs_chp_prod)]
+bcs_fluid = [dfx.fem.dirichletbc(u_defo, u_dofs_defo),
+             dfx.fem.dirichletbc(u_chp, u_dofs_chp_prod)]
 
 # Define deforming mesh and reference coordinates (coordinates of mesh at t=0)
 x_reference = out_mesh.geometry.x.copy()
@@ -235,26 +227,6 @@ for i, point in enumerate(x_reference):
 cells = np.array(cells)
 points_on_proc = np.array(points_on_proc)
 
-# Define the mesh deformation problem
-ale_problem = LinearProblem(a_ale, L_ale, bcs_ale, 
-                            wh,
-                            petsc_options={"ksp_type" : "preonly",
-                                           "pc_type" : "lu",
-                                           "pc_factor_mat_solver_type" : "mumps"})
-
-def assemble_nested_system(lhs_form, rhs_form, bcs):
-    A = dfx.fem.petsc.assemble_matrix_nest(lhs_form, bcs=bcs)
-    A.assemble()
-
-    b = dfx.fem.petsc.assemble_vector_nest(rhs_form)
-    dfx.fem.petsc.apply_lifting_nest(b, lhs_form, bcs=bcs)
-    for b_sub in b.getNestSubVecs():
-        b_sub.ghostUpdate(addv=PETSc.InsertMode.ADD, mode=PETSc.ScatterMode.REVERSE)
-    spaces = dfx.fem.extract_function_spaces(rhs_form)
-    bcs0 = dfx.fem.bcs_by_block(spaces, bcs)
-    dfx.fem.petsc.set_bc_nest(b, bcs0)
-    return A, b
-
 def create_solver(A):
     ksp = PETSc.KSP().create(comm)
     ksp.setOperators(A)
@@ -269,15 +241,6 @@ def create_solver(A):
     opts["ksp_error_if_not_converged"] = 1 # Throw an error if KSP solver does not converge
     ksp.setFromOptions()
     return ksp
-
-
-A = create_matrix_block(a)
-b = create_vector_block(L)
-ksp = create_solver(A)
-x_sol = A.createVecRight()
-# Create offsets for the blocked functions
-offset_u = V.dofmap.index_map.size_local * V.dofmap.index_map_bs
-offset_p = offset_u + Q.dofmap.index_map.size_local*Q.dofmap.index_map_bs
 
 def solve_navier_stokes_blocked():
 
@@ -300,69 +263,98 @@ def solve_navier_stokes_blocked():
 
     return u, p
 
-
-def solve_navier_stokes_nested():
-
-    A, b = assemble_nested_system(a, L, bcs_fluid)
-
-    ksp = create_solver(A)
-
-    u, p = dfx.fem.Function(V), dfx.fem.Function(Q)
-    w = PETSc.Vec().createNest([u.x.petsc_vec, p.x.petsc_vec])
-    ksp.solve(b, w)
-    assert ksp.getConvergedReason() > 0
-
-    # MPI communcation
-    u.x.scatter_forward()
-    p.x.scatter_forward()
-
-    return u, p
-
 vol = mesh.comm.allreduce(
-        dfx.fem.assemble_scalar(dfx.fem.form(
-                                dfx.fem.Constant(mesh, dfx.default_real_type(1.0)) * ufl.dx(out_mesh))
-                                ), op=MPI.SUM
+        dfx.fem.assemble_scalar(
+            dfx.fem.form(
+                dfx.fem.Constant(mesh, dfx.default_real_type(1.0)) * ufl.dx(out_mesh))
+            ),
+        op=MPI.SUM
 )
 
-print("Number of dofs mesh motion problem: ", W.dofmap.index_map.size_global)
-print("Number of dofs Navier-Stokes eqs: ", V.dofmap.index_map.size_global+Q.dofmap.index_map.size_global)
-
-tic = time.perf_counter()
 
 if __name__=='__main__':
-    from sys import argv
     write_cpoint = True if int(argv[1])==1 else False
 
     uh = dfx.fem.Function(dfx.fem.functionspace(out_mesh, dg_vec_el)); uh.name = 'velocity'
     ph = dfx.fem.Function(dfx.fem.functionspace(out_mesh, dg_el)); ph.name = 'pressure'
+    uh_rel_ = dfx.fem.Function(V)
+    uh_rel = dfx.fem.Function(dfx.fem.functionspace(out_mesh, dg_vec_el)); uh_rel.name = 'relative_velocity'
 
-    # velocity_output_filename = f"../output/{mesh_prefix}-mesh/flow/navier-stokes/BDM_deforming_velocity.pvd"
-    # velocity_output = dfx.io.VTKFile(comm, velocity_output_filename, "w")
-    # pressure_output_filename = f"../output/{mesh_prefix}-mesh/flow/navier-stokes/BDM_deforming_pressure.pvd"
-    # pressure_output = dfx.io.VTKFile(comm, pressure_output_filename, "w")
+    dg1_vec_el = element("DG", mesh.basix_cell(), 1, shape=(mesh.geometry.dim,))
+    u_defo_read = dfx.fem.Function(V)
+
+    velocity_output_filename = f"../output/{mesh_prefix}-mesh/flow/navier-stokes/BDM_deforming_velocity.pvd"
+    velocity_output = dfx.io.VTKFile(comm, velocity_output_filename, "w")
+    pressure_output_filename = f"../output/{mesh_prefix}-mesh/flow/navier-stokes/BDM_deforming_pressure.pvd"
+    pressure_output = dfx.io.VTKFile(comm, pressure_output_filename, "w")
 
     if write_cpoint:
         cpoint_filename = f"../output/{mesh_prefix}-mesh/flow/navier-stokes/checkpoints/BDM_deforming_velocity"
         a4d.write_mesh(cpoint_filename, mesh, store_partition_info=True)
         a4d.write_meshtags(cpoint_filename, mesh, ft)
     
+    # Compile form used to calculate the mean pressure
     mean_pressure_form = dfx.fem.form((1/vol) * ph * ufl.dx(out_mesh))
     
-    for t in np.linspace(0, T, N+1):
+    print("Number of dofs Navier-Stokes eqs: ", V.dofmap.index_map.size_global+Q.dofmap.index_map.size_global)
 
-        # Update deformation displacement and velocity
-        a4d.read_function(filename=defo_input_filename, u=u_wall, name="defo_displacement", time=float(f"{t:.4g}"))
-        # a4d.read_function(filename=defo_input_filename, u=v_wall, name="defo_velocity", time=float(f"{t:.4g}"))
-        
-        # ale_problem.solve() # Solve the mesh motion problem
-        wh.interpolate(u_wall)
+    tic = time.perf_counter()
+    print("Solving Stokes eqs for initial condition ...")
+    # Solve the Stokes problem and use it
+    # as initial condition for Navier-Stokes
+    # Assemble the Stokes problem
+    A_stokes = assemble_matrix_block(a_stokes,bcs=bcs_fluid)
+    A_stokes.assemble()
+    b = assemble_vector_block(L, a_stokes, bcs=bcs_fluid)
+
+    # Create the Navier-Stokes problem
+    A = create_matrix_block(a)
+    x_sol = A.createVecRight() # Solution vector
+
+    # Create linear solver and offsets for the blocked functions
+    ksp = create_solver(A_stokes)
+    offset_u = V.dofmap.index_map.size_local * V.dofmap.index_map_bs
+    offset_p = offset_u + Q.dofmap.index_map.size_local*Q.dofmap.index_map_bs
+
+    # Update deformation velocity
+    a4d.read_function(filename=defo_input_filename, u=u_defo, name="defo_velocity", time=times[0])
+
+    # Solve and update solution functions
+    ksp.solve(b, x_sol)
+    u_.x.array[:offset_u] = x_sol.array_r[:offset_u]
+    u_.x.scatter_forward()
+    uh.interpolate(u_) # Interpolate velocity into visualization function
+    ph.x.array[:(offset_p-offset_u)] = x_sol.array_r[offset_u:offset_p]
+    ph.x.scatter_forward()
+
+    print("Stokes eqs solved and initial conditon set.\n Entering solution time-loop ...")
+
+    # Set Navier-Stokes system matrix as KSP operator
+    ksp.setOperators(A)
+    
+    for t in times:
+
+        print(f"Time = {t:.4f} sec")
+
+        # Read deformation from file
+        a4d.read_function(filename=defo_input_filename, u=wh, name="defo_displacement", time=float(f"{t:.4g}"))
+        a4d.read_function(filename=defo_input_filename, u=u_defo_read, name="defo_velocity", time=float(f"{t:.4g}"))
+        u_defo.interpolate(u_defo_read)
+
+        u_chp_updated = create_normal_contribution_bc(V, (-chp_velocity*n_hat + dot(u_defo, n_hat)*n_hat), facets_chp)
+        u_chp.interpolate(u_chp_updated)
+    
         uh_, ph_ = solve_navier_stokes_blocked() # Solve the Stokes equations
 
         # Update output functions
         uh.interpolate(uh_)
         ph.interpolate(ph_)
 
-        u_.x.array[:] = uh_.x.array.copy()
+        u_.x.array[:] = uh_.x.array.copy() # Update previous timestep velocity
+
+        # Update relative velocity
+        uh_rel_.x.array[:] = uh_.x.array.copy() - u_defo.x.array.copy()
+        uh_rel.interpolate(uh_rel_)
 
         if len(points_on_proc)>0:
             wh_x_reference = wh.eval(x=x_reference, cells=cells) # Evaluate the deformed coordinates at the reference coordinates
@@ -373,21 +365,21 @@ if __name__=='__main__':
         # Calculate mean pressure and subtract to make mean = 0
         mean_pressure = comm.allreduce(dfx.fem.assemble_scalar(mean_pressure_form), op=MPI.SUM)
         ph.x.array[:] -= mean_pressure
-        print("Mean pressure: ", mean_pressure)
-        print("Check that mean is zero: ", comm.allreduce(dfx.fem.assemble_scalar(mean_pressure_form), op=MPI.SUM))
 
-        # # Write output
-        # velocity_output.write_mesh(out_mesh, t)
-        # velocity_output.write_function(uh, t)
-        # pressure_output.write_mesh(out_mesh, t)
-        # pressure_output.write_function(ph, t)
+        # Write output
+        velocity_output.write_mesh(out_mesh, t)
+        velocity_output.write_function(uh, t)
+        velocity_output.write_function(uh_rel, t)
+        pressure_output.write_mesh(out_mesh, t)
+        pressure_output.write_function(ph, t)
 
         if write_cpoint:
             a4d.write_function(cpoint_filename, uh, time=t)
+            a4d.write_function_on_input_mesh(cpoint_filename, uh_rel, time=t)
             a4d.write_function(cpoint_filename, ph, time=t)
 
     print(f"Solution loop time elapsed: {time.perf_counter()-tic:.4f} sec")
 
     # Close output files
-    # velocity_output.close()
-    # pressure_output.close()
+    velocity_output.close()
+    pressure_output.close()

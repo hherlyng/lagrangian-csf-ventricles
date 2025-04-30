@@ -8,7 +8,7 @@ from scifem    import assemble_scalar
 from mpi4py    import MPI
 from petsc4py  import PETSc
 from basix.ufl import element
-from utilities.fem import create_normal_contribution_bc, calculate_mean
+from utilities.fem import create_normal_contribution_bc, calculate_mean, calculate_norm_L2
 from dolfinx.fem.petsc import LinearProblem
 
 print = PETSc.Sys.Print
@@ -16,7 +16,7 @@ print = PETSc.Sys.Print
 # Solve stationary Stokes in moving domain by ALE method. Wall motion is 
 # prescribed in time.
 comm = MPI.COMM_WORLD
-nx = ny = 32
+nx = ny = 16
 mesh = dfx.mesh.create_unit_square(comm, nx, ny)
 
 def left_boundary(x): return np.isclose(x[0], 0.0)
@@ -45,7 +45,9 @@ facet_marker[facets_right] = RIGHT
 
 ft = dfx.mesh.meshtags(mesh, facet_dim, np.arange(num_facets, dtype=np.int32), facet_marker) 
 ds = ufl.Measure('ds', domain=mesh, subdomain_data=ft)
+# ds = ufl.Measure('ds', domain=mesh, subdomain_data=ft, metadata={'quadrature_degree' : 8})
 dx = ufl.Measure('dx', mesh)
+# dx = ufl.Measure('dx', mesh, metadata={'quadrature_degree' : 8})
 
 # Parameters of the displacement
 T_left = 1.0
@@ -145,12 +147,15 @@ r = ufl.SpatialCoordinate(mesh)
 chi = r + wh          
 F = grad(chi) # Deformation gradient
 J = det(F) # Jacobian 
-n = ufl.FacetNormal(mesh)
+n_hat = ufl.FacetNormal(mesh)
+dS_hat = ufl.Measure('dS', domain=mesh) # Interior facet integral measure
+# dS_hat = ufl.Measure('dS', domain=mesh, metadata={'quadrature_degree' : 8}) # Interior facet integral measure
 
-scal_el = element("Lagrange", mesh.basix_cell(), 1)
-bdm_el = element("BDM", mesh.basix_cell(), 1)
-dg_el  = element("DG", mesh.basix_cell(), 0)
-dg_vec_el = element("DG", mesh.basix_cell(), 1, shape=(mesh.geometry.dim,))
+k = 1 # Element degree
+scal_el = element("Lagrange", mesh.basix_cell(), k)
+bdm_el = element("BDM", mesh.basix_cell(), k)
+dg_el  = element("DG", mesh.basix_cell(), k-1)
+dg_vec_el = element("DG", mesh.basix_cell(), k, shape=(mesh.geometry.dim,))
 V = dfx.fem.functionspace(mesh, bdm_el)
 Q = dfx.fem.functionspace(mesh, dg_el)
 
@@ -158,13 +163,16 @@ u, v = ufl.TrialFunction(V), ufl.TestFunction(V)
 p, q = ufl.TrialFunction(Q), ufl.TestFunction(Q)
                   
 Grad = lambda arg: dot(grad(arg), inv(F))
-Div = lambda arg: inner(grad(arg), inv(F))
+Div = lambda arg: ufl.tr(dot(grad(arg), inv(F)))
 
 # Symmetric gradient
-Eps = lambda arg: dot(ufl.sym(grad(arg)), inv(F))
+Eps = lambda arg: ufl.sym(Grad(arg))
 
-mu = 7e-4
-penalty = 50
+# Calculate physical domain facet normal and surface integral measure
+n = J*inv(F.T)*n_hat
+
+mu = dfx.fem.Constant(mesh, dfx.default_scalar_type(1e-3))
+penalty = dfx.fem.Constant(mesh, dfx.default_scalar_type(10))
 
 def stabilization(u: ufl.TrialFunction, v: ufl.TestFunction, consistent: bool=True):
     """ Displacement/Flux Stabilization term from Krauss et al paper. 
@@ -186,39 +194,42 @@ def stabilization(u: ufl.TrialFunction, v: ufl.TestFunction, consistent: bool=Tr
         Stabilization term for the bilinear form.
     """
 
-    n, hA = ufl.FacetNormal(mesh), ufl.avg(ufl.CellDiameter(mesh)) # Facet normal vector and average cell diameter
-    dS = ufl.Measure('dS', domain=mesh) # Interior facet integral measure
+    hA = ufl.avg(ufl.CellDiameter(mesh)) # Facet normal vector and average cell diameter
 
+    # if consistent: # Add symmetrization terms
+    #     return (-inner(Avg(2*mu*Eps(u), n), Jump(Tangent(v, n)))*dS_hat
+    #             -inner(Avg(2*mu*Eps(v), n), Jump(Tangent(u, n)))*dS_hat
+    #             + 2*mu*(penalty/hA)*inner(Jump(Tangent(u, n)), Jump(Tangent(v, n)))*dS_hat)
     if consistent: # Add symmetrization terms
-        return (-inner(Avg(2*mu*Eps(u), n), Jump(Tangent(v, n)))*J('+')*dS
-                -inner(Avg(2*mu*Eps(v), n), Jump(Tangent(u, n)))*J('+')*dS
-                + 2*mu*(penalty/hA)*inner(Jump(Tangent(u, n)), Jump(Tangent(v, n)))*J('+')*dS)
+        return (-inner(Avg(2*mu*Eps(u), n), Jump(v))*dS_hat
+                -inner(Avg(2*mu*Eps(v), n), Jump(u))*dS_hat
+                + 2*mu*(penalty/hA)*inner(Jump(u), Jump(v))*dS_hat)
 
     # For preconditioning
-    return 2*mu*(penalty/hA)*inner(Jump(Tangent(u, n)), Jump(Tangent(v, n)))*J('+')*dS
+    return 2*mu*(penalty/hA)*inner(Jump(Tangent(u, n)), Jump(Tangent(v, n)))*dS_hat
 
 p_bc = dfx.fem.Function(Q)
 class PressureBC:
     def __init__(self):
         self.t = 0
-        self.A = -.1
+        self.A = -100
     def __call__(self, x):
         return x[0]*self.A#*np.sin(2*np.pi*self.t)
 p_bc_expr = PressureBC()
-
-beta = dfx.fem.Constant(mesh, dfx.default_scalar_type(50.0)) # Noslip penalty parameter
+p_bc_right = dfx.fem.Function(Q)
+p_bc_right.x.array[:] = 1.0
 
 # Stokes problem in reference domain accounting for the deformation
 a00 = (2*mu*inner(Eps(u), Eps(v))*J*dx # Viscous dissipation
       + stabilization(u, v) # BDM stabilization
-      - mu*inner(dot(Grad(u).T, n), v)*J*(ds(LEFT) + ds(RIGHT)) # Parallel flow at inlet/outlet
-    #   + beta*dot(Tangent(u, n), Tangent(v, n))*J*ds # Weakly enforce zero tangential velocity
+      - mu*inner(dot(Grad(u).T, n), v)*(ds(LEFT) + ds(RIGHT)) # Parallel flow at inlet/outlet
+    #   - mu*inner(dot(Grad(u).T, n), v)*(ds(LEFT) + ds(RIGHT)) # Parallel flow at inlet/outlet
       )
 a01 = inner(p, Div(v))*J*dx
 a10 = inner(q, Div(u))*J*dx
 a11 = dfx.fem.Constant(mesh, dfx.default_scalar_type(0.0))*inner(p, q)*J*dx
 
-L0 = inner(zero, v)*J*dx #+ dot(p_bc*n, v)*J*ds(LEFT)
+L0 = inner(zero, v)*J*dx# + dot(p_bc*n, v)*ds(LEFT) + dot(p_bc_right*n, v)*ds(RIGHT)
 L1 = inner(dfx.fem.Function(Q), q)*J*dx
 
 a = dfx.fem.form([[a00, a01], [a10, a11]])
@@ -233,16 +244,45 @@ v_dofs_top = dfx.fem.locate_dofs_topological(V, facet_dim, ft.find(TOP))
 bcs_stokes = [dfx.fem.dirichletbc(v_bdry_top, v_dofs_top),
               dfx.fem.dirichletbc(v_bdry_bot, v_dofs_bot)]
 
+v_bdry_left = dfx.fem.Function(V)
+v_bdry_right = dfx.fem.Function(V)
+v_bdry_left_expr = LeftBoundaryVelocity()
+v_bdry_right_expr = RightBoundaryVelocity()
+v_dofs_left = dfx.fem.locate_dofs_topological(V, facet_dim, ft.find(LEFT))
+v_dofs_right = dfx.fem.locate_dofs_topological(V, facet_dim, ft.find(RIGHT))
+# bcs_stokes.append(dfx.fem.dirichletbc(v_bdry_left, v_dofs_left))
+# bcs_stokes.append(dfx.fem.dirichletbc(v_bdry_right, v_dofs_right))
+
 # Production flux
 tot_prod = 1.0
-flux = create_normal_contribution_bc(V, -tot_prod*n, ft.find(RIGHT))
+# area_form = dfx.fem.form(ufl.sqrt(dot(J*inv(F.T)*n_hat, J*inv(F.T)*n_hat))*ds(RIGHT))
+# area = assemble_scalar(area_form)
+flux = create_normal_contribution_bc(V, (-tot_prod*n_hat + dot(v_bdry_right, n_hat)*n_hat), ft.find(RIGHT))
 v_dofs_right = dfx.fem.locate_dofs_topological(V, facet_dim, ft.find(RIGHT))
 bcs_stokes.append(dfx.fem.dirichletbc(flux, v_dofs_right))
+
+p_dofs_right = dfx.fem.locate_dofs_topological(Q, facet_dim, ft.find(RIGHT))
+p_dofs_left = dfx.fem.locate_dofs_topological(Q, facet_dim, ft.find(LEFT))
+bcs_stokes.append(dfx.fem.dirichletbc(p_bc, p_dofs_left))
+# bcs_stokes.append(dfx.fem.dirichletbc(p_bc_right, p_dofs_right))
 
 # Define deforming mesh and reference coordinates (coordinates of mesh at t=0)
 out_mesh = dfx.mesh.create_unit_square(comm, nx, ny)
 x_reference = out_mesh.geometry.x.copy()
+facet_marker = np.full(num_facets, DEFAULT, dtype=np.int32) # Default facet marker value
 
+facets_bot   = dfx.mesh.locate_entities_boundary(out_mesh, facet_dim, bot_boundary)
+facets_top   = dfx.mesh.locate_entities_boundary(out_mesh, facet_dim, top_boundary)
+facets_left  = dfx.mesh.locate_entities_boundary(out_mesh, facet_dim, left_boundary)
+facets_right = dfx.mesh.locate_entities_boundary(out_mesh, facet_dim, right_boundary)
+
+facet_marker[facets_bot]   = BOT
+facet_marker[facets_top]   = TOP
+facet_marker[facets_left]  = LEFT
+facet_marker[facets_right] = RIGHT
+
+ft_out_mesh = dfx.mesh.meshtags(out_mesh, facet_dim, np.arange(num_facets, dtype=np.int32), facet_marker) 
+ds_out = ufl.Measure('ds', domain=out_mesh, subdomain_data=ft_out_mesh)
 # Compute cells for point evaluation of the deformation function wh
 cells = []
 bb_tree = dfx.geometry.bb_tree(out_mesh, mesh.topology.dim)
@@ -258,8 +298,8 @@ DG1 = dfx.fem.functionspace(out_mesh, dg_vec_el)
 uh = dfx.fem.Function(DG1); uh.name = 'uh'
 ph = dfx.fem.Function(dfx.fem.functionspace(out_mesh, dg_el)); ph.name = 'ph'
 
-velocity_output = dfx.io.VTKFile(comm, "../output/square-mesh/flow/navier-stokes/deforming_square_velocity.pvd", "w")
-pressure_output = dfx.io.VTKFile(comm, "../output/square-mesh/flow/navier-stokes/deforming_square_pressure.pvd", "w")
+velocity_output = dfx.io.VTKFile(comm, "../output/square-mesh/flow/stokes/deforming_square_velocity.pvd", "w")
+pressure_output = dfx.io.VTKFile(comm, "../output/square-mesh/flow/stokes/deforming_square_pressure.pvd", "w")
 
 # Define the mesh deformation problem
 ale_problem = LinearProblem(a_ale, L_ale, bcs_ale, wh, petsc_options={"ksp_type" : "preonly",
@@ -342,11 +382,16 @@ def solve_stokes(P=None):
 
 if iterative: P = create_preconditioner(Q, a, bcs_stokes)
 
+area = assemble_scalar(1*ds(RIGHT))
+
 for time in np.linspace(0, 1, 100):
     # Update time variable of boundary conditions 
     # Boundary deformation
     u_bdry_left_expr.t = time
     u_bdry_right_expr.t = time
+
+    v_bdry_left_expr.t = time
+    v_bdry_right_expr.t = time
 
     # Pressure BC
     p_bc_expr.t = time
@@ -355,7 +400,12 @@ for time in np.linspace(0, 1, 100):
     # Interpolate BC expressions into BC functions
     u_bdry_left.interpolate(u_bdry_left_expr)
     u_bdry_right.interpolate(u_bdry_right_expr)
-    
+    v_bdry_left.interpolate(v_bdry_left_expr)
+    v_bdry_right.interpolate(v_bdry_right_expr)
+
+    flux_updated = create_normal_contribution_bc(V, (-tot_prod*n_hat + dot(v_bdry_right, n_hat)*n_hat), ft.find(RIGHT))
+    flux.interpolate(flux_updated)
+
     ale_problem.solve() # Solve the mesh motion problem
 
     if iterative:
@@ -381,9 +431,10 @@ for time in np.linspace(0, 1, 100):
     pressure_output.write_mesh(out_mesh, time)
     pressure_output.write_function(ph, time)
 
-    # Calculate mean pressure
-    vol = comm.allreduce(assemble_scalar(1*ufl.dx(out_mesh)), op=MPI.SUM)
-    print("Mean pressure: ", 1/vol*comm.allreduce(assemble_scalar(ph*ufl.dx(out_mesh)), op=MPI.SUM))
+    print("Flux: ", assemble_scalar(dot(uh_ - v_bdry_right, n_hat)*ds(RIGHT)))
+
+    e_div_u = assemble_scalar(inner(Div(uh_), Div(uh_))*J*dx)
+    print(f"e_div_u = {e_div_u}")
 
 # Close output files
 velocity_output.close()

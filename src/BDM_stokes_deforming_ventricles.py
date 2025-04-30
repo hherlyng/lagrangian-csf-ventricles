@@ -11,7 +11,7 @@ from mpi4py    import MPI
 from petsc4py  import PETSc
 from basix.ufl import element
 from utilities.fem import create_normal_contribution_bc
-from dolfinx.fem.petsc import LinearProblem, assemble_matrix_block, assemble_vector_block, create_matrix_block, create_vector_block
+from dolfinx.fem.petsc import assemble_matrix_block, assemble_vector_block, create_matrix_block, create_vector_block
 
 print = PETSc.Sys.Print
 
@@ -52,19 +52,21 @@ Avg = lambda arg, n: .5*(dot(arg('+'), n('+')) - dot(arg('-'), n('-')))
 # Action of (1 - n x n) on a vector yields the tangential component
 Tangent = lambda v, n: v - n*dot(v, n)
 
-zero_deformation_tags = zero_traction_tags = (CANAL_OUT, LATERAL_APERTURES)
-wall_deformation_tags = (AQUEDUCT_WALL, FORAMINA_34_WALL, LATERAL_VENTRICLES_WALL, FOURTH_VENTRICLE_WALL,
-                          CANAL_WALL, THIRD_VENTRICLE_WALL, CHOROID_PLEXUS_LATERAL, CHOROID_PLEXUS_THIRD, CHOROID_PLEXUS_FOURTH)
-cilia_tags = wall_deformation_tags
+zero_traction_tags = (CANAL_OUT, LATERAL_APERTURES)
+cilia_tags = (AQUEDUCT_WALL, FORAMINA_34_WALL, LATERAL_VENTRICLES_WALL, FOURTH_VENTRICLE_WALL,
+              CANAL_WALL, THIRD_VENTRICLE_WALL, CHOROID_PLEXUS_LATERAL, CHOROID_PLEXUS_THIRD, CHOROID_PLEXUS_FOURTH)
 choroid_plexus_tags = (CHOROID_PLEXUS_LATERAL, CHOROID_PLEXUS_THIRD, CHOROID_PLEXUS_FOURTH)
-impermeability_tags = [tag for tag in cilia_tags if tag not in choroid_plexus_tags]
+wall_deformation_tags = [tag for tag in cilia_tags if tag not in choroid_plexus_tags]
 
 # Solve stationary Stokes in moving domain by ALE method. Wall motion is 
 # prescribed in time, given by solutions to the 
 # time-dependent linear elasticity equations.
-comm = MPI.COMM_WORLD
-mesh_prefix = 'medium'
-defo_input_filename = f"../output/{mesh_prefix}-mesh/deformation/checkpoints/time_dep_deformation_velocity/"
+comm = MPI.COMM_WORLD # MPI communicator
+timestep = 0.02
+T = 1 # Final time
+N = int(T / timestep) # Number of timesteps
+mesh_prefix = 'coarse'
+defo_input_filename = f"../output/{mesh_prefix}-mesh/deformation/checkpoints/time_dep_deformation_velocity_dt={timestep:.4g}_T={T:.4g}/"
 mesh = a4d.read_mesh(defo_input_filename, comm, read_from_partition=False)
 out_mesh = a4d.read_mesh(defo_input_filename, comm, read_from_partition=False)
 ft   = a4d.read_meshtags(defo_input_filename, mesh, meshtag_name='ft')
@@ -75,68 +77,44 @@ num_facets = mesh.topology.index_map(facet_dim).size_local + mesh.topology.index
 
 dx = ufl.Measure('dx', domain=mesh) # Cell integral
 ds = ufl.Measure('ds', domain=mesh, subdomain_data=ft) # Exterior facet integral
-dS = ufl.Measure('dS', domain=mesh) # Interior facet integral
+dS_hat = ufl.Measure('dS', domain=mesh) # Interior facet integral
 
-# The ALE problem needs to extend boundary deformation to the entire domain
-# to define mesh displacement field
+# Create finite element function in P2 space for the mesh displacement
 vec_el = element("Lagrange", mesh.basix_cell(), 2, shape=(mesh.geometry.dim,))
 W = dfx.fem.functionspace(mesh, vec_el)
-
-# Test and trial functions
-w, dw = ufl.TrialFunction(W), ufl.TestFunction(W)
-
-# BC functions
-w_wall = dfx.fem.Function(W)
-w_zero = dfx.fem.Function(W)
-
-a_ale = inner(grad(w), grad(dw))*dx
-L_ale = inner(w_zero, dw)*dx
-
-# BCs
-facets_wall_defo = np.concatenate(([ft.find(tag) for tag in wall_deformation_tags]))
-w_dofs_wall_defo = dfx.fem.locate_dofs_topological(W, facet_dim, facets_wall_defo)
-
-facets_zero_disp = np.concatenate(([ft.find(tag) for tag in zero_deformation_tags]))
-w_dofs_zero_disp = dfx.fem.locate_dofs_topological(W, facet_dim, facets_zero_disp)
-
-bcs_ale = [dfx.fem.dirichletbc(w_wall, w_dofs_wall_defo), # Imposed wall displacement
-           dfx.fem.dirichletbc(w_zero, w_dofs_zero_disp) # Zero displacement at spinal canal
-           ]
-
-# This serves to define the deformation of the mesh
 wh = dfx.fem.Function(W)
 
 # Now that we have that we can define the Stokes problem in the deformed coordinates
-r = ufl.SpatialCoordinate(mesh)
-chi = r + wh          
+# Start by defining some mesh variables
+r = ufl.SpatialCoordinate(mesh) # Reference coordinates
+chi = r + wh # Deformed coordinates
 F = grad(chi) # Deformation gradient
 J = det(F) # Jacobian 
-n = ufl.FacetNormal(mesh)
+n_hat = ufl.FacetNormal(mesh) # Facet normal on the reference mesh
+n = J*inv(F.T)*n_hat # Deformed domain facet normal and surface integral measure
+hA = ufl.avg(ufl.CellDiameter(mesh)) # Average cell diameter of reference mesh
 
-scal_el = element("Lagrange", mesh.basix_cell(), 1)
-bdm_el = element("BDM", mesh.basix_cell(), 1)
-dg_el  = element("DG", mesh.basix_cell(), 0)
-dg_vec_el = element("DG", mesh.basix_cell(), 1, shape=(mesh.geometry.dim,))
+# Define finite elements for the Stokes equations
+k = 1 # Element degree
+bdm_el = element("BDM", mesh.basix_cell(), k)
+dg_el  = element("DG", mesh.basix_cell(), k-1)
+dg_vec_el = element("DG", mesh.basix_cell(), k, shape=(mesh.geometry.dim,))
 V = dfx.fem.functionspace(mesh, bdm_el)
 Q = dfx.fem.functionspace(mesh, dg_el)
 u_zero = dfx.fem.Function(V)
 
+# Trial and test functions
 u, v = ufl.TrialFunction(V), ufl.TestFunction(V)
 p, q = ufl.TrialFunction(Q), ufl.TestFunction(Q)
                   
-Grad = lambda arg: dot(grad(arg), inv(F))
-Div = lambda arg: inner(grad(arg), inv(F))
+# Define differential operators that map from deformed to reference configuration
+Grad = lambda arg: dot(grad(arg), inv(F)) # Gradient
+Div = lambda arg: ufl.tr(dot(grad(arg), inv(F))) # Divergence
+Eps = lambda arg: ufl.sym(Grad(arg)) # Symmetric gradient
 
-# Symmetric gradient
-Eps = lambda arg: dot(ufl.sym(grad(arg)), inv(F))
-
-mu = dfx.fem.Constant(mesh, dfx.default_scalar_type(7e-4)) #[kg/(m*s)] #*1e-2 # Dynamic viscosity [kg/(cm*s)]
-rho = dfx.fem.Constant(mesh, dfx.default_scalar_type(1e3))
-BDM_penalty = dfx.fem.Constant(mesh, dfx.default_scalar_type(50.0))
-
-timestep = 0.2
-T = 1
-N = int(T / timestep)
+mu = dfx.fem.Constant(mesh, dfx.default_scalar_type(7e-4)) # Dynamic viscosity [kg/(m*s)]
+rho = dfx.fem.Constant(mesh, dfx.default_scalar_type(1e3)) # Fluid density [kg/m^3]
+penalty = dfx.fem.Constant(mesh, dfx.default_scalar_type(100.0)) # BDM stabilization penalty parameter used to enforce tangential continuity
 
 def stabilization(u: ufl.TrialFunction, v: ufl.TestFunction, consistent: bool=True):
     """ Displacement/Flux Stabilization term from Krauss et al paper. 
@@ -158,30 +136,19 @@ def stabilization(u: ufl.TrialFunction, v: ufl.TestFunction, consistent: bool=Tr
         Stabilization term for the bilinear form.
     """
 
-    hA = ufl.avg(ufl.CellDiameter(mesh)) # Facet normal vector and average cell diameter
-    dS = ufl.Measure('dS', domain=mesh) # Interior facet integral measure
-
     if consistent: # Add symmetrization terms
-        return (-inner(Avg(2*mu*Eps(u), n), Jump(Tangent(v, n)))*J('+')*dS
-                -inner(Avg(2*mu*Eps(v), n), Jump(Tangent(u, n)))*J('+')*dS
-                + 2*mu*(BDM_penalty/hA)*inner(Jump(Tangent(u, n)), Jump(Tangent(v, n)))*J('+')*dS)
+        return (-inner(Avg(2*mu*Eps(u), n), Jump(v))*dS_hat
+                -inner(Avg(2*mu*Eps(v), n), Jump(u))*dS_hat
+                + 2*mu*(penalty/hA)*inner(Jump(u), Jump(v))*dS_hat)
 
     # For preconditioning
-    return 2*mu*(BDM_penalty/hA)*inner(Jump(Tangent(u, n)), Jump(Tangent(v, n)))*J('+')*dS
-
-beta = dfx.fem.Constant(mesh, dfx.default_scalar_type(10.0)) # Noslip penalty parameter
-
-# Tangential traction BC
-tau_val = 7.89e-3 # Tangential traction force density [Pa]
-tau = dfx.fem.Constant(mesh, dfx.default_scalar_type(tau_val))
-tau_vec   = tau*ufl.as_vector((0, 1, 1)) # Stress vector to be projected tangentially onto the mesh
-tangent_traction_dorsal = lambda n: Tangent(tau_vec, n) # Use the tau expression to define the tangent traction vector
+    return 2*mu*(penalty/hA)*inner(Jump(u), Jump(v))*dS_hat
 
 # ds_ = ds(noslip_bdry_tags)
 # Stokes problem in reference domain accounting for the deformation
 a00 = (2*mu*inner(Eps(u), Eps(v))*J*dx # Viscous dissipation
       + stabilization(u, v) # BDM stabilization
-      - mu*inner(dot(Grad(u).T, n), v)*J*ds(zero_traction_tags) # Parallel flow at inlet/outlet
+      - mu*inner(dot(Grad(u).T, n), v)*ds(zero_traction_tags) # Parallel flow at inlet/outlet
       )
 a01 = inner(p, Div(v))*J*dx
 a10 = inner(q, Div(u))*J*dx
@@ -195,7 +162,9 @@ a = dfx.fem.form([[a00, a01], [a10, a11]])
 L = dfx.fem.form([L0, L1])
 
 # Set boundary conditions on velocity
-u_dofs_impermeability= dfx.fem.locate_dofs_topological(V, facet_dim, facets_wall_defo)
+facets_wall_defo = np.concatenate(([ft.find(tag) for tag in wall_deformation_tags]))
+u_dofs_defo = dfx.fem.locate_dofs_topological(V, facet_dim, facets_wall_defo)
+u_defo = dfx.fem.Function(V)
 
 # Set choroid plexus inflow velocity BC strongly
 # Create expressions with positive and negative z-component of the velocity,
@@ -204,11 +173,11 @@ chp_prod = 5.833e-9 # Corresponds to 504 ml production per day [Czosnyka et al.]
 chp_area = assemble_scalar(1*ds(choroid_plexus_tags)) # The area of the choroid plexus boundary
 chp_velocity = chp_prod/chp_area
 facets_chp = np.concatenate(([ft.find(tag) for tag in choroid_plexus_tags]))
-u_chp = create_normal_contribution_bc(V, -chp_velocity*n, facets_chp)
+u_chp = create_normal_contribution_bc(V, (-chp_velocity*n_hat + dot(u_defo, n_hat)*n_hat), facets_chp)
 u_dofs_chp_prod = dfx.fem.locate_dofs_topological(V, facet_dim, facets_chp)
 
-bcs_fluid = [dfx.fem.dirichletbc(u_zero, u_dofs_impermeability),
-              dfx.fem.dirichletbc(u_chp, u_dofs_chp_prod)]
+bcs_fluid = [dfx.fem.dirichletbc(u_defo, u_dofs_defo),
+             dfx.fem.dirichletbc(u_chp, u_dofs_chp_prod)]
 
 # Define deforming mesh and reference coordinates (coordinates of mesh at t=0)
 x_reference = out_mesh.geometry.x.copy()
@@ -227,15 +196,7 @@ for i, point in enumerate(x_reference):
 # Convert to numpy arrays
 cells = np.array(cells)
 points_on_proc = np.array(points_on_proc)
-
-# Define the mesh deformation problem
-ale_problem = LinearProblem(a_ale, L_ale, bcs_ale, 
-                            wh,
-                            petsc_options={"ksp_type" : "preonly",
-                                           "pc_type" : "lu",
-                                           "pc_factor_mat_solver_type" : "mumps"})
     
-
 A = create_matrix_block(a)
 b = create_vector_block(L)
 x_sol = A.createVecRight()
@@ -257,14 +218,14 @@ ksp.setFromOptions()
 offset_u = V.dofmap.index_map.size_local * V.dofmap.index_map_bs
 offset_p = offset_u + Q.dofmap.index_map.size_local*Q.dofmap.index_map_bs
 
-print("Number of dofs mesh motion problem: ", W.dofmap.index_map.size_global)
 print("Number of dofs Stokes eqs: ", V.dofmap.index_map.size_global+Q.dofmap.index_map.size_global)
 
-def solve_navier_stokes_blocked(uh: dfx.fem.Function, ph: dfx.fem.Function):
+def solve_stokes_blocked(uh: dfx.fem.Function, ph: dfx.fem.Function):
 
     A.zeroEntries()
     assemble_matrix_block(A, a, bcs=bcs_fluid)
     A.assemble()
+
 
     with b.localForm() as b_loc: b_loc.set(0)
     assemble_vector_block(b, L, a, bcs=bcs_fluid)
@@ -280,7 +241,7 @@ def solve_navier_stokes_blocked(uh: dfx.fem.Function, ph: dfx.fem.Function):
 
     return uh, ph
 
-
+# Calculate the domain volume
 vol = mesh.comm.allreduce(
         dfx.fem.assemble_scalar(dfx.fem.form(
                                 dfx.fem.Constant(mesh, dfx.default_real_type(1.0)) * ufl.dx(out_mesh))
@@ -294,8 +255,13 @@ if __name__=='__main__':
 
     uh_ = dfx.fem.Function(V)
     ph_ = dfx.fem.Function(Q)
+    uh_rel_ = dfx.fem.Function(V)
     uh = dfx.fem.Function(dfx.fem.functionspace(out_mesh, dg_vec_el)); uh.name = 'velocity'
     ph = dfx.fem.Function(dfx.fem.functionspace(out_mesh, dg_el)); ph.name = 'pressure'
+    uh_rel = dfx.fem.Function(dfx.fem.functionspace(out_mesh, dg_vec_el)); uh_rel.name = 'relative_velocity'
+
+    dg1_vec_el = element("DG", mesh.basix_cell(), 1, shape=(mesh.geometry.dim,))
+    u_defo_read = dfx.fem.Function(V)
 
     velocity_output_filename = f"../output/{mesh_prefix}-mesh/flow/stokes/BDM_deforming_velocity.pvd"
     velocity_output = dfx.io.VTKFile(comm, velocity_output_filename, "w")
@@ -310,18 +276,25 @@ if __name__=='__main__':
     mean_pressure_form = dfx.fem.form((1/vol) * ph * ufl.dx(out_mesh))
 
     for t in np.linspace(0, T, N+1):
+        
+        # Read deformation from file
+        a4d.read_function(filename=defo_input_filename, u=wh, name="defo_displacement", time=float(f"{t:.4g}"))
+        a4d.read_function(filename=defo_input_filename, u=u_defo_read, name="defo_velocity", time=float(f"{t:.4g}"))
+        u_defo.interpolate(u_defo_read)
 
-        a4d.read_function(filename=defo_input_filename, u=w_wall, name="defo_displacement", time=float(f"{t:.4g}"))
-        wh.interpolate(w_wall)
+        u_chp_updated = create_normal_contribution_bc(V, (-chp_velocity*n_hat + dot(u_defo, n_hat)*n_hat), facets_chp)
+        u_chp.interpolate(u_chp_updated)
 
         tic_solve = time.perf_counter()
-        uh_, ph_ = solve_navier_stokes_blocked(uh_, ph_)
+        uh_, ph_ = solve_stokes_blocked(uh_, ph_)
         print(f"Solve time: {time.perf_counter()-tic_solve:.4f} sec")
 
         # Update output functions
         uh.interpolate(uh_)
         ph.interpolate(ph_)
         ph.x.array[:] -= assemble_scalar(mean_pressure_form)
+        uh_rel_.x.array[:] = uh_.x.array.copy() - u_defo.x.array.copy()
+        uh_rel.interpolate(uh_rel_)
 
         if len(points_on_proc)>0:
             wh_x_reference = wh.eval(x=x_reference, cells=cells) # Evaluate the deformed coordinates at the reference coordinates
@@ -332,16 +305,18 @@ if __name__=='__main__':
         # Write output
         velocity_output.write_mesh(out_mesh, t)
         velocity_output.write_function(uh, t)
+        velocity_output.write_function(uh_rel, t)
         pressure_output.write_mesh(out_mesh, t)
         pressure_output.write_function(ph, t)
 
         if write_cpoint:
             a4d.write_function_on_input_mesh(cpoint_filename, uh, time=t)
+            a4d.write_function_on_input_mesh(cpoint_filename, uh_rel, time=t)
             a4d.write_function_on_input_mesh(cpoint_filename, ph, time=t)
 
-        # Calculate mean pressure
-        vol = assemble_scalar(1*ufl.dx(out_mesh))
-        print("Mean pressure: ", 1/vol*assemble_scalar(ph*ufl.dx(out_mesh)))
+        # Calculate div(u) error
+        error_div_u = assemble_scalar(inner(Div(uh_), Div(uh_))*J*dx)
+        print(f"error_div_u = {error_div_u}")
 
     print(f"Solution loop time elapsed: {time.perf_counter()-tic:.4f} sec")
 

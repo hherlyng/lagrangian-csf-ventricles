@@ -42,8 +42,8 @@ dx = ufl.Measure('dx', domain=mesh, subdomain_data=ct) # Volume integral measure
 eps = lambda arg: sym(grad(arg)) # The symmetric gradient
 
 # Material parameters
-E = 1500 # Modulus of elasticity [Pa]
-nu = 0.35 # Poisson's ratio [-]
+E = 1500 #3156 # Modulus of elasticity [Pa]
+nu = 0.479 # Poisson's ratio [-]
 mu_value = 2*E/(1+nu) # First Lamé parameter value
 lam_value = nu*E/((1+nu)*(1-2*nu)) # Second Lamé parameter value
 mu = dfx.fem.Constant(mesh, mu_value) # First Lamé parameter
@@ -52,9 +52,13 @@ rho = dfx.fem.Constant(mesh, 1000.0) # Ventricular wall density [kg/m^3]
 print("Value of Lamé parameters:")
 print(f"mu \t= {mu_value:.2f}\nlambda \t= {lam_value:.2f}")
 
-# Timestep size [s]
-timestep = 0.2
+# Temporal parameters
+timestep = 0.01
 dt = dfx.fem.Constant(mesh, timestep) 
+T = 5
+period = 1
+N = int(T / timestep)
+times = np.linspace(0, T, N+1)
 
 # Finite elements
 vec_el = element("Lagrange", mesh.basix_cell(), 2, shape=(mesh.geometry.dim,))
@@ -136,11 +140,6 @@ solver.setOperators(A)
 solver.setFromOptions()
 solver.setMonitor(lambda _, its, rnorm: print(f"Iteration: {its}, residual: {rnorm}"))
 
-T = 1
-period = 1
-N = int(T / timestep)
-times = np.linspace(0, T, N+1)
-
 xdmf = dfx.io.XDMFFile(comm, f"../output/{mesh_prefix}-mesh/deformation/time_dep_displacement_dt={timestep:.4g}_T={T:.4g}.xdmf", "w")
 xdmf_vel = dfx.io.XDMFFile(comm, f"../output/{mesh_prefix}-mesh/deformation/time_dep_deformation_velocity_dt={timestep:.4g}_T={T:.4g}.xdmf", "w")
 xdmf.write_mesh(mesh)
@@ -154,7 +153,8 @@ CG1_vector_space = dfx.fem.functionspace(mesh,
 wh_out = dfx.fem.Function(CG1_vector_space)
 vh_out = dfx.fem.Function(CG1_vector_space)
 dw_dt = dfx.fem.Function(W)
-bdm_el = element("BDM", mesh.basix_cell(), 1)
+k = 1 # BDM element degree
+bdm_el = element("BDM", mesh.basix_cell(), k)
 BDM = dfx.fem.functionspace(mesh, bdm_el)
 dw_dt_bdm = dfx.fem.Function(BDM)
 dw_dt_bdm.name = "defo_velocity"

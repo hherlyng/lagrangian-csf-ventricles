@@ -22,23 +22,21 @@ m3_to_ml = 1e6 # Meters cubed [m^3] to milliliters [ml]
 k = 1 # Element degree
 
 comm = MPI.COMM_WORLD
-mesh_prefix = 'medium'
+mesh_prefix = 'coarse'
 solver_type = 'navier-stokes'
+# infile_name = f'../output/{mesh_prefix}-mesh/flow/{solver_type}/checkpoints/chp+cilia+defo/'
 infile_name = f'../output/{mesh_prefix}-mesh/flow/{solver_type}/checkpoints/BDM_deforming_velocity/'
 mesh = a4d.read_mesh(filename=infile_name, comm=comm, read_from_partition=True)
-# ft   = a4d.read_meshtags(filename=infile_name, mesh=mesh, meshtag_name='ft')
-mesh.topology.create_entities(mesh.topology.dim-1)
-with dfx.io.XDMFFile(comm, '../geometries/medium_ventricles_mesh_tagged.xdmf', 'r') as xdmf:
-    ft = xdmf.read_meshtags(mesh, "ft")
+ft   = a4d.read_meshtags(filename=infile_name, mesh=mesh, meshtag_name='ft')
 
-bdm_el = element("BDM", mesh.basix_cell(), k)
+dg_vec_el = element("DG", mesh.basix_cell(), k, shape=(mesh.geometry.dim,))
 dg_el  = element("DG", mesh.basix_cell(), k-1)
-V = dfx.fem.functionspace(mesh, bdm_el)
+V = dfx.fem.functionspace(mesh, dg_vec_el)
 Q = dfx.fem.functionspace(mesh, dg_el)
 uh = dfx.fem.Function(V)
 ph = dfx.fem.Function(Q)
 n = ufl.FacetNormal(mesh)
-u_flux = ufl.dot(uh, n)
+u_flux = ufl.dot(ufl.avg(uh), n('-'))
 
 # Compute cross-sectional areas and length of aqueduct
 dS = ufl.Measure('dS', domain=mesh, subdomain_data=ft)
@@ -54,8 +52,8 @@ point_top_aq = mesh.geometry.x[vertex_top_aq, :]
 point_bot_aq = mesh.geometry.x[vertex_bot_aq, :]
 length_aq = np.sqrt(np.sum((point_top_aq-point_bot_aq)**2))
 
-T = 2
-dt = 0.01
+T = 3
+dt = 0.02
 N = int(T / dt)
 times = np.linspace(0, T, N+1)
 times = times[1:]
@@ -67,17 +65,17 @@ pressure_gradients_aq = []
 for t in times:
     print(f'Time t = {t:.4g}')
 
-    a4d.read_function(filename=infile_name, u=uh, time=t, name='uh')
-    # a4d.read_function(filename=infile_name, u=ph, time=t, name='ph')
+    a4d.read_function(filename=infile_name, u=uh, time=t, name='relative_velocity')
+    a4d.read_function(filename=infile_name, u=ph, time=t, name='pressure')
 
     # Calculate flow rates
-    flowrate_top_aq = assemble_scalar(u_flux('+')*dS(AQUEDUCT_TOP))*m3_to_ml
-    flowrate_bot_aq = assemble_scalar(u_flux('+')*dS(AQUEDUCT_BOT))*m3_to_ml
+    flowrate_top_aq = assemble_scalar(u_flux*dS(AQUEDUCT_TOP))*m3_to_ml
+    flowrate_bot_aq = assemble_scalar(u_flux*dS(AQUEDUCT_BOT))*m3_to_ml
 
     # Calculate pressure gradient in the aqueduct
-    mean_pressure_top_aq = 1/area_top_aq*assemble_scalar(ph('+')*dS(AQUEDUCT_TOP))
-    mean_pressure_bot_aq = 1/area_bot_aq*assemble_scalar(ph('+')*dS(AQUEDUCT_BOT))
-    delta_pressure_aq = (mean_pressure_bot_aq-mean_pressure_top_aq)/length_aq*pa_to_mmhg
+    mean_pressure_top_aq = 1/area_top_aq*assemble_scalar(ufl.avg(ph)*dS(AQUEDUCT_TOP))
+    mean_pressure_bot_aq = 1/area_bot_aq*assemble_scalar(ufl.avg(ph)*dS(AQUEDUCT_BOT))
+    delta_pressure_aq = -(mean_pressure_bot_aq-mean_pressure_top_aq)/length_aq*pa_to_mmhg # Minus sign because dz=length_aq is negative
 
     # Print and append
     print(f'Flowrate top aqueduct: \t{flowrate_top_aq:.4g}')
