@@ -22,10 +22,11 @@ m3_to_ml = 1e6 # Meters cubed [m^3] to milliliters [ml]
 k = 1 # Element degree
 
 comm = MPI.COMM_WORLD
-mesh_prefix = 'coarse'
+mesh_prefix = 'medium'
 solver_type = 'navier-stokes'
 # infile_name = f'../output/{mesh_prefix}-mesh/flow/{solver_type}/checkpoints/chp+cilia+defo/'
-infile_name = f'../output/{mesh_prefix}-mesh/flow/{solver_type}/checkpoints/BDM_deforming_velocity/'
+# infile_name = f'../output/{mesh_prefix}-mesh/flow/{solver_type}/checkpoints/BDM_deforming_velocity/'
+infile_name = f'../output/ex3/{mesh_prefix}-mesh/flow/{solver_type}/checkpoints/BDM_deforming_velocity/'
 mesh = a4d.read_mesh(filename=infile_name, comm=comm, read_from_partition=True)
 ft   = a4d.read_meshtags(filename=infile_name, mesh=mesh, meshtag_name='ft')
 
@@ -52,8 +53,8 @@ point_top_aq = mesh.geometry.x[vertex_top_aq, :]
 point_bot_aq = mesh.geometry.x[vertex_bot_aq, :]
 length_aq = np.sqrt(np.sum((point_top_aq-point_bot_aq)**2))
 
-T = 3
-dt = 0.02
+T = 5
+dt = 0.01
 N = int(T / dt)
 times = np.linspace(0, T, N+1)
 times = times[1:]

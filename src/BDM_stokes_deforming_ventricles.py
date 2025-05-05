@@ -5,6 +5,7 @@ import numpy   as np
 import dolfinx as dfx
 import adios4dolfinx as a4d
 
+from sys       import argv
 from ufl       import inner, dot, grad, det, inv
 from scifem    import assemble_scalar
 from mpi4py    import MPI
@@ -62,10 +63,19 @@ wall_deformation_tags = [tag for tag in cilia_tags if tag not in choroid_plexus_
 # prescribed in time, given by solutions to the 
 # time-dependent linear elasticity equations.
 comm = MPI.COMM_WORLD # MPI communicator
-timestep = 0.02
-T = 1 # Final time
+T = float(argv[2]) # Final time
+timestep = float(argv[3])
 N = int(T / timestep) # Number of timesteps
-mesh_prefix = 'coarse'
+times = np.linspace(0, T, N+1)
+mesh_prefix_input = int(argv[4])
+if mesh_prefix_input==1:
+    mesh_prefix = 'coarse'
+elif mesh_prefix_input==2:
+    mesh_prefix = 'medium'
+elif mesh_prefix_input==3:
+    mesh_prefix = 'fine'
+else:
+    raise ValueError(f'Unknown mesh prefix, choose 1 (coarse), 2 (medium), or 3 (fine).')
 defo_input_filename = f"../output/{mesh_prefix}-mesh/deformation/checkpoints/time_dep_deformation_velocity_dt={timestep:.4g}_T={T:.4g}/"
 mesh = a4d.read_mesh(defo_input_filename, comm, read_from_partition=False)
 out_mesh = a4d.read_mesh(defo_input_filename, comm, read_from_partition=False)
@@ -75,9 +85,10 @@ facet_dim = mesh.topology.dim-1
 mesh.topology.create_connectivity(facet_dim, facet_dim+1) # Create facet-cell connectivity
 num_facets = mesh.topology.index_map(facet_dim).size_local + mesh.topology.index_map(facet_dim).num_ghosts # Total number of facets
 
-dx = ufl.Measure('dx', domain=mesh) # Cell integral
-ds = ufl.Measure('ds', domain=mesh, subdomain_data=ft) # Exterior facet integral
-dS_hat = ufl.Measure('dS', domain=mesh) # Interior facet integral
+quadrature_degree = 8
+dx = ufl.Measure('dx', domain=mesh, metadata={'quadrature_degree' : quadrature_degree}) # Cell integral
+ds = ufl.Measure('ds', domain=mesh, subdomain_data=ft, metadata={'quadrature_degree' : quadrature_degree}) # Exterior facet integral
+dS = ufl.Measure('dS', domain=mesh, metadata={'quadrature_degree' : quadrature_degree}) # Interior facet integral
 
 # Create finite element function in P2 space for the mesh displacement
 vec_el = element("Lagrange", mesh.basix_cell(), 2, shape=(mesh.geometry.dim,))
@@ -95,7 +106,7 @@ n = J*inv(F.T)*n_hat # Deformed domain facet normal and surface integral measure
 hA = ufl.avg(ufl.CellDiameter(mesh)) # Average cell diameter of reference mesh
 
 # Define finite elements for the Stokes equations
-k = 1 # Element degree
+k = 2 # Element degree
 bdm_el = element("BDM", mesh.basix_cell(), k)
 dg_el  = element("DG", mesh.basix_cell(), k-1)
 dg_vec_el = element("DG", mesh.basix_cell(), k, shape=(mesh.geometry.dim,))
@@ -137,14 +148,19 @@ def stabilization(u: ufl.TrialFunction, v: ufl.TestFunction, consistent: bool=Tr
     """
 
     if consistent: # Add symmetrization terms
-        return (-inner(Avg(2*mu*Eps(u), n), Jump(v))*dS_hat
-                -inner(Avg(2*mu*Eps(v), n), Jump(u))*dS_hat
-                + 2*mu*(penalty/hA)*inner(Jump(u), Jump(v))*dS_hat)
+        return (-inner(Avg(2*mu*Eps(u), n), Jump(v))*dS
+                -inner(Avg(2*mu*Eps(v), n), Jump(u))*dS
+                + 2*mu*(penalty/hA)*inner(Jump(u), Jump(v))*dS)
 
     # For preconditioning
-    return 2*mu*(penalty/hA)*inner(Jump(u), Jump(v))*dS_hat
+    return 2*mu*(penalty/hA)*inner(Jump(u), Jump(v))*dS
 
-# ds_ = ds(noslip_bdry_tags)
+# Tangential traction BC
+tau_val = 7.89e-3 # Tangential traction force density [Pa]
+tau = dfx.fem.Constant(mesh, dfx.default_scalar_type(tau_val))
+tau_vec   = tau*ufl.as_vector((0, 1, 1)) # Stress vector to be projected tangentially onto the mesh
+tangential_traction = lambda n: Tangent(tau_vec, n) # Use the tau expression to define the tangent traction vector
+
 # Stokes problem in reference domain accounting for the deformation
 a00 = (2*mu*inner(Eps(u), Eps(v))*J*dx # Viscous dissipation
       + stabilization(u, v) # BDM stabilization
@@ -154,8 +170,9 @@ a01 = inner(p, Div(v))*J*dx
 a10 = inner(q, Div(u))*J*dx
 a11 = dfx.fem.Constant(mesh, dfx.default_scalar_type(0.0))*inner(p, q)*J*dx
 
-L0 = inner(u_zero, v)*J*dx \
-#    + inner(Tangent(v, n), tangent_traction_dorsal(n))*J*ds(cilia_tags) \
+L0  = inner(u_zero, v)*J*dx 
+# L0 += inner(Tangent(v, n), tangential_traction(n))*ds(cilia_tags) 
+
 L1 = inner(dfx.fem.Function(Q), q)*J*dx
 
 a = dfx.fem.form([[a00, a01], [a10, a11]])
@@ -196,7 +213,8 @@ for i, point in enumerate(x_reference):
 # Convert to numpy arrays
 cells = np.array(cells)
 points_on_proc = np.array(points_on_proc)
-    
+
+# Create linear system
 A = create_matrix_block(a)
 b = create_vector_block(L)
 x_sol = A.createVecRight()
@@ -226,7 +244,6 @@ def solve_stokes_blocked(uh: dfx.fem.Function, ph: dfx.fem.Function):
     assemble_matrix_block(A, a, bcs=bcs_fluid)
     A.assemble()
 
-
     with b.localForm() as b_loc: b_loc.set(0)
     assemble_vector_block(b, L, a, bcs=bcs_fluid)
     
@@ -249,8 +266,7 @@ vol = mesh.comm.allreduce(
 )
 
 if __name__=='__main__':
-    tic = time.perf_counter()
-    from sys import argv
+    tic = time.perf_counter()  
     write_cpoint = True if int(argv[1])==1 else False
 
     uh_ = dfx.fem.Function(V)
@@ -259,9 +275,7 @@ if __name__=='__main__':
     uh = dfx.fem.Function(dfx.fem.functionspace(out_mesh, dg_vec_el)); uh.name = 'velocity'
     ph = dfx.fem.Function(dfx.fem.functionspace(out_mesh, dg_el)); ph.name = 'pressure'
     uh_rel = dfx.fem.Function(dfx.fem.functionspace(out_mesh, dg_vec_el)); uh_rel.name = 'relative_velocity'
-
-    dg1_vec_el = element("DG", mesh.basix_cell(), 1, shape=(mesh.geometry.dim,))
-    u_defo_read = dfx.fem.Function(V)
+    u_defo_read = dfx.fem.Function(dfx.fem.functionspace(mesh, element("BDM", mesh.basix_cell(), 1)))
 
     velocity_output_filename = f"../output/{mesh_prefix}-mesh/flow/stokes/BDM_deforming_velocity.pvd"
     velocity_output = dfx.io.VTKFile(comm, velocity_output_filename, "w")
@@ -310,9 +324,9 @@ if __name__=='__main__':
         pressure_output.write_function(ph, t)
 
         if write_cpoint:
-            a4d.write_function_on_input_mesh(cpoint_filename, uh, time=t)
-            a4d.write_function_on_input_mesh(cpoint_filename, uh_rel, time=t)
-            a4d.write_function_on_input_mesh(cpoint_filename, ph, time=t)
+            a4d.write_function(cpoint_filename, uh_, time=t)
+            a4d.write_function(cpoint_filename, uh_rel_, time=t)
+            a4d.write_function(cpoint_filename, ph_, time=t)
 
         # Calculate div(u) error
         error_div_u = assemble_scalar(inner(Div(uh_), Div(uh_))*J*dx)

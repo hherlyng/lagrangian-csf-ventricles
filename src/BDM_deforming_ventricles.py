@@ -129,7 +129,6 @@ Eps = lambda arg: ufl.sym(Grad(arg)) # Symmetric gradient
 mu = dfx.fem.Constant(mesh, dfx.default_scalar_type(7e-4)) #[kg/(m*s)] #*1e-2 # Dynamic viscosity [kg/(cm*s)]
 rho = dfx.fem.Constant(mesh, dfx.default_scalar_type(1e3))
 BDM_penalty = dfx.fem.Constant(mesh, dfx.default_scalar_type(150.0))
-dt = dfx.fem.Constant(mesh, dfx.default_scalar_type(timestep))
 
 def stabilization(u: ufl.TrialFunction, v: ufl.TestFunction, consistent: bool=True):
     """ Displacement/Flux Stabilization term from Krauss et al paper. 
@@ -181,16 +180,19 @@ L0 += inner(Tangent(v, n), tangential_traction(n))*ds(cilia_tags)
 
 L1 = inner(dfx.fem.Function(Q), q)*J*dx
 
-# Navier-Stokes problem
-a00 += rho/dt * inner(u, v)*J*dx # Time derivative
-a00 += rho*inner(dot(c_vel, Nabla_Grad(u)), v)*J*dx # Convective term
+if solver_type=='NAVIER_STOKES':
 
-# Add convective term stabilization
-zeta = ufl.conditional(ufl.lt(dot(c_vel, n), 0), 1, 0) # Upwind velocity operator (equals 1 on inflow boundary, 0 on outflow boundary)
-a00 += (- rho*1/2*dot(jump(c_vel), n('+')) * avg(dot(u, v))  * dS 
-        - rho*dot(avg(c_vel), n('+')) * dot(jump(u), avg(v)) * dS 
-        - zeta*rho*1/2*dot(c_vel, n) * dot(u, v) * ds(zero_traction_tags)
-)
+    dt = dfx.fem.Constant(mesh, dfx.default_scalar_type(timestep))
+    # Navier-Stokes problem
+    a00 += rho/dt * inner(u, v)*J*dx # Time derivative
+    a00 += rho*inner(dot(c_vel, Nabla_Grad(u)), v)*J*dx # Convective term
+
+    # Add convective term stabilization
+    zeta = ufl.conditional(ufl.lt(dot(c_vel, n), 0), 1, 0) # Upwind velocity operator (equals 1 on inflow boundary, 0 on outflow boundary)
+    a00 += (- rho*1/2*dot(jump(c_vel), n('+')) * avg(dot(u, v))  * dS 
+            - rho*dot(avg(c_vel), n('+')) * dot(jump(u), avg(v)) * dS 
+            - zeta*rho*1/2*dot(c_vel, n) * dot(u, v) * ds(zero_traction_tags)
+    )
 
 a = dfx.fem.form([[a00, a01], [a10, a11]])
 L = dfx.fem.form([L0, L1])
@@ -209,8 +211,8 @@ facets_chp = np.concatenate(([ft.find(tag) for tag in choroid_plexus_tags]))
 u_chp = create_normal_contribution_bc(V, (-chp_velocity*n_hat + dot(u_defo, n_hat)*n_hat), facets_chp)
 u_dofs_chp_prod = dfx.fem.locate_dofs_topological(V, facet_dim, facets_chp)
 
-bcs_fluid = [dfx.fem.dirichletbc(u_defo, u_dofs_defo),
-             dfx.fem.dirichletbc(u_chp, u_dofs_chp_prod)]
+bcs = [dfx.fem.dirichletbc(u_defo, u_dofs_defo),
+       dfx.fem.dirichletbc(u_chp, u_dofs_chp_prod)]
 
 # Define deforming mesh and reference coordinates (coordinates of mesh at t=0)
 x_reference = out_mesh.geometry.x.copy()
@@ -245,16 +247,15 @@ def create_solver(A):
     ksp.setFromOptions()
     return ksp
 
-def solve_navier_stokes_blocked():
+def solve_blocked_system(u: dfx.fem.Function, p: dfx.fem.Function):
 
     A.zeroEntries()
-    assemble_matrix_block(A, a, bcs=bcs_fluid)
+    assemble_matrix_block(A, a, bcs=bcs)
     A.assemble()
 
     with b.localForm() as b_loc: b_loc.set(0)
-    assemble_vector_block(b, L, a, bcs=bcs_fluid)
+    assemble_vector_block(b, L, a, bcs=bcs)
     
-    u, p = dfx.fem.Function(V), dfx.fem.Function(Q)
     ksp.solve(b, x_sol)
     assert ksp.getConvergedReason() > 0
 
@@ -277,61 +278,87 @@ vol = comm.allreduce(
 
 if __name__=='__main__':
     write_cpoint = True if int(argv[1])==1 else False
+    solver_type_arg = argv[5]
+    if solver_type_arg==1:
+        solver_type = "STOKES"
+        solver_dir = "stokes"
+    elif solver_type_arg==2:
+        solver_type = "NAVIER_STOKES"
+        solver_dir = "navier-stokes"
+    else:
+        raise ValueError("Solver type argument must be either 1 (Stokes) or 2 (Navier-Stokes).")
 
     uh = dfx.fem.Function(dfx.fem.functionspace(out_mesh, dg_vec_el)); uh.name = 'velocity'
     ph = dfx.fem.Function(dfx.fem.functionspace(out_mesh, dg_el)); ph.name = 'pressure'
-    uh_rel_ = dfx.fem.Function(V)
     uh_rel = dfx.fem.Function(dfx.fem.functionspace(out_mesh, dg_vec_el)); uh_rel.name = 'relative_velocity'
+    
+    uh_ = dfx.fem.Function(V); uh_.name = "velocity"
+    ph_ = dfx.fem.Function(Q); ph_.name = "pressure"
+    uh_rel_ = dfx.fem.Function(V); uh_rel_.name = "relative_velocity"
+
     u_defo_read = dfx.fem.Function(dfx.fem.Function(dfx.fem.functionspace(mesh, element("BDM", mesh.basix_cell(), 1))))
 
-    velocity_output_filename = f"../output/{mesh_prefix}-mesh/flow/navier-stokes/BDM_deforming_velocity.pvd"
+    velocity_output_filename = f"../output/{mesh_prefix}-mesh/flow/{solver_dir}/BDM_deforming_velocity.pvd"
     velocity_output = dfx.io.VTKFile(comm, velocity_output_filename, "w")
-    pressure_output_filename = f"../output/{mesh_prefix}-mesh/flow/navier-stokes/BDM_deforming_pressure.pvd"
+    pressure_output_filename = f"../output/{mesh_prefix}-mesh/flow/{solver_dir}/BDM_deforming_pressure.pvd"
     pressure_output = dfx.io.VTKFile(comm, pressure_output_filename, "w")
 
     if write_cpoint:
-        cpoint_filename = f"../output/{mesh_prefix}-mesh/flow/navier-stokes/checkpoints/BDM_deforming_velocity"
+        cpoint_filename = f"../output/{mesh_prefix}-mesh/flow/{solver_dir}/checkpoints/BDM_deforming_velocity"
         a4d.write_mesh(cpoint_filename, mesh, store_partition_info=True)
         a4d.write_meshtags(cpoint_filename, mesh, ft)
     
     # Compile form used to calculate the mean pressure
-    mean_pressure_form = dfx.fem.form((1/vol) * ph * ufl.dx(out_mesh))
+    mean_pressure_form  = dfx.fem.form((1/vol) * ph * ufl.dx(out_mesh))
+    mean_pressure_form_ = dfx.fem.form((1/vol) * ph_* J*dx)
     
-    print("Number of dofs Navier-Stokes eqs: ", V.dofmap.index_map.size_global+Q.dofmap.index_map.size_global)
+    print("Global number of dofs: ", V.dofmap.index_map.size_global+Q.dofmap.index_map.size_global)
 
     tic = time.perf_counter()
-    print("Solving Stokes eqs for initial condition ...")
-    # Solve the Stokes problem and use it
-    # as initial condition for Navier-Stokes
-    # Assemble the Stokes problem
-    A_stokes = assemble_matrix_block(a_stokes,bcs=bcs_fluid)
-    A_stokes.assemble()
-    b = assemble_vector_block(L, a_stokes, bcs=bcs_fluid)
+    if solver_type=="NAVIER_STOKES":
+        print("Solving Stokes eqs for initial condition ...")
 
-    # Create the Navier-Stokes problem
-    A = create_matrix_block(a)
-    x_sol = A.createVecRight() # Solution vector
+        # Solve the Stokes problem and use it
+        # as initial condition for Navier-Stokes
+        # Assemble the Stokes problem
+        A_stokes = assemble_matrix_block(a_stokes,bcs=bcs)
+        A_stokes.assemble()
+        b = assemble_vector_block(L, a_stokes, bcs=bcs)
 
-    # Create linear solver and offsets for the blocked functions
-    ksp = create_solver(A_stokes)
-    offset_u = V.dofmap.index_map.size_local * V.dofmap.index_map_bs
-    offset_p = offset_u + Q.dofmap.index_map.size_local*Q.dofmap.index_map_bs
+        # Create the Navier-Stokes problem
+        A = create_matrix_block(a)
+        x_sol = A.createVecRight() # Solution vector
 
-    # Update deformation velocity
-    a4d.read_function(filename=defo_input_filename, u=u_defo, name="defo_velocity", time=times[0])
+        # Create linear solver and offsets for the blocked functions
+        ksp = create_solver(A_stokes)
+        offset_u = V.dofmap.index_map.size_local * V.dofmap.index_map_bs
+        offset_p = offset_u + Q.dofmap.index_map.size_local*Q.dofmap.index_map_bs
 
-    # Solve and update solution functions
-    ksp.solve(b, x_sol)
-    u_.x.array[:offset_u] = x_sol.array_r[:offset_u]
-    u_.x.scatter_forward()
-    uh.interpolate(u_) # Interpolate velocity into visualization function
-    ph.x.array[:(offset_p-offset_u)] = x_sol.array_r[offset_u:offset_p]
-    ph.x.scatter_forward()
+        # Update deformation velocity
+        a4d.read_function(filename=defo_input_filename, u=u_defo, name="defo_velocity", time=times[0])
 
-    print("Stokes eqs solved and initial conditon set.\n Entering solution time-loop ...")
+        # Solve and update solution functions
+        ksp.solve(b, x_sol)
+        u_.x.array[:offset_u] = x_sol.array_r[:offset_u]
+        u_.x.scatter_forward()
+        uh.interpolate(u_) # Interpolate velocity into visualization function
+        ph.x.array[:(offset_p-offset_u)] = x_sol.array_r[offset_u:offset_p]
+        ph.x.scatter_forward()
 
-    # Set Navier-Stokes system matrix as KSP operator
-    ksp.setOperators(A)
+        print("Stokes eqs solved and initial conditon set.\n Entering solution time-loop ...")
+
+        # Set Navier-Stokes system matrix as KSP operator
+        ksp.setOperators(A)
+    else:
+        # Set up Stokes problem linear system
+        A = create_matrix_block(a_stokes)
+        x_sol = A.createVecRight() # Solution vector
+        b = create_vector_block(L)
+
+        # Create linear solver and offsets for the blocked functions
+        ksp = create_solver(A)
+        offset_u = V.dofmap.index_map.size_local * V.dofmap.index_map_bs
+        offset_p = offset_u + Q.dofmap.index_map.size_local*Q.dofmap.index_map_bs
     
     for t in times:
 
@@ -345,7 +372,7 @@ if __name__=='__main__':
         u_chp_updated = create_normal_contribution_bc(V, (-chp_velocity*n_hat + dot(u_defo, n_hat)*n_hat), facets_chp)
         u_chp.interpolate(u_chp_updated)
     
-        uh_, ph_ = solve_navier_stokes_blocked() # Solve the Stokes equations
+        uh_, ph_ = solve_blocked_system(uh_, ph_) # Solve the Stokes equations
 
         # Update output functions
         uh.interpolate(uh_)
@@ -363,9 +390,11 @@ if __name__=='__main__':
             # Update output mesh
             out_mesh.geometry.x[:, :out_mesh.geometry.dim] = x_reference[:, :out_mesh.geometry.dim] + wh_x_reference
 
-        # Calculate mean pressure and subtract to make mean = 0
-        mean_pressure = comm.allreduce(dfx.fem.assemble_scalar(mean_pressure_form), op=MPI.SUM)
+        # Calculate mean pressures and subtract to make means = 0
+        mean_pressure = assemble_scalar(mean_pressure_form)
         ph.x.array[:] -= mean_pressure
+        mean_pressure_ = assemble_scalar(mean_pressure_form_)
+        ph_.x.array[:] -= mean_pressure_
 
         # Write output
         velocity_output.write_mesh(out_mesh, t)
