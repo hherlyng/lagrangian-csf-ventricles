@@ -238,7 +238,6 @@ class FluidSolverALE:
         self.uh_ = dfx.fem.Function(V); self.uh_.name = "velocity"
         self.ph_ = dfx.fem.Function(Q); self.ph_.name = "pressure"
         self.uh_rel_ = dfx.fem.Function(V); self.uh_rel_.name = "relative_velocity"
-
         self.u_defo_read = dfx.fem.Function(dfx.fem.functionspace(mesh, element("BDM", mesh.basix_cell(), 1)))
 
         if self.write_output:
@@ -322,13 +321,15 @@ class FluidSolverALE:
             u_chp_updated = create_normal_contribution_bc(self.V, (-self.chp_velocity*self.n_hat + dot(self.u_defo, self.n_hat)*self.n_hat), self.facets_chp)
             self.u_chp.interpolate(u_chp_updated)
         
-            #self.solve_blocked_system() # Solve the fluid equations of motion
+            self.solve_blocked_system() # Solve the fluid equations of motion
 
             # Update finite element functions
             self.uh.interpolate(self.uh_) # Output velocity (deforming domain)
             self.ph.interpolate(self.ph_) # Output pressure (deforming domain)
             self.u_.x.array[:] = self.uh_.x.array.copy() # Previous timestep velocity (reference config)
-            self.uh_rel_.x.array[:] = self.uh_.x.array.copy() - self.u_defo.x.array.copy() # Relative velocity (reference config)
+            # uh_rel_expr = dfx.fem.Expression(self.uh_ - self.u_defo, self.V.element.interpolation_points()) # Relative velocity (reference config)
+            # self.uh_rel_.interpolate(uh_rel_expr)
+            self.uh_rel_.x.array[:] = self.uh_.x.array.copy() - self.u_defo.x.array.copy()
             self.uh_rel.interpolate(self.uh_rel_) # Relative velocity (deforming domain)
 
             if len(self.points_on_proc)>0:

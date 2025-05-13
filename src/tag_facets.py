@@ -26,11 +26,13 @@ boundary_facets = dfx.mesh.exterior_facet_indices(mesh.topology)
 tags = [101, # Lateral ventricles choroid plexus
         103, # Third ventricle choroid plexus
         104, # Fourth ventricle choroid plexus
-        28] # Lateral apertures boundary
+        28, # Lateral apertures boundary
+        110] # Corpus callosum boundary
 csv_filenames = [f"../geometries/selected_facets_lateralChP_{mesh_version}.csv",
                  f"../geometries/selected_facets_thirdChP_{mesh_version}.csv",
                  f"../geometries/selected_facets_fourthChP_{mesh_version}.csv",
-                 f"../geometries/selected_facets_lateralApertures_{mesh_version}.csv"]
+                 f"../geometries/selected_facets_lateralApertures_{mesh_version}.csv",
+                 f"../geometries/selected_facets_corpus_callosum_{mesh_version}.csv"]
 for i, csv_filename in enumerate(csv_filenames):
     df = pd.read_csv(csv_filename)
     selected_facets = df['vtkOriginalCellIds'].values
@@ -51,7 +53,7 @@ new_ft = dfx.mesh.meshtags(mesh, fdim, new_facets, new_ft_values)
 new_ft.name = "ft"
 
 # Write the mesh with new facet tags to file
-with dfx.io.XDMFFile(MPI.COMM_WORLD, f"../geometries/{mesh_filename}_tagged_newChP.xdmf", "w") as xdmf:
+with dfx.io.XDMFFile(MPI.COMM_WORLD, f"../geometries/{mesh_filename}_tagged.xdmf", "w") as xdmf:
     xdmf.write_mesh(mesh)
     xdmf.write_meshtags(new_ft, mesh.geometry)
     xdmf.write_meshtags(ct, mesh.geometry)

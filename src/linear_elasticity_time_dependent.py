@@ -21,6 +21,7 @@ print = PETSc.Sys.Print
 CANAL_WALL = 13
 CANAL_OUT  = 23
 LATERAL_APERTURES = 28
+CORPUS_CALLOSUM = 110
 
 # Solve linear elasticity equation on the ventricles. Wall motion is 
 # prescribed in time at a single point (close to corpus callosum).
@@ -53,9 +54,9 @@ print("Value of Lamé parameters:")
 print(f"mu \t= {mu_value:.2f}\nlambda \t= {lam_value:.2f}")
 
 # Temporal parameters
-timestep = 0.01
+timestep = 0.001
 dt = dfx.fem.Constant(mesh, timestep) 
-T = 5
+T = 2
 period = 1
 N = int(T / timestep)
 times = np.linspace(0, T, N+1)
@@ -80,12 +81,7 @@ L = rho*inner(2*wh_n-wh_nmin, dw)*dx
 cc_disp_expr = WallDeformationCorpusCallosum(derivative=False)
 cc_disp_func = dfx.fem.Function(W)
 
-if mesh_prefix=='coarse':
-    cc_facet = 7340
-elif mesh_prefix=='medium':
-    cc_facet = 51378
-
-cc_dofs = dfx.fem.locate_dofs_topological(W, facet_dim, np.array([cc_facet], dtype=np.int32))
+cc_dofs = dfx.fem.locate_dofs_topological(W, facet_dim, ft.find(CORPUS_CALLOSUM))
 num_cc_dofs = comm.allreduce(len(cc_dofs), op=MPI.SUM)
 print("Number of corpus callosum dofs: ", num_cc_dofs)
 assert num_cc_dofs>0, print("No corpus callosum dofs located.")
@@ -97,7 +93,6 @@ print("Number of canal wall dofs: ", num_cw_dofs)
 cw_disp_expr = WallDeformationCanalWall(derivative=False)
 cw_disp_func = dfx.fem.Function(W)
 bcs.append(dfx.fem.dirichletbc(cw_disp_func, cw_dofs))
-
 
 anchor_spinal_canal = True
 if anchor_spinal_canal: # Anchor spinal cord and lateral apertures

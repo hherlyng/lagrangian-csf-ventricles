@@ -22,15 +22,15 @@ m3_to_ml = 1e6 # Meters cubed [m^3] to milliliters [ml]
 k = 1 # Element degree
 
 comm = MPI.COMM_WORLD
-mesh_prefix = 'medium'
+mesh_prefix = 'coarse'
 solver_type = 'navier-stokes'
 # infile_name = f'../output/{mesh_prefix}-mesh/flow/{solver_type}/checkpoints/chp+cilia+defo/'
-# infile_name = f'../output/{mesh_prefix}-mesh/flow/{solver_type}/checkpoints/BDM_deforming_velocity/'
-infile_name = f'../output/ex3/{mesh_prefix}-mesh/flow/{solver_type}/checkpoints/BDM_deforming_velocity/'
+infile_name = f'../output/{mesh_prefix}-mesh/flow/{solver_type}/checkpoints/BDM_deforming_velocity/'
+# infile_name = f'../output/ex3/{mesh_prefix}-mesh/flow/{solver_type}/checkpoints/BDM_deforming_velocity/'
 mesh = a4d.read_mesh(filename=infile_name, comm=comm, read_from_partition=True)
 ft   = a4d.read_meshtags(filename=infile_name, mesh=mesh, meshtag_name='ft')
 
-dg_vec_el = element("DG", mesh.basix_cell(), k, shape=(mesh.geometry.dim,))
+dg_vec_el = element("BDM", mesh.basix_cell(), k)
 dg_el  = element("DG", mesh.basix_cell(), k-1)
 V = dfx.fem.functionspace(mesh, dg_vec_el)
 Q = dfx.fem.functionspace(mesh, dg_el)
@@ -53,8 +53,8 @@ point_top_aq = mesh.geometry.x[vertex_top_aq, :]
 point_bot_aq = mesh.geometry.x[vertex_bot_aq, :]
 length_aq = np.sqrt(np.sum((point_top_aq-point_bot_aq)**2))
 
-T = 5
-dt = 0.01
+T = 1
+dt = 0.02
 N = int(T / dt)
 times = np.linspace(0, T, N+1)
 times = times[1:]

@@ -146,17 +146,17 @@ def generate_data(input_filename: str,
 if __name__=='__main__':
     steady = True if int(argv[1])==1 else False
     N = int(argv[2])
-    mesh_prefix = "medium"
+    mesh_prefix = "coarse"
     output_prefix = "brain"
     cpoint_prefix = "BDM_deforming_velocity"
     solver_type = "navier-stokes"
     velocity_input_filename = \
-        f"../output/ex3/{mesh_prefix}-mesh/flow/{solver_type}/checkpoints/{cpoint_prefix}/_projection"
+        f"../output/{mesh_prefix}-mesh/flow/{solver_type}/checkpoints/{cpoint_prefix}_projection"
     if output_prefix=="brain":
         bin_dir = f"{output_prefix}/{mesh_prefix}-mesh"
     else:
         bin_dir = output_prefix
-    output_dir = f"~/flowVC/bin/{bin_dir}/{solver_type}/"
+    output_dir = f"/Users/hherlyng/flowVC/bin/{bin_dir}/{solver_type}/"
     generate_data(input_filename=velocity_input_filename,
                   output_dir=output_dir,
                   output_prefix=output_prefix,

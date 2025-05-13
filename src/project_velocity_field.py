@@ -9,21 +9,21 @@ from basix.ufl         import element
 from dolfinx.fem.petsc import LinearProblem
 
 # Velocity data
-mesh_prefix = "medium"
+mesh_prefix = "coarse"
 solver_type = "navier-stokes"
 velocity_input_filename = \
-    f"../output/ex3/{mesh_prefix}-mesh/flow/{solver_type}/checkpoints/BDM_deforming_velocity"
+    f"../output/{mesh_prefix}-mesh/flow/{solver_type}/checkpoints/BDM_deforming_velocity"
 mesh = a4d.read_mesh(filename=velocity_input_filename,
                      comm=MPI.COMM_WORLD,
                      engine="BP4",
                      ghost_mode=dfx.mesh.GhostMode.shared_facet)
-T = 5
-dt = 0.01
+T = 1
+dt = 0.02
 N = int(T / dt)
 timestamps = np.linspace(0, T, N+1)
 cg1_el = element("Lagrange", mesh.basix_cell(), 1, shape=(mesh.topology.dim,))
 
-element_type = "DG"
+element_type = "BDM"
 if element_type=="BDM":
     # Define the input velocity function in a BDM1 space
     bdm1_el = element("BDM", mesh.basix_cell(), 1)
