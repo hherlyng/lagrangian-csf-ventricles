@@ -311,7 +311,7 @@ class FluidSolverALE:
 
         tic = time.perf_counter()
 
-        for t in self.times[:5]:
+        for t in self.times:
 
             print(f"Time = {t:.4f} sec")
 
