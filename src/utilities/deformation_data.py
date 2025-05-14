@@ -50,7 +50,7 @@ class WallDeformationCanalWall:
     # Inserted final as initial position
     disp = np.array([0.0, 0.01, -0.02, -0.081, -0.147, -0.137,
                     -0.142, -0.123, -0.141, -0.117, -0.130, -0.098,
-                    -0.068, -0.045, -0.025])*1e-3 # Convert from mm to m
+                    -0.068, -0.045, 0.0])*1e-3 # Convert from mm to m
     times = np.array([0.0, 0.08, 0.15, 0.21, 0.29, 0.36, 0.42, 0.50, 0.57, 0.63, 0.71, 0.78, 
                                         0.84, 0.90, 1.0])
     disp_interp = interp.CubicSpline(times, disp)

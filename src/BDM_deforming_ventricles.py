@@ -6,11 +6,9 @@ import numpy   as np
 import dolfinx as dfx
 import adios4dolfinx as a4d
 
-from sys       import argv
 from ufl       import inner, dot, grad, det, inv, jump, avg, nabla_grad
 from scifem    import assemble_scalar
 from mpi4py    import MPI
-from pathlib   import Path
 from petsc4py  import PETSc
 from basix.ufl import element
 from utilities.fem import create_normal_contribution_bc
@@ -176,6 +174,8 @@ class FluidSolverALE:
                     - zeta*rho*1/2*dot(c_vel, n) * dot(u, v) * ds(zero_traction_tags)
             )
 
+            L0 += rho/dt * inner(self.u_, v)*J*dx # Time derivative
+
             self.a = dfx.fem.form([[a00, a01], [a10, a11]])
         else:
             self.a = self.a_stokes
@@ -309,7 +309,7 @@ class FluidSolverALE:
 
         tic = time.perf_counter()
 
-        for t in self.times:
+        for t in self.times[:5]:
 
             print(f"Time = {t:.4f} sec")
 

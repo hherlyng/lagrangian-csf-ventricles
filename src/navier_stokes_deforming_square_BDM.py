@@ -256,7 +256,7 @@ a01 = inner(p, Div(v))*J*dx
 a10 = inner(q, Div(u))*J*dx
 a11 = dfx.fem.Constant(mesh, dfx.default_scalar_type(0.0))*inner(p, q)*J*dx
 
-L0 = inner(zero, v)*J*dx + dot(p_bc*n, v)*ds(LEFT)
+L0 = rho/dt * inner(u_, v)*J*dx
 L1 = inner(dfx.fem.Function(Q), q)*J*dx
 
 # Navier-Stokes problem
@@ -292,7 +292,7 @@ v_dofs_right = dfx.fem.locate_dofs_topological(V, facet_dim, ft.find(RIGHT))
 # bcs_stokes.append(dfx.fem.dirichletbc(v_bdry_right, v_dofs_right))
 
 # Production flux
-tot_prod = 1.0e-0
+tot_prod = 1.0e-2
 flux = create_normal_contribution_bc(V, (-tot_prod*n_hat + dot(v_bdry_right, n_hat)*n_hat), ft.find(RIGHT))
 v_dofs_right = dfx.fem.locate_dofs_topological(V, facet_dim, ft.find(RIGHT))
 bcs_stokes.append(dfx.fem.dirichletbc(flux, v_dofs_right))
