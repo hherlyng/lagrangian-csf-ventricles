@@ -136,6 +136,8 @@ class FluidSolverALE:
         rho = dfx.fem.Constant(mesh, dfx.default_scalar_type(1e3))
         gamma = dfx.fem.Constant(mesh, dfx.default_scalar_type(150.0))
 
+        dt = dfx.fem.Constant(mesh, dfx.default_scalar_type(self.timestep))
+
         # Tangential traction BC
         tau_val = 7.89e-3 # Tangential traction force density [Pa]
         tau = dfx.fem.Constant(mesh, dfx.default_scalar_type(tau_val))
@@ -143,28 +145,30 @@ class FluidSolverALE:
         tangential_traction = lambda n: Tangent(tau_vec, n) # Use the tau expression to define the tangent traction vector
 
         # Navier-Stokes problem in reference domain accounting for the deformation
-        a00 = (2*mu*inner(Eps(u), Eps(v))*J*dx # Viscous dissipation
-            - mu*inner(dot(Grad(u).T, n), v)*ds(zero_traction_tags) # Parallel flow at inlet/outlet
-            )
-        a00 += (-inner(Avg(2*mu*Eps(u), n), Jump(v))*dS
-                -inner(Avg(2*mu*Eps(v), n), Jump(u))*dS
-                +2*mu*(gamma/hA)*inner(Jump(u), Jump(v))*dS)
+        a00  = rho/dt * inner(u, v)*J*dx # Time derivative
+        a00 += (2*mu*inner(Eps(u), Eps(v))*J*dx # Viscous dissipation
+                - mu*inner(dot(Grad(u).T, n), v)*ds(zero_traction_tags) # Parallel flow at inlet/outlet
+                )
+        a00 += (-inner(Avg(2*mu*Eps(u), n), Jump(v))*dS # Stabilization term to ensure
+                -inner(Avg(2*mu*Eps(v), n), Jump(u))*dS # tangential continuity
+                +2*mu*(gamma/hA)*inner(Jump(u), Jump(v))*dS
+                )
         a01 = inner(p, Div(v))*J*dx
         a10 = inner(q, Div(u))*J*dx
         a11 = dfx.fem.Constant(mesh, dfx.default_scalar_type(0.0))*inner(p, q)*J*dx
 
         self.a_stokes = dfx.fem.form([[a00, a01], [a10, a11]])
 
-        L0  = inner(u_zero, v)*J*dx
+        L0  = rho/dt * inner(self.u_, v)*J*dx # Time derivative
         L0 += inner(Tangent(v, n), tangential_traction(n))*ds(cilia_tags) 
 
         L1 = inner(dfx.fem.Function(Q), q)*J*dx
 
+        self.L = dfx.fem.form([L0, L1])
+
         if self.solver_type=="navier-stokes":
 
-            dt = dfx.fem.Constant(mesh, dfx.default_scalar_type(self.timestep))
             # Navier-Stokes problem
-            a00 += rho/dt * inner(u, v)*J*dx # Time derivative
             a00 += rho*inner(dot(c_vel, Nabla_Grad(u)), v)*J*dx # Convective term
 
             # Add convective term stabilization
@@ -174,13 +178,11 @@ class FluidSolverALE:
                     - zeta*rho*1/2*dot(c_vel, n) * dot(u, v) * ds(zero_traction_tags)
             )
 
-            L0 += rho/dt * inner(self.u_, v)*J*dx # Time derivative
-
             self.a = dfx.fem.form([[a00, a01], [a10, a11]])
         else:
+
             self.a = self.a_stokes
 
-        self.L = dfx.fem.form([L0, L1])
 
         # Set boundary conditions on velocity
         facets_wall_defo = np.concatenate(([self.ft.find(tag) for tag in wall_deformation_tags]))
@@ -241,9 +243,9 @@ class FluidSolverALE:
         self.u_defo_read = dfx.fem.Function(dfx.fem.functionspace(mesh, element("BDM", mesh.basix_cell(), 1)))
 
         if self.write_output:
-            velocity_output_filename = f"../output/{self.mesh_prefix}-mesh/flow/{self.solver_type}/BDM_deforming_velocity.pvd"
+            velocity_output_filename = f"../output/{self.mesh_prefix}-mesh/flow/{self.solver_type}/BDM_deforming_velocity_time.pvd"
             self.velocity_output = dfx.io.VTKFile(self.comm, velocity_output_filename, "w")
-            pressure_output_filename = f"../output/{self.mesh_prefix}-mesh/flow/{self.solver_type}/BDM_deforming_pressure.pvd"
+            pressure_output_filename = f"../output/{self.mesh_prefix}-mesh/flow/{self.solver_type}/BDM_deforming_pressure_time.pvd"
             self.pressure_output = dfx.io.VTKFile(self.comm, pressure_output_filename, "w")
 
         if self.write_cpoint:
@@ -326,10 +328,8 @@ class FluidSolverALE:
             # Update finite element functions
             self.uh.interpolate(self.uh_) # Output velocity (deforming domain)
             self.ph.interpolate(self.ph_) # Output pressure (deforming domain)
-            self.u_.x.array[:] = self.uh_.x.array.copy() # Previous timestep velocity (reference config)
-            # uh_rel_expr = dfx.fem.Expression(self.uh_ - self.u_defo, self.V.element.interpolation_points()) # Relative velocity (reference config)
-            # self.uh_rel_.interpolate(uh_rel_expr)
-            self.uh_rel_.x.array[:] = self.uh_.x.array.copy() - self.u_defo.x.array.copy()
+            self.u_.x.array[:] = self.uh_.x.array.copy() # Previous timestep velocity (reference configuration)
+            self.uh_rel_.x.array[:] = self.uh_.x.array.copy() - self.u_defo.x.array.copy() # Relative velocity (reference configuration)
             self.uh_rel.interpolate(self.uh_rel_) # Relative velocity (deforming domain)
 
             if len(self.points_on_proc)>0:
@@ -386,7 +386,7 @@ class CustomParser(
 def main(argv=None):
 
     parser = argparse.ArgumentParser(formatter_class=CustomParser)
-    # parser.add_argument("--input", dest="input_file", default='geometries/square32.xdmf', type=Path, help="Input file")
+
     input_opts = parser.add_argument_group("Input options", "Options for reading input")
     input_opts.add_argument("-m", "--mesh_prefix", type=str, help="Mesh prefix")
 
