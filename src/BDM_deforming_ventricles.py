@@ -12,6 +12,7 @@ from mpi4py    import MPI
 from petsc4py  import PETSc
 from basix.ufl import element
 from utilities.fem import create_normal_contribution_bc
+from utilities.parsers import CustomParser
 from dolfinx.fem.petsc import assemble_matrix_block, assemble_vector_block, create_matrix_block, create_vector_block
 
 print = PETSc.Sys.Print
@@ -33,6 +34,7 @@ CHOROID_PLEXUS_LATERAL = 101
 CHOROID_PLEXUS_THIRD = 103
 CHOROID_PLEXUS_FOURTH = 104
 LATERAL_APERTURES = 28
+CORPUS_CALLOSUM = 110
 
 # Cell tags
 CANAL = 3
@@ -55,7 +57,8 @@ Tangent = lambda v, n: v - n*dot(v, n)
 
 zero_traction_tags = (CANAL_OUT, LATERAL_APERTURES)
 cilia_tags = (AQUEDUCT_WALL, FORAMINA_34_WALL, LATERAL_VENTRICLES_WALL, FOURTH_VENTRICLE_WALL,
-                          CANAL_WALL, THIRD_VENTRICLE_WALL, CHOROID_PLEXUS_LATERAL, CHOROID_PLEXUS_THIRD, CHOROID_PLEXUS_FOURTH)
+              CANAL_WALL, THIRD_VENTRICLE_WALL, CHOROID_PLEXUS_LATERAL, CHOROID_PLEXUS_THIRD,
+              CHOROID_PLEXUS_FOURTH, CORPUS_CALLOSUM)
 choroid_plexus_tags = (CHOROID_PLEXUS_LATERAL, CHOROID_PLEXUS_THIRD, CHOROID_PLEXUS_FOURTH)
 wall_deformation_tags = [tag for tag in cilia_tags if tag not in choroid_plexus_tags]
 
@@ -86,8 +89,8 @@ class FluidSolverALE:
         self.write_cpoint = write_checkpoint
         self.write_output = write_output
 
-        self.mesh = a4d.read_mesh(self.defo_input_filename, self.comm, read_from_partition=False)
-        self.out_mesh = a4d.read_mesh(self.defo_input_filename, self.comm, read_from_partition=False)
+        self.mesh = a4d.read_mesh(self.defo_input_filename, self.comm)
+        self.out_mesh = a4d.read_mesh(self.defo_input_filename, self.comm)
         self.ft   = a4d.read_meshtags(self.defo_input_filename, self.mesh, meshtag_name='ft')
         self.fdim = self.mesh.topology.dim-1
 
@@ -117,7 +120,6 @@ class FluidSolverALE:
         dg_vec_el = element("DG", mesh.basix_cell(), k, shape=(mesh.geometry.dim,))
         self.V = V = dfx.fem.functionspace(mesh, bdm_el)
         Q = dfx.fem.functionspace(mesh, dg_el)
-        u_zero = dfx.fem.Function(V)
         self.u_ = dfx.fem.Function(V) # Velocity at previous timestep
         self.u_defo = dfx.fem.Function(V) # Deformation velocity
         c_vel = self.u_ - self.u_defo # Convection velocity
@@ -243,14 +245,14 @@ class FluidSolverALE:
         self.u_defo_read = dfx.fem.Function(dfx.fem.functionspace(mesh, element("BDM", mesh.basix_cell(), 1)))
 
         if self.write_output:
-            velocity_output_filename = f"../output/{self.mesh_prefix}-mesh/flow/{self.solver_type}/BDM_deforming_velocity_time.pvd"
+            velocity_output_filename = f"../output/{self.mesh_prefix}-mesh/flow/{self.solver_type}/BDM_deforming_velocity.pvd"
             self.velocity_output = dfx.io.VTKFile(self.comm, velocity_output_filename, "w")
-            pressure_output_filename = f"../output/{self.mesh_prefix}-mesh/flow/{self.solver_type}/BDM_deforming_pressure_time.pvd"
+            pressure_output_filename = f"../output/{self.mesh_prefix}-mesh/flow/{self.solver_type}/BDM_deforming_pressure.pvd"
             self.pressure_output = dfx.io.VTKFile(self.comm, pressure_output_filename, "w")
 
         if self.write_cpoint:
             self.cpoint_filename = f"../output/{self.mesh_prefix}-mesh/flow/{self.solver_type}/checkpoints/BDM_deforming_velocity"
-            a4d.write_mesh(self.cpoint_filename, mesh, store_partition_info=True)
+            a4d.write_mesh(self.cpoint_filename, mesh)
             a4d.write_meshtags(self.cpoint_filename, mesh, self.ft)
         
         # Compile form used to calculate the mean pressure
@@ -313,11 +315,11 @@ class FluidSolverALE:
 
         for t in self.times:
 
-            print(f"Time = {t:.4f} sec")
+            print(f"Time = {t:.5g} sec")
 
             # Read deformation from file
-            a4d.read_function(filename=self.defo_input_filename, u=self.wh, name="defo_displacement", time=float(f"{t:.4g}"))
-            a4d.read_function(filename=self.defo_input_filename, u=self.u_defo_read, name="defo_velocity", time=float(f"{t:.4g}"))
+            a4d.read_function(filename=self.defo_input_filename, u=self.wh, name="defo_displacement", time=float(f"{t:.5g}"))
+            a4d.read_function(filename=self.defo_input_filename, u=self.u_defo_read, name="defo_velocity", time=float(f"{t:.5g}"))
             self.u_defo.interpolate(self.u_defo_read)
 
             u_chp_updated = create_normal_contribution_bc(self.V, (-self.chp_velocity*self.n_hat + dot(self.u_defo, self.n_hat)*self.n_hat), self.facets_chp)
@@ -362,7 +364,6 @@ class FluidSolverALE:
             self.velocity_output.close()
             self.pressure_output.close()
 
-
     def solve_initial_condition(self):
 
         # Assemble the Stokes problem
@@ -377,11 +378,6 @@ class FluidSolverALE:
         self.ksp.solve(self.b, self.xh)
         self.u_.x.array[:self.offset_u] = self.xh.array[:self.offset_u]
         self.u_.x.scatter_forward()
-
-
-class CustomParser(
-    argparse.ArgumentDefaultsHelpFormatter, argparse.RawDescriptionHelpFormatter
-): ...
 
 def main(argv=None):
 

@@ -57,7 +57,7 @@ T = 2
 dt = 0.01
 N = int(T / dt)
 times = np.linspace(0, T, N+1)
-times = times[1:5]
+times = times[1:]
 
 flowrates_top_aq = []
 flowrates_bot_aq = []

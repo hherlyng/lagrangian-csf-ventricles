@@ -1,11 +1,13 @@
 import struct
+import argparse
 import numpy         as np
 import dolfinx       as dfx
 import adios4dolfinx as a4d
 
-from sys             import argv
-from mpi4py          import MPI
-from basix.ufl       import element
+from sys               import argv
+from mpi4py            import MPI
+from basix.ufl         import element
+from utilities.parsers import CustomParser
 
 #--------------------------------------------------------------------#
 #  NOTE: this script only works when run in serial, not in parallell.
@@ -15,6 +17,7 @@ def generate_data(input_filename: str,
                   output_dir: str,
                   output_prefix: str,
                   steady_state: bool,
+                  N: int,
                   write_xdmf_check: bool=True):
     # Read mesh
     mesh = a4d.read_mesh(filename=input_filename,
@@ -143,21 +146,52 @@ def generate_data(input_filename: str,
 
     if write_xdmf_check: xdmf_u.close()
 
-if __name__=='__main__':
-    steady = True if int(argv[1])==1 else False
-    N = int(argv[2])
-    mesh_prefix = "coarse"
-    output_prefix = "brain"
-    cpoint_prefix = "BDM_deforming_velocity"
-    solver_type = "navier-stokes"
-    velocity_input_filename = \
-        f"../output/{mesh_prefix}-mesh/flow/{solver_type}/checkpoints/{cpoint_prefix}_projection"
-    if output_prefix=="brain":
-        bin_dir = f"{output_prefix}/{mesh_prefix}-mesh"
+def main(argv=None):
+
+    parser = argparse.ArgumentParser(formatter_class=CustomParser)
+
+    opts = parser.add_argument_group("Options", "Options for velocity data to be generated. ")
+    opts.add_argument("-s", "--steady_state", type=int, help="Steady state velocity field or not")
+    opts.add_argument("-T", "--final_time", type=float, help="Final time of simulation")
+    opts.add_argument("-dt", "--timestep", type=float, help="Timestep size")
+    opts.add_argument("-e", "--element_family", type=str, default="BDM", help="Finite element family")
+    opts.add_argument("-g", "--governing_equations", type=str, help="Governing equations (Stokes or Navier-Stokes)")
+    opts.add_argument("-o", "--output_prefix", type=str, default="brain", help="Prefix for output binaries")
+    opts.add_argument("-m", "--mesh_prefix", type=str, help="Mesh prefix")
+
+    args = parser.parse_args(argv)
+    if args.mesh_prefix not in ["coarse", "medium", "fine"]:
+        raise ValueError(f'Unknown mesh prefix, "coarse", "medium", or "fine".')
+    if args.governing_equations not in ["stokes", "navier-stokes"]:
+        raise ValueError(f'Unknown governing equations, choose "stokes" or "navier-stokes".')
+    
+    # Set steady state flag
+    steady = True if args.steady_state==1 else False
+    
+    # Set temporal parameters
+    T = args.final_time
+    dt = args.timestep
+    N = int(T / dt)
+    print("Number of timestamps: ", N)
+
+    # Define output directory
+    if args.output_prefix=="brain":
+        bin_dir = f"{args.output_prefix}/{args.mesh_prefix}-mesh"
     else:
-        bin_dir = output_prefix
-    output_dir = f"/Users/hherlyng/flowVC/bin/{bin_dir}/{solver_type}/"
+        bin_dir = args.output_prefix
+    output_dir = f"/Users/hherlyng/flowVC/bin/{bin_dir}/{args.governing_equations}/"
+
+    # Define checkpoint filename
+    cpoint_prefix = f"{args.element_family}_deforming_velocity"
+    velocity_input_filename = \
+        f"../output/{args.mesh_prefix}-mesh/flow/{args.governing_equations}/checkpoints/{cpoint_prefix}_projection"
+    
+    # Generate binary data
     generate_data(input_filename=velocity_input_filename,
                   output_dir=output_dir,
-                  output_prefix=output_prefix,
+                  output_prefix=args.output_prefix,
+                  N=N,
                   steady_state=steady)
+
+if __name__=='__main__':
+    main()

@@ -1,9 +1,7 @@
 import ufl
 
 import numpy   as np
-import pyvista as pv
 import dolfinx as dfx
-import colormaps as cm
 import adios4dolfinx as a4d
 
 from ufl       import inner, grad, sym, div
@@ -156,14 +154,14 @@ dw_dt_bdm.name = "defo_velocity"
 wh.name = "defo_displacement"
 
 vh_cpoint_filename = f"../output/{mesh_prefix}-mesh/deformation/checkpoints/time_dep_deformation_velocity_dt={timestep:.4g}_T={T:.4g}/"
-a4d.write_mesh(filename=vh_cpoint_filename, mesh=mesh, store_partition_info=True)
+a4d.write_mesh(filename=vh_cpoint_filename, mesh=mesh)
 a4d.write_meshtags(vh_cpoint_filename, mesh, ft, meshtag_name='ft')
 
 projection_problem = projection_problem_CG2_to_BDM1(dw_dt, dw_dt_bdm)
 
-for idx, t in enumerate(times):
+for t in times:
     
-    print(f"\nTime t = {t:.4g}")
+    print(f"\nTime t = {t:.5g}")
         
     if t > period:
         # Ensure BC function time value is within
@@ -190,16 +188,16 @@ for idx, t in enumerate(times):
     wh_out.interpolate(wh)
     xdmf.write_function(wh_out, t)
     
-    # Calculate deformation velocity by a central difference in time
+    # Calculate deformation velocity by a backward difference in time
     dw_dt.x.array[:] = \
-        (wh.x.array.copy() - 2*wh_n.x.array.copy() + wh_nmin.x.array.copy())/timestep**2
+        (wh.x.array.copy() - wh_n.x.array.copy())/timestep
 
     # Project deformation velocity into BDM 1 space for checkpointing
     projection_problem.solve()
     
     # Write checkpoints
-    a4d.write_function(filename=vh_cpoint_filename, u=wh, time=float(f"{t:.4g}"))
-    a4d.write_function(filename=vh_cpoint_filename, u=dw_dt_bdm, time=float(f"{t:.4g}"))
+    a4d.write_function(filename=vh_cpoint_filename, u=wh, time=float(f"{t:.5g}"))
+    a4d.write_function(filename=vh_cpoint_filename, u=dw_dt_bdm, time=float(f"{t:.5g}"))
     
     # Interpolate the velocity into CG1 and write XDMF output
     vh_out.interpolate(dw_dt) 
