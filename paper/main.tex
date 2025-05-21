@@ -27,12 +27,6 @@
 % Bibliography tools
 \usepackage{csquotes}
 
-% Set some length parameters
-% \setlength{\parindent}{0pt}
-% \setlength{\parskip}{10pt}
-\setlength{\tabcolsep}{0.35cm}
-
-
 %% Some new commands
 % Partial derivatives
 \newcommand{\pdifft}[1]{\frac{\partial  #1}{\partial t}}
@@ -90,7 +84,7 @@
 \setcounter{footnote}{1}
 
 % Title
-\title{\textbf{Brain ventricular flow topology: a Lagrangian perspective}}
+\title{\textbf{Flow topology and coherent structures in brain ventricles}}
 \author{
     H.~Herlyng, S.~C.~Shadden
 }
@@ -234,41 +228,47 @@ reveal attracting structures (stable manifolds).
 We consider flow of an incompressible, Newtonian fluid of density $\rho$ and dynamic viscosity
 $\mu$ in a domain $\DD\subset\mathbb{R}^d$ with boundary $\partial\DD=\Scal$.
 Neglecting the graviational force, no body forces are acting on the fluid.
-The flow is governed by the Navier-Stokes equations,
-in which the momentum equation reads
-\begin{equation}
-\rho\frac{\mathrm D\uu}{\mathrm Dt}  = \rho\left(\pdifft{\uu} + (\uu\cdot\nabla)\uu\right) = \nabla\cdot\TT
-\label{eq:navier_stokes_eq}
-\end{equation}
+The flow is governed by the Navier-Stokes equations:
+\begin{alignat}{1}
+    \rho\frac{\mathrm D\uu}{\mathrm Dt} 
+    = \rho\left(\pdifft{\uu}
+    + (\uu\cdot\nabla)\uu\right) &= \nabla\cdot\TT,
+    \label{eq:navier_stokes_eq} \\
+    \nabla\cdot\uu &= 0,
+    \label{eq:continuity_eq}
+\end{alignat}
 with the stress tensor $\TT$ defined as
 \begin{equation*}
     \TT = 2\mu\beps(\uu) - p\mathbf{I},
 \end{equation*}
-where $\uu(\xx, t)$ and $p(\xx, t)$ are the fluid velocity and pressure,
+where $\uu(\xx, t)\in\bm{H}^1(\DD)$ and $p(\xx, t)\in L_0^2(\DD)$
+are the fluid velocity and pressure,
 $\mathbf{I}$ is the identity tensor in dimension $d$ and
 $\beps(\uu)=\frac{1}{2}\left(\nabla\uu + (\nabla\uu)^T\right)$ is the
-strain-rate tensor, or symmetric gradient, of $\uu$.
-In addition to the momentum equation, the continuity equation
-for an incompressible fluid reflects mass conservation:
-\begin{equation}
-    \nabla\cdot\uu = 0.
-    \label{eq:continuity_eq}
-\end{equation}
+strain-rate tensor (or symmetric gradient) of $\uu$. 
+\Cref{eq:continuity_eq} is the continuity equation
+of an incompressible fluid, which reflects mass conservation.
 
-The domain $\DD$ is deforming and varies over time. We therefore solve the Navier-Stokes
-equations with an Arbitrary Eulerian Lagrangian (ALE) approach~\cite{Duarte2004ALE}.
+The domain $\DD$ is deforming and varies over time. To handle this,
+we solve the Navier-Stokes equations with an
+Arbitrary Eulerian Lagrangian (ALE) approach~\cite{Duarte2004ALE}.
 The governing equations are solved in the reference configuration $\chi$,
 using the mapping $\psi : \xx\mapsto\chi$ from the current deformed
 configuration at time $t$ to the reference configuration.
 In this setup, the governing equations are
 \begin{alignat}{1}
-    \rho\left(\pdifft{\uu} + ((\uu - \cc)\cdot\Tilde{\nabla})\uu\right) &= \Tilde{\nabla}\cdot\TT, \\
-    \Tilde{\nabla}\cdot\uu &= 0,
+    \rho\left(\pdifft{\uu} + ((\uu - \cc)\cdot\hat{\nabla})\uu\right)
+    &= \hat{\nabla}\cdot\TT, \label{eq:ALE_momentum_eq} \\
+    \hat{\nabla}\cdot\uu &= 0, \label{eq:ALE_continuity_eq}
 \end{alignat}
 where $\cc$ is the deformation velocity and
-$\Tilde{\nabla}$ is the differential operator in the deformed domain.
-The differential operators and integration measures of the weak formulation
-are transformed appropriately to account for the domain motion~\cite{Scovazzi2007LectureNotes}.
+$\hat{\nabla}$ is the differential operator in the deformed domain.
+In \Cref{eq:ALE_momentum_eq} and \Cref{eq:ALE_continuity_eq},
+all variables are evaluated in the reference configuration.
+In this ALE approach, the differential operators
+and integration measures of the weak formulation
+must be transformed appropriately to account for the
+domain motion~\cite{Scovazzi2007LectureNotes}.
 
 For fluid flows where viscous forces dominate inertial 
 forces (low Reynolds numbers), the Stokes equations
@@ -286,9 +286,9 @@ indicate non-negligible transient and inertial effects
 \cite{Gholampour2018FSI, howden2008three}.
 The flow is in a transitional regime where it is not
 entirely clear whether the Stokes equations might be a fair
-approximation, and previous studies have modeled 
+approximation, and previous studies
+\cite{Causemann2022HumanFramework} have modeled 
 CSF flow in human brain ventricles
-\cite{Causemann2022HumanFramework}
 by the time-dependent Stokes equations:
 \begin{equation}
     \rho\pdifft{\uu} - \nabla\cdot\TT = \bm{0}.
@@ -388,7 +388,7 @@ boundary $\Schp$ such that the total flux through the choroid plexus boundary is
     \int_{\Schp}(\uu\cdot\nn)\,\mathrm ds = Q.
 \end{equation}
 The total flux $Q=504$ ml/day is the daily total
-CSF production in a human brain\cite{Czosnyka2004CerebrospinalDynamics}.
+CSF production in a human brain~\cite{Czosnyka2004CerebrospinalDynamics}.
 
 \subsubsection{Cilia forces}\label{subsubsec:cilia}
 Motile cilia are modeled by imposing forces on the fluid with a
@@ -438,9 +438,11 @@ choroid plexus secretion begins at a later developmental stage than 2 dpf. There
 cilia forces in this flow model, and the domain is closed.
 For the human brain, we impose both deformation, choroid plexus
 secretion and cilia forces, and the lateral apertures and the spinal canal are open boundaries.
+To assess the role of the different flow mechanisms, we investigate three model scenarios
+for the human brain model: (i) all three flow mechanisms (deformation, secretion, cilia);
+(ii) deformation and cilia, no secretion; (iii) deformation and secretion, no cilia.
 
 \subsection{Numerical methods}
-\subsubsection{Discretization}
 We consider an $\bm{H}(\mathrm{div}; \DD)$-conforming discretization of 
 the governing equations of fluid motion (\Crefrange{eq:navier_stokes_eq,eq:continuity_eq,
 eq:time_dependent_stokes_eq,eq:stokes_eq}) using
@@ -449,7 +451,6 @@ elements for the pressure. The scheme conserves mass exactly pointwise.
 The velocity component normal to facets is continuous
 for the BDM elements. Tangential continuity is achieved by using the stabilization
 outlined in Hong~\emph{et al.}~\cite{Hong2016AEquations}. 
-
 For the Navier-Stokes equations, the convective term
 is linearized as
 $(\uu^{n+1}\cdot\nabla)\uu^{n+1} \approx (\uu^n\cdot\nabla)\uu^{n+1}$
@@ -465,22 +466,30 @@ Stokes equations can be found in
 Herlyng~\emph{et al.}~\cite{Herlyng2025AdvectionDiffusion}.
 
 In time, the fluid equations are discretized with the first-order, implicit
-backward Euler scheme. Since we use an implicit
-time discretization, we only need an initial condition
-for the velocity field and not the pressure.
+backward Euler scheme using a timestep $\Delta t = 0.001$ s.
+Since we use an implicit time discretization,
+an initial condition is only needed
+for the velocity field, and not the pressure.
 When solving the Stokes equations, the fluid is 
 initially at rest: $\uu_0(\xx)=\uu(\xx, 0)=\bm{0}$.
 For the Navier-Stokes equations, we solve the Stokes equations
 (with $\uu_0(\xx)=\bm{0}$) and use the solution
-$\uu_{\mathrm{Stk}}(\xx)$ as an initial condition;
+$\uu_{\mathrm{Stk}}(\xx)$ as initial condition;
 $\uu_0(\xx)=\uu_{\mathrm{Stk}}(\xx)$. 
+The fluid equations are solved for five cardiac cycles,
+and the velocity fields of the last cycle are used
+to calculate FTLE fields.
 
 The linear elasticity equations (\Cref{eq:strong_linear_elasticity_1})
 are solved by a finite element
 method using quadratic continuous Lagrange elements. In time, the
 equations are discretized by a second-order central difference scheme.
+We consider the system initially at rest: $\ww(\xx, t=0) = \bm{0}$.
+The equations are solved for five cardiac cycles, and the last cycle
+is used to calculate $\partial\ww/\partial t$ which is subsequently
+used as a boundary condition in the fluid equations.
 
-Convergence properties of the fluid discretization scheme was assessed with two
+Convergence properties of the fluid discretization scheme were assessed with two
 model problems. To assess spatial convergence, we solved a channel flow
 problem, observing linear convergence in both the velocity error measured
 in the $\bm{H}^1$ semi-norm and the pressure error measured in the $L^2$ norm.
@@ -494,8 +503,17 @@ with the expected convergence rates confirmed.
 \section{Results}
 \subsection{Finite element flow simulations}
 We present the CSF flow simulated in the brain ventricles. 
-In terms of physiological validity, the pressure gradients
-and flow rates are compareable to results in previous works.
+The pressure gradients and flow rates
+are similar in magnitude to results in previous works~\cite{Causemann2022HumanFramework}.
+Is there a difference between Stokes and Navier-Stokes? Discuss intertial effects.
+Similar to previous findings, the maximum velocities are found in the narrow
+cerebral aqueduct~\cite{Kurtcuoglu2007ComputationalSylvius, howden2008three,
+Causemann2022HumanFramework}, where the maximum velocity observed is \fixme{X} cm/s,
+equivalent to a Reynolds number of \fixme{Y}.
+
+Pulsatile effects are observed, with multiple flow reversals throughout the cardiac cycle.
+The displaced volume is equal to ...
+
 \begin{figure}
     \centering
     \includegraphics[width=\textwidth]{graphics/figure1.png}
@@ -515,8 +533,7 @@ Vinje2019RespiratoryMeasurements}:
 \end{itemize}
 
 \subsection{FTLE fields demonstrate ventricular flow compartmentalization in zebrafish embryos}
-We present FTLE fields for the different brains in. The repelling
-and attracting structures in the anterior-middle interventricular
+The repelling and attracting structures in the anterior-middle interventricular
 duct in the zebrafish brain ventricles combine
 to generate a separatrix. This separatrix is structured
 such that flow is compartmentalized in the anterior
@@ -533,6 +550,25 @@ Herlyng2025AdvectionDiffusion}.
 \end{figure}
 
 \subsection{FTLE fields in the human brain ventricles}
+
+\begin{figure}
+    \centering
+    \includegraphics[width=\textwidth]{graphics/figure3.png}
+    \caption{Caption.}
+    \label{fig:fig3}
+\end{figure}
+\begin{figure}
+    \centering
+    \includegraphics[width=\textwidth]{graphics/figure4.png}
+    \caption{Caption.}
+    \label{fig:fig4}
+\end{figure}
+\begin{figure}
+    \centering
+    \includegraphics[width=\textwidth]{graphics/figure5.png}
+    \caption{Caption.}
+    \label{fig:fig5}
+\end{figure}
 
 
 \bibliography{references}{}
