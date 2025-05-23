@@ -258,8 +258,8 @@ configuration at time $t$ to the reference configuration.
 In this setup, the governing equations are
 \begin{alignat}{1}
     \rho\left(\pdifft{\uu} + ((\uu - \cc)\cdot\hat{\nabla})\uu\right)
-    &= \hat{\nabla}\cdot\TT, \label{eq:ALE_momentum_eq} \\
-    \hat{\nabla}\cdot\uu &= 0, \label{eq:ALE_continuity_eq}
+    &= \hat{\nabla}\cdot\TT \label{eq:ALE_momentum_eq} \\
+    \hat{\nabla}\cdot\uu &= 0 \label{eq:ALE_continuity_eq}
 \end{alignat}
 where $\cc$ is the deformation velocity and
 $\hat{\nabla}$ is the differential operator in the deformed domain.
@@ -340,10 +340,10 @@ takes the form
     \quad\mathrm{in \ \mathcal{D}}.
 \end{equation}
 We impose the boundary conditions
-\begin{align}
-    \ww(\xx, t) &= \bm{g}(\xx, t) \quad\mathrm{on \ \mathcal{S}_1}, \\
-    \bsigma_s\nn &= \bm{0} \quad\mathrm{on \ \mathcal{S}_2 = \mathcal{S}\setminus\mathcal{S}_1}.
-\end{align}
+\begin{alignat}{2}
+    \ww(\xx, t) &= \bm{g}(\xx, t) &&\quad\mathrm{on \ \mathcal{S}_1}, \\
+    \bsigma_s\nn &= \bm{0} &&\quad\mathrm{on \ \mathcal{S}_2 = \mathcal{S}\setminus\mathcal{S}_1}.
+\end{alignat}
 On $\mathcal{S}_1$ we impose a given deformation $\bm{g}(\xx, t)$, whereas
 $\mathcal{S}_2$ is considered traction-free.
 The displacement $\bm{g}$ is based on brain displacement
