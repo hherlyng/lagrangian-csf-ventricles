@@ -52,12 +52,14 @@ print("Value of Lamé parameters:")
 print(f"mu \t= {mu_value:.2f}\nlambda \t= {lam_value:.2f}")
 
 # Temporal parameters
-timestep = 0.001
+timestep = 0.0005
 dt = dfx.fem.Constant(mesh, timestep) 
-T = 2
+T = 5
 period = 1
 N = int(T / timestep)
 times = np.linspace(0, T, N+1)
+final_period_start = int(T - period)
+write_time = 0
 
 # Finite elements
 vec_el = element("Lagrange", mesh.basix_cell(), 2, shape=(mesh.geometry.dim,))
@@ -185,23 +187,27 @@ for t in times:
     solver.solve(b, wh.x.petsc_vec)
     wh.x.scatter_forward() # MPI communication
 
-    wh_out.interpolate(wh)
-    xdmf.write_function(wh_out, t)
-    
-    # Calculate deformation velocity by a backward difference in time
-    dw_dt.x.array[:] = \
-        (wh.x.array.copy() - wh_n.x.array.copy())/timestep
 
-    # Project deformation velocity into BDM 1 space for checkpointing
-    projection_problem.solve()
-    
-    # Write checkpoints
-    a4d.write_function(filename=vh_cpoint_filename, u=wh, time=float(f"{t:.5g}"))
-    a4d.write_function(filename=vh_cpoint_filename, u=dw_dt_bdm, time=float(f"{t:.5g}"))
-    
-    # Interpolate the velocity into CG1 and write XDMF output
-    vh_out.interpolate(dw_dt) 
-    xdmf_vel.write_function(vh_out, t) 
+    if t >= final_period_start:
+        wh_out.interpolate(wh)
+        xdmf.write_function(wh_out, t)
+        
+        # Calculate deformation velocity by a backward difference in time
+        dw_dt.x.array[:] = \
+            (wh.x.array.copy() - wh_n.x.array.copy())/timestep
+
+        # Project deformation velocity into BDM 1 space for checkpointing
+        projection_problem.solve()
+        
+        # Write checkpoints
+        a4d.write_function(filename=vh_cpoint_filename, u=wh, time=write_time)
+        a4d.write_function(filename=vh_cpoint_filename, u=dw_dt_bdm, time=write_time)
+        
+        # Interpolate the velocity into CG1 and write XDMF output
+        vh_out.interpolate(dw_dt) 
+        xdmf_vel.write_function(vh_out, t) 
+
+        write_time += 1
     
     # Update deformation previous timesteps
     wh_nmin.x.array[:] = wh_n.x.array.copy()

@@ -60,7 +60,7 @@ cilia_tags = (AQUEDUCT_WALL, FORAMINA_34_WALL, LATERAL_VENTRICLES_WALL, FOURTH_V
               CANAL_WALL, THIRD_VENTRICLE_WALL, CHOROID_PLEXUS_LATERAL, CHOROID_PLEXUS_THIRD,
               CHOROID_PLEXUS_FOURTH, CORPUS_CALLOSUM)
 choroid_plexus_tags = (CHOROID_PLEXUS_LATERAL, CHOROID_PLEXUS_THIRD, CHOROID_PLEXUS_FOURTH)
-wall_deformation_tags = [tag for tag in cilia_tags if tag not in choroid_plexus_tags]
+impermeability_tags = [tag for tag in cilia_tags if tag not in choroid_plexus_tags]
 
 
 class FluidSolverALE:
@@ -78,8 +78,7 @@ class FluidSolverALE:
                        timestep: float,
                        mesh_prefix: str,
                        solver_type: str,
-                       write_checkpoint: int,
-                       write_output: int):
+                       check_results: bool):
         """ Constructor. """
 
         self.T = T
@@ -91,8 +90,8 @@ class FluidSolverALE:
         self.mesh_prefix = mesh_prefix
         self.solver_type = solver_type
         self.defo_input_filename = f"../output/{mesh_prefix}-mesh/deformation/checkpoints/time_dep_deformation_velocity_dt={timestep:.4g}_T={T:.4g}/"
-        self.write_cpoint = write_checkpoint
-        self.write_output = write_output
+        self.cpoint_filename = f"../output/{mesh_prefix}-mesh/flow/navier-stokes/checkpoints/cilia_direction_vectors/"
+        self.check_results = check_results
 
         self.mesh = a4d.read_mesh(self.defo_input_filename, self.comm)
         self.out_mesh = a4d.read_mesh(self.defo_input_filename, self.comm)
@@ -126,8 +125,7 @@ class FluidSolverALE:
         self.V = V = dfx.fem.functionspace(mesh, bdm_el)
         Q = dfx.fem.functionspace(mesh, dg_el)
         self.u_ = dfx.fem.Function(V) # Velocity at previous timestep
-        self.u_defo = dfx.fem.Function(V) # Deformation velocity
-        c_vel = self.u_ - self.u_defo # Convection velocity
+        u_zero = dfx.fem.Function(V)
 
         # Trial and test functions
         u, v = ufl.TrialFunction(V), ufl.TestFunction(V)
@@ -145,12 +143,6 @@ class FluidSolverALE:
 
         dt = dfx.fem.Constant(mesh, dfx.default_scalar_type(self.timestep))
 
-        # Tangential traction BC
-        tau_val = 7.89e-3 # Tangential traction force density [Pa]
-        tau = dfx.fem.Constant(mesh, dfx.default_scalar_type(tau_val))
-        tau_vec   = tau*ufl.as_vector((0, 1, 1)) # Stress vector to be projected tangentially onto the mesh
-        tangential_traction = lambda n: Tangent(tau_vec, n) # Use the tau expression to define the tangent traction vector
-
         # Navier-Stokes problem in reference domain accounting for the deformation
         a00  = rho/dt * inner(u, v)*J*dx # Time derivative
         a00 += (2*mu*inner(Eps(u), Eps(v))*J*dx # Viscous dissipation
@@ -167,7 +159,6 @@ class FluidSolverALE:
         self.a_stokes = dfx.fem.form([[a00, a01], [a10, a11]])
 
         L0  = rho/dt * inner(self.u_, v)*J*dx # Time derivative
-        L0 += inner(Tangent(v, n), tangential_traction(n))*ds(cilia_tags) 
 
         L1 = inner(dfx.fem.Function(Q), q)*J*dx
 
@@ -176,13 +167,13 @@ class FluidSolverALE:
         if self.solver_type=="navier-stokes":
 
             # Navier-Stokes problem
-            a00 += rho*inner(dot(c_vel, Nabla_Grad(u)), v)*J*dx # Convective term
+            a00 += rho*inner(dot(self.u_, Nabla_Grad(u)), v)*J*dx # Convective term
 
             # Add convective term stabilization
-            zeta = ufl.conditional(ufl.lt(dot(c_vel, n), 0), 1, 0) # Upwind velocity operator (equals 1 on inflow boundary, 0 on outflow boundary)
-            a00 += (- rho*1/2*dot(jump(c_vel), n('+')) * avg(dot(u, v))  * dS 
-                    - rho*dot(avg(c_vel), n('+')) * dot(jump(u), avg(v)) * dS 
-                    - zeta*rho*1/2*dot(c_vel, n) * dot(u, v) * ds(zero_traction_tags)
+            zeta = ufl.conditional(ufl.lt(dot(self.u_, n), 0), 1, 0) # Upwind velocity operator (equals 1 on inflow boundary, 0 on outflow boundary)
+            a00 += (- rho*1/2*dot(jump(self.u_), n('+')) * avg(dot(u, v))  * dS 
+                    - rho*dot(avg(self.u_), n('+')) * dot(jump(u), avg(v)) * dS 
+                    - zeta*rho*1/2*dot(self.u_, n) * dot(u, v) * ds(zero_traction_tags)
             )
 
             self.a = dfx.fem.form([[a00, a01], [a10, a11]])
@@ -192,8 +183,8 @@ class FluidSolverALE:
 
 
         # Set boundary conditions on velocity
-        facets_wall_defo = np.concatenate(([self.ft.find(tag) for tag in wall_deformation_tags]))
-        u_dofs_defo = dfx.fem.locate_dofs_topological(V, self.fdim, facets_wall_defo)
+        facets_impermeability = np.concatenate(([self.ft.find(tag) for tag in impermeability_tags]))
+        u_dofs_impermeability = dfx.fem.locate_dofs_topological(V, self.fdim, facets_impermeability)
 
         # Set choroid plexus inflow velocity BC strongly
         # Create expressions with positive and negative z-component of the velocity,
@@ -202,38 +193,11 @@ class FluidSolverALE:
         chp_area = assemble_scalar(1*ds(choroid_plexus_tags)) # The area of the choroid plexus boundary
         self.chp_velocity = chp_prod/chp_area
         self.facets_chp = np.concatenate(([self.ft.find(tag) for tag in choroid_plexus_tags]))
-        self.u_chp = create_normal_contribution_bc(V, (-self.chp_velocity*n_hat + dot(self.u_defo, n_hat)*n_hat), self.facets_chp)
+        self.u_chp = create_normal_contribution_bc(V, (-self.chp_velocity*n_hat), self.facets_chp)
         u_dofs_chp_prod = dfx.fem.locate_dofs_topological(V, self.fdim, self.facets_chp)
 
-        self.bcs = [dfx.fem.dirichletbc(self.u_defo, u_dofs_defo),
+        self.bcs = [dfx.fem.dirichletbc(u_zero,     u_dofs_impermeability),
                     dfx.fem.dirichletbc(self.u_chp, u_dofs_chp_prod)]
-
-        # Define deforming mesh and reference coordinates (coordinates of mesh at t=0)
-        self.x_reference = self.out_mesh.geometry.x.copy()
-
-        # Compute cells for point evaluation of the deformation function wh
-        cells = []
-        points_on_proc = []
-        bb_tree = dfx.geometry.bb_tree(self.out_mesh, mesh.topology.dim)
-        cell_candidates = dfx.geometry.compute_collisions_points(bb_tree, self.x_reference)
-        colliding_cells = dfx.geometry.compute_colliding_cells(self.out_mesh, cell_candidates, self.x_reference)
-        for i, point in enumerate(self.x_reference):
-            if len(colliding_cells.links(i)>0):
-                cc = colliding_cells.links(i)[0]
-                cells.append(cc)
-                points_on_proc.append(point)
-
-        # Convert to numpy arrays
-        self.cells = np.array(cells)
-        self.points_on_proc = np.array(points_on_proc)
-
-        vol = self.comm.allreduce(
-                    dfx.fem.assemble_scalar(
-                        dfx.fem.form(
-                            dfx.fem.Constant(mesh, dfx.default_real_type(1.0)) * ufl.dx(self.out_mesh))
-                        ),
-                    op=MPI.SUM
-                )
         
         # Calculate offsets
         self.offset_u = V.dofmap.index_map.size_local * V.dofmap.index_map_bs
@@ -246,23 +210,12 @@ class FluidSolverALE:
         
         self.uh_ = dfx.fem.Function(V); self.uh_.name = "velocity"
         self.ph_ = dfx.fem.Function(Q); self.ph_.name = "pressure"
-        self.uh_rel_ = dfx.fem.Function(V); self.uh_rel_.name = "relative_velocity"
-        self.u_defo_read = dfx.fem.Function(dfx.fem.functionspace(mesh, element("BDM", mesh.basix_cell(), 1)))
 
-        if self.write_output:
-            velocity_output_filename = f"../output/{self.mesh_prefix}-mesh/flow/{self.solver_type}/BDM_deforming_velocity_T={self.T}_dt={self.timestep}.pvd"
-            self.velocity_output = dfx.io.VTKFile(self.comm, velocity_output_filename, "w")
-            pressure_output_filename = f"../output/{self.mesh_prefix}-mesh/flow/{self.solver_type}/BDM_deforming_pressure_T={self.T}_dt={self.timestep}.pvd"
-            self.pressure_output = dfx.io.VTKFile(self.comm, pressure_output_filename, "w")
-
-        if self.write_cpoint:
-            self.cpoint_filename = f"../output/{self.mesh_prefix}-mesh/flow/{self.solver_type}/checkpoints/BDM_deforming_velocity_T={self.T}_dt={self.timestep}"
-            a4d.write_mesh(self.cpoint_filename, mesh)
-            a4d.write_meshtags(self.cpoint_filename, mesh, self.ft)
-        
-        # Compile form used to calculate the mean pressure
-        self.mean_pressure_form  = dfx.fem.form((1/vol) * self.ph * ufl.dx(self.out_mesh))
-        self.mean_pressure_form_ = dfx.fem.form((1/vol) * self.ph_* J*dx)
+        # Prepare checkpoint file
+        self.u_direction= dfx.fem.Function(V)
+        if self.check_results:
+            self.u_direction_dg = dfx.fem.Function(dfx.fem.functionspace(mesh, dg_vec_el))
+            self.vtx = dfx.io.VTXWriter(self.comm, f"../output/{self.mesh_prefix}-mesh/flow/navier-stokes/u_cilia_direction.bp", [self.u_direction_dg], "BP4")
 
         # Set up Stokes problem linear system
         self.A = create_matrix_block(self.a)
@@ -271,6 +224,19 @@ class FluidSolverALE:
         self.create_solver()
         
         print("Global number of dofs: ", V.dofmap.index_map.size_global+Q.dofmap.index_map.size_global)
+    
+    def normalize_velocity(self, uh: dfx.fem.Function):
+            
+        u_reshaped = uh.x.array.reshape(
+                        (int(uh.x.array.__len__()/self.mesh.geometry.dim),
+                            self.mesh.geometry.dim))
+        u_reshaped_norm = np.sqrt(u_reshaped[:, 0]**2 + u_reshaped[:, 1]**2 + u_reshaped[:, 2]**2)
+        where_norm_is_zero = np.where(u_reshaped_norm < 1e-10)[0]
+        u_reshaped_norm[where_norm_is_zero] = 1.0
+        for i in range(self.mesh.geometry.dim): u_reshaped[:, i] /= u_reshaped_norm
+        uh.x.array[:] = u_reshaped.ravel()
+
+        return uh
 
     def create_solver(self):
         ksp = PETSc.KSP().create(self.comm)
@@ -325,60 +291,28 @@ class FluidSolverALE:
             if (self.read_time-1)==self.num_timesteps_per_period:
                 self.read_time = 0
 
-            # Read deformation from file
-            a4d.read_function(filename=self.defo_input_filename, u=self.wh, name="defo_displacement", time=self.read_time)
-            a4d.read_function(filename=self.defo_input_filename, u=self.u_defo_read, name="defo_velocity", time=self.read_time)
-            self.u_defo.interpolate(self.u_defo_read)
-
             u_chp_updated = create_normal_contribution_bc(
                                     self.V, 
-                                    (-self.chp_velocity*self.n_hat
-                                        + dot(self.u_defo, self.n_hat)*self.n_hat),
+                                    (-self.chp_velocity*self.n_hat),
                                     self.facets_chp)
             self.u_chp.interpolate(u_chp_updated)
         
             self.solve_blocked_system() # Solve the fluid equations of motion
 
-            # Update finite element functions
-            self.uh.interpolate(self.uh_) # Output velocity (deforming domain)
-            self.ph.interpolate(self.ph_) # Output pressure (deforming domain)
-            self.u_.x.array[:] = self.uh_.x.array.copy() # Previous timestep velocity (reference configuration)
-            self.uh_rel_.x.array[:] = self.uh_.x.array.copy() - self.u_defo.x.array.copy() # Relative velocity (reference configuration)
-            self.uh_rel.interpolate(self.uh_rel_) # Relative velocity (deforming domain)
+            # Check if steady state is reached
+            if np.allclose(self.u_.x.array, self.uh_.x.array, rtol=1e-5):
+                break 
 
-            if len(self.points_on_proc)>0:
-                wh_x_reference = self.wh.eval(x=self.x_reference, cells=self.cells) # Evaluate the deformed coordinates at the reference coordinates
+        # Write to checkpoint file
+        self.u_direction = self.normalize_velocity(self.uh_)
+        a4d.write_function_on_input_mesh(filename=self.cpoint_filename, u=self.u_direction)
 
-                # Update output mesh
-                self.out_mesh.geometry.x[:, :self.out_mesh.geometry.dim] = self.x_reference[:, :self.out_mesh.geometry.dim] + wh_x_reference
-
-            # Calculate mean pressures and subtract to make means = 0
-            mean_pressure = assemble_scalar(self.mean_pressure_form)
-            self.ph.x.array[:] -= mean_pressure
-            mean_pressure_ = assemble_scalar(self.mean_pressure_form_)
-            self.ph_.x.array[:] -= mean_pressure_
-            
-            if t >= self.final_period_start:
-                if self.write_output:
-                    self.velocity_output.write_mesh(self.out_mesh, t)
-                    self.velocity_output.write_function(self.uh, t)
-                    self.velocity_output.write_function(self.uh_rel, t)
-                    self.pressure_output.write_mesh(self.out_mesh, t)
-                    self.pressure_output.write_function(self.ph, t)
-
-                if self.write_cpoint:
-                    a4d.write_function(self.cpoint_filename, self.uh_, time=self.write_time)
-                    a4d.write_function(self.cpoint_filename, self.uh_rel_, time=self.write_time)
-                    a4d.write_function(self.cpoint_filename, self.ph_, time=self.write_time)
-                    self.write_time += 1
-            
-            self.read_time += 1
+        if self.check_results:
+            self.u_direction_dg.interpolate(self.u_direction)
+            self.vtx.write(0.0)
+            self.vtx.close()
 
         print(f"Solution loop time elapsed: {time.perf_counter()-tic:.4f} sec")
-
-        if self.write_output:
-            self.velocity_output.close()
-            self.pressure_output.close()
 
     def solve_initial_condition(self):
 
@@ -386,9 +320,6 @@ class FluidSolverALE:
         assemble_matrix_block(self.A, self.a_stokes, bcs=self.bcs)
         self.A.assemble()
         assemble_vector_block(self.b, self.L, self.a_stokes, bcs=self.bcs)
-
-        # Read deformation velocity
-        a4d.read_function(filename=self.defo_input_filename, u=self.u_defo, name="defo_velocity", time=self.times[0])
 
         # Solve and update solution functions
         self.ksp.solve(self.b, self.xh)
@@ -411,7 +342,6 @@ def main(argv=None):
     solver_opts.add_argument("-g", "--governing_equations", type=str, help="Governing equations (Stokes or Navier-Stokes)")
 
     output_opts = parser.add_argument_group("Output options", "Options for writing output")
-    output_opts.add_argument("-c", "--checkpoint", default=0, type=int, help="Write checkpoint")
     output_opts.add_argument("-o", "--output", default=0, type=int, help="Write output")
 
     args = parser.parse_args(argv)
@@ -424,7 +354,6 @@ def main(argv=None):
                             args.timestep,
                             args.mesh_prefix,
                             args.governing_equations,
-                            args.checkpoint,
                             args.output)    
     solver.setup()
     solver.solve()
