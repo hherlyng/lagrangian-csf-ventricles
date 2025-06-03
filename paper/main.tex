@@ -117,40 +117,60 @@
 
 \section{Introduction}
 % I1: What is the problem - from big picture to our precise topic - why is it interesting?
-Our brains are constantly in motion. Within the brain reside hollow structures called
-the brain ventricles, wherein cerebrospinal fluid (CSF) flows dynamically.
-The CSF flow is an important contributor to brain homeostasis
-and the regulatory processes of the brain. Volume transmission is a theory that outlines
-the importance of CSF flow in the neuromodulatory processes of the brain. Studying
-the flow topology in brain ventricles bears interest as it could help understand
-transport of vital solutes and particles.
+A human brain is constantly in motion. This motion is related to the cardiac and respiratory
+cycles and body movement~\cite{Enzmann1992BrainImaging},
+and the brain motion is tightly coupled with intracranial
+fluid flow. An important part of this flow system is the brain ventricles,
+hollow structures wherein cerebrospinal fluid (CSF) flows dynamically.
+Because CSF flow is an important contributor to brain homeostasis
+and the regulatory processes of the brain~\cite{fame2020emergence},
+and CSF flow disruptions may result in pathological conditions
+such as hydrocephalus, furthering our understanding
+of CSF flow topology in brain ventricles bears interest.
 
 % I2: What do we know about the problem and the topic?
-The underlying mechanisms of brain ventricular CSF flow have been studied extensively
-in the last decades. Still a topic of debate, mounting evidence suggests that
-the bulk pulsatile flow is associated with the cardiac and respiratory cycles.
-Smaller flow scales are affected by beating of motile cilia lining the ventricular 
-walls. Neural activity has also been shown to impact CSF flow patterns.
-Simple visualizations of flow trajectories in animals have shown that
+The underlying mechanisms of brain ventricular CSF flow
+have been studied extensively in the last decades.
+Although still not fully understood, it is clear that
+CSF flow results from complex interactions
+with blood vessels, intracranial pressures,
+beating of motile cilia, neural activity, posture changes,
+and production of CSF at the choroid plexus
+\cite{Olstad2019CiliaryDevelopment, Faubel2016CiliaVentricles,
+Kurtcuoglu2007ComputationalSylvius, Czosnyka2004CerebrospinalDynamics,
+Vinje2019RespiratoryMeasurements, Liu2024UsingBreathing}.
+With these various physiological processes occuring
+over various time and length scales, the CSF flow
+in brain ventricles also consists of motions on different scales.
+A bulk motion is induced by pulsations related to
+the cardiac and respiratory cycles~\cite{Vinje2019RespiratoryMeasurements}.
+On the smaller scales, simple visualizations of flow trajectories
+in animals have shown that
 ventricular cerebrospinal fluid flow has intricate details,
 with demonstrations of stagnation and separation points
 and vortex-structured flows \cite{gilpin2017flowtrace,
 Faubel2016CiliaVentricles,
 Olstad2019CiliaryDevelopment}.
-Lagrangian Coherent Structures (LCS) have proved themselves to be 
-an informative way of studying advective transport in fluid flows
-\cite{shadden2005definition, haller2015lagrangian}. LCS are 
-defining structures of fluid flows that delineate regions
-of maximal and minimal stretching, and LCS are the transport
-topology skeleton of the flow. Previous studies
-have used LCS approximation to increase understanding of mixing 
-and flow structures in blood flow~\cite{shadden2008characterization},
+Flow structures such as hyperbolic separatrices
+are material structures inherent to fluid flows. These
+structures are often referred to as Lagrangian coherent
+structures (LCS), and act as skeletons of the flow that
+provide detailed information on the transport
+of fluid parcels over time
+\cite{shadden2005definition, haller2015lagrangian}.
+Previous studies have studied LCS in a host of applications,
+including blood flow
+\cite{shadden2008characterization, shadden2010computational},
 atmospheric flow~\cite{Gunther2021LagrangianWinds},
 airway flow~\cite{lukens2010using},
-oceanic flows, ... etc. One way of characterizing LCS is the
-finite-time Lyapunov exponent (FTLE) field of the velocity. Ridges
+oceanic flows, ... etc. These studies successfully provided
+valuable understanding of fluid transport.
+A common approach to study LCS is to characterize the
+structures with finite-time Lyapunov exponent (FTLE) fields
+calculated from particle trajectories. Ridges
 of the FTLE field are good approximations of the LCS of the 
 flow~\cite{shadden2005definition}.
+
 
 % I3: What do we not know about the problem and what do we want to
 % know? What are the precise research questions we want to address?
@@ -162,12 +182,17 @@ Many previous studies are based on Eulerian flow analysis,
 looking at instantaneous flow variables such as velocity.
 These instantaneous variables may however deceive
 interpretation of time-dependence~\cite{shadden2005definition}. 
+
 We therefore want to study brain ventricular flow
 from a Lagrangian persepctive. Specifically, we
 characterize LCS in brain ventricles,
 with the aim of gaining further
 insights on flow and mixing in the ventricles, which impacts
 CSF composition and thus neuromodulatory processes.
+
+
+Volume transmission is a theory that outlines
+the importance of CSF flow in the neuromodulatory processes of the brain. 
 
 % I4: How do we address the problem and what do we find out?
 In this work, we study intraventricular CSF flow in embryonic zebrafish and adult human brain ventricles.
@@ -179,7 +204,7 @@ trajectories and finite-time Lyapunov exponent fields.
 \subsection{Finite-time Lyapunov exponent fields}
 Consider the dynamical system
 \begin{equation}
-    \dot{\xx}(t; t_0, \xx_0) = \frac{\mathrm d\xx}{\mathrm d t} = \uu(\xx(t; t_0, \xx_0), t),
+    \dot{\xx}(t; t_0, \xx_0) := \frac{\mathrm d\xx}{\mathrm d t} = \uu(\xx(t; t_0, \xx_0), t),
     \label{eq:dx_dt_equals_u}
 \end{equation}
 where $\xx(t)\in$ are the spatial coordinates of the domain $\mathcal{D}\subset\mathbb{R}^d$,
@@ -193,7 +218,7 @@ We define this relation as the mapping
 \begin{equation}
     \bphi_{t_0}^t : \mathcal{D} \rightarrow \mathcal{D} : \xx_0 \mapsto \bphi_{t_0}^t(\xx_0) = \xx(t; t_0, \xx_0),
 \end{equation}
-where $\bphi_{t_0}^t$ is the flow map~\cite{shadden2005definition}.
+where $\bphi_{t_0}^t$ is the flow map~\cite{shadden2005definition} and $t = T+t_0$.
 We have thus far emphasized the dependence of 
 the dynamical system and the flow map on the parameters $t_0, \xx_0$, but will in the 
 following omit this notation for brevity. Using the gradient of the flow map,
@@ -224,10 +249,24 @@ reveal repelling structures (unstable manifolds) of the flow,
 whereas integration backward in time 
 reveal attracting structures (stable manifolds).
 
+To compute FTLE fields, we initiate a cartesian grid of particles at a
+time $t_0$ and compute the flow map $\phi_{t_0}^{t_0+T}$
+by numerical integration with a fourth-order Runge-Kutta scheme.
+For integration, the timestep size $\Delta t = \fixme{0.001}$
+was chosen based on the CFL condition
+$\Delta t \leq C h_{\mathrm{min}}/u_{\mathrm{max}}$,
+where $C=0.5$, $h_{\mathrm{min}}$ is the minimal edge length
+of the mesh, and $u_{\mathrm{max}}$ is
+the maximum velocity magnitude.
+Computation is parallelized, uses a local element search technique
+to interpolate the velocity field, and only loads velocity data
+at the current timestep to minimize memory load. Further details on the
+method is provided in previous work~\cite{shadden2010computational}.
+
 \subsection{The governing equations of cerebrospinal fluid flow}
 We consider flow of an incompressible, Newtonian fluid of density $\rho$ and dynamic viscosity
 $\mu$ in a domain $\DD\subset\mathbb{R}^d$ with boundary $\partial\DD=\Scal$.
-Neglecting the graviational force, no body forces are acting on the fluid.
+Neglecting graviational force, no body forces are acting on the fluid.
 The flow is governed by the Navier-Stokes equations:
 \begin{alignat}{1}
     \rho\frac{\mathrm D\uu}{\mathrm Dt} 
@@ -247,10 +286,11 @@ $\mathbf{I}$ is the identity tensor in dimension $d$ and
 $\beps(\uu)=\frac{1}{2}\left(\nabla\uu + (\nabla\uu)^T\right)$ is the
 strain-rate tensor (or symmetric gradient) of $\uu$. 
 \Cref{eq:continuity_eq} is the continuity equation
-of an incompressible fluid, which reflects mass conservation.
+of an incompressible fluid, a statement of mass conservation.
 
-The domain $\DD$ is deforming and varies over time. To handle this,
-we solve the Navier-Stokes equations with an
+The brain ventricles deform over time and thus 
+the domain $\DD$ is deforming and varies over time.
+Therefore, we solve the Navier-Stokes equations with an
 Arbitrary Eulerian Lagrangian (ALE) approach~\cite{Duarte2004ALE}.
 The governing equations are solved in the reference configuration $\chi$,
 using the mapping $\psi : \xx\mapsto\chi$ from the current deformed
@@ -271,7 +311,7 @@ must be transformed appropriately to account for the
 domain motion~\cite{Scovazzi2007LectureNotes}.
 
 For fluid flows where viscous forces dominate inertial 
-forces (low Reynolds numbers), the Stokes equations
+forces, the Stokes equations
 \begin{equation}
     - \nabla\cdot\TT = \bm{0}
     \label{eq:stokes_eq}
@@ -314,19 +354,25 @@ We impose zero normal traction at the lateral apertures and the cut-off of the s
 to model them as open boundaries that allow for in- and outflow.
 
 \subsubsection{Brain ventricles deformation}\label{subsubsec:deformation}
-To model the impact of ventricular wall deformations associated with the
-cardiac and respiratory cycles on CSF flow, we impose a
+To model the impact of ventricular wall deformations
+on CSF flow, we impose a
 displacement velocity as a boundary
 condition when solving the flow equations.
 We define the displacement of the brain
 ventricles as $\ww(\xx, t)\in H^2(\DD)$,
 and the displacement velocity is
-$\partial\ww/\partial t$. To obtain
-$\ww(\xx, t)$, we model the brain ventricles 
-as a linear elastic solid, impose displacement 
-boundary conditions on parts of the geometry,
-and solve for $\ww(\xx, t)$ in the rest of the domain.
-The displacement is governed by
+$\dot{\ww}=\partial\ww/\partial t$. The
+displacement $\ww(\xx, t)$ is obtained
+by a smooth extension of displacement data
+with the following approach. The brain ventricles 
+are assumed to be a linear elastic solid. Displacement 
+boundary conditions based on measurement data
+are imposed on parts of the geometry boundary, while the rest
+is considered traction-free. The equations of linear elasticity
+are then solved to yield $\ww(\xx, t)$.
+
+Assuming that the brain ventricles are linear elastic material,
+the displacement is governed by
 \begin{equation}
     \rho\pdiffdifft{\ww} - \nabla\cdot\bsigma_s = \bm{0} \quad\mathrm{in \ \mathcal{D}},
     \label{eq:strong_linear_elasticity_1}
@@ -342,37 +388,34 @@ takes the form
 We impose the boundary conditions
 \begin{alignat}{2}
     \ww(\xx, t) &= \bm{g}(\xx, t) &&\quad\mathrm{on \ \mathcal{S}_1}, \\
-    \bsigma_s\nn &= \bm{0} &&\quad\mathrm{on \ \mathcal{S}_2 = \mathcal{S}\setminus\mathcal{S}_1}.
+    \bsigma_s\nn &= \bm{0} &&\quad\mathrm{on \ \mathcal{S}_2}, \\
+    \ww(\xx, t) &= \bm{0} &&\quad\mathrm{on \ \mathcal{S}_3}.
 \end{alignat}
 On $\mathcal{S}_1$ we impose a given deformation $\bm{g}(\xx, t)$, whereas
-$\mathcal{S}_2$ is considered traction-free.
+$\mathcal{S}_2$ is considered traction-free. The boundary $\mathcal{S}_3$
+is clamped. 
 The displacement $\bm{g}$ is based on brain displacement
-measurements done in the sagittal plane~\cite{Kurtcuoglu2007ComputationalSylvius,
-Enzmann1992BrainImaging}, showing displacements
-along the feet-head axis ($z$ axis),
-and therefore $\bm{g}(\xx, t) = (0, 0, g_z(\xx, t))$.
-The Lamé parameters are derived from the Poisson's ratio $\nu=\fixme{0.479}$ and Young's modulus
-$E=\fixme{1500}$ Pa of white matter brain tissue that surrounds the ventricles
-\cite{Causemann2022HumanFramework}. Although the uncertainty in these material parameters
-is high, with the reported values in literature spanning
-quite a range~\cite{Cheng2010ComputationalModel, Cheng2007UnconfinedCompression},
-we expect a limited impact at least of the choice of $E$ modulus, since
-an increase in $E$ had no impact on clinically relevant features such
-as displaced flow volume in the computational work of
-Causemann~\emph{et al.}~\cite{Causemann2022HumanFramework}.
+measurements done in the sagittal plane
+\cite{Kurtcuoglu2007ComputationalSylvius},
+showing displacements along the feet-head axis ($z$ axis),
+and we therefore set $\bm{g}(\xx, t) = (0, 0, g_z(\xx, t))$.
 
-Biological soft tissues rarely exhibit Hookean material behavior,
-and nonlinear models are presumably most appropriate
-\cite{Cheng2010ComputationalModel, Cheng2007UnconfinedCompression,
-smillie2005hydroelastic, tully2009coupling, kaczmarek1997hydromechanics},
-and so the assumption that the brain ventricles is linear-elastic is 
-questionable. We nonetheless chose this approach because: (i) the
-ventricles are in reality fluid-filled, we
-seek simply a smooth extension to the rest of the domain
-for the displacement measurement boundary condition $\bm{g}(\xx, t)$; 
-(ii) there is anyways still uncertainty in the material parameters
-of brain tissue~\cite{smillie2005hydroelastic},
-making detailed modeling of it rather arbitrary.
+The Lamé parameters are derived from the Poisson's ratio $\nu=0.479$ and Young's modulus
+$E=1500$ Pa of white matter brain tissue that surrounds the ventricles
+\cite{Causemann2022HumanFramework}. We remark that there is
+uncertainty in these material parameters with various values
+reported in the literature\cite{Cheng2010ComputationalModel, Cheng2007UnconfinedCompression}.
+We chose the same values as Causemann~\emph{et al.}~\cite{Causemann2022HumanFramework}
+both to provide a basis of comparison with their work, but also due the facts that
+(i) the brain ventricles walls are nearly incompressible, which a
+Poisson's ratio of $\nu=0.479$ reflects; (ii) the Young's modulus $E$
+is within the range reported in the literature.
+Additionally, a factor of three change in $E$
+had no impact on clinically relevant features such
+as displaced flow volume in the computational work of
+Causemann~\emph{et al.}~\cite{Causemann2022HumanFramework},
+and so we expect the precise choice of $E$ not to
+influence the general trends of the results.
 
 \subsubsection{Choroid plexus secretion}\label{subsubsec:secretion}
 CSF is mainly produced by the choroid plexus tissue.
@@ -442,6 +485,8 @@ To assess the role of the different flow mechanisms, we investigate three model 
 for the human brain model: (i) all three flow mechanisms (deformation, secretion, cilia);
 (ii) deformation and cilia, no secretion; (iii) deformation and secretion, no cilia.
 
+\fixme{Typical mesh edge lengths were X and Y.}
+
 \subsection{Numerical methods}
 We consider an $\bm{H}(\mathrm{div}; \DD)$-conforming discretization of 
 the governing equations of fluid motion (\Crefrange{eq:navier_stokes_eq,eq:continuity_eq,
@@ -481,13 +526,22 @@ and the velocity fields of the last cycle are used
 to calculate FTLE fields.
 
 The linear elasticity equations (\Cref{eq:strong_linear_elasticity_1})
-are solved by a finite element
-method using quadratic continuous Lagrange elements. In time, the
-equations are discretized by a second-order central difference scheme.
-We consider the system initially at rest: $\ww(\xx, t=0) = \bm{0}$.
-The equations are solved for five cardiac cycles, and the last cycle
-is used to calculate $\partial\ww/\partial t$ which is subsequently
-used as a boundary condition in the fluid equations.
+are solved using a finite element
+method, with quadratic continuous Lagrange elements for the
+spatial discretization. In time, the
+equations are discretized with a Newmark-$\beta$ method:
+\begin{align*}
+    \dot{\ww}_{n+1} &= \dot{\ww}_n + (1 - \gamma)\Delta t\ddot{\ww}_n + \gamma\Delta t\ddot{\ww}_{n+1}, \\
+    \ww_{n+1} &= \ww_n + \Delta t\dot{\ww}_n + (\frac{1}{2} - \beta)\Delta t^2\ddot{\ww}_n + \beta\Delta t^2\ddot{\ww}_{n+1}.
+\end{align*}
+Here $n$ denotes timestep. We set
+$\gamma=1/2$ and $\beta=1/4$, which yields
+an unconditionally stable scheme of
+second-order accuracy~\cite{newmark1959method}.
+We consider the system initially at rest.
+The equations are solved for two cardiac cycles, and the
+displacement velocity $\dot{\ww}$ computed in the second cycle
+is used as a boundary condition in the fluid equations.
 
 Convergence properties of the fluid discretization scheme were assessed with two
 model problems. To assess spatial convergence, we solved a channel flow
@@ -570,6 +624,24 @@ Herlyng2025AdvectionDiffusion}.
     \label{fig:fig5}
 \end{figure}
 
+\section{Discussion}
+
+\subsection{Limitations}
+There is an inherent uncertainty in the material parameters
+of brain tissue~\cite{smillie2005hydroelastic}.
+Biological soft tissues rarely exhibit Hookean material behavior,
+and nonlinear models are presumably most appropriate to
+model deformations over longer timespans.
+\cite{Cheng2010ComputationalModel, Cheng2007UnconfinedCompression,
+smillie2005hydroelastic, tully2009coupling, kaczmarek1997hydromechanics}
+We justified our choice of linear elasticity by the fact that
+we consider deformations on the timescale of a cardiac cycle,
+where nonlinear damping effects are negligible.
+Moreover, the ventricles are in reality fluid-filled, we
+seek simply a smooth extension to the rest of the domain
+for the displacement measurement boundary condition $\bm{g}(\xx, t)$.
+A more detailed approach would be to consider linear viscoelasticity,
+which is how brain tissue behaves in reality.
 
 \bibliography{references}{}
 \bibliographystyle{unsrturl}
