@@ -20,13 +20,19 @@ pa_to_mmhg = 1/133.3 # Pascal [Pa] to millimeters Mercury [mmHg]
 m3_to_ml = 1e6 # Meters cubed [m^3] to milliliters [ml]
 
 k = 1 # Element degree
+T = 5.0
+dt = 0.0005
+N = int(T / dt)
+period = 1
+times = np.arange(0, int(period / dt))
 
 comm = MPI.COMM_WORLD
 mesh_prefix = 'medium'
-solver_type = 'stokes'
+solver_type = 'navier-stokes'
 # infile_name = f'../output/{mesh_prefix}-mesh/flow/{solver_type}/checkpoints/chp+cilia+defo/'
-infile_name = f'../output/{mesh_prefix}-mesh/flow/{solver_type}/checkpoints/BDM_deforming_velocity/'
-# infile_name = f'../output/ex3/{mesh_prefix}-mesh/flow/{solver_type}/checkpoints/BDM_deforming_velocity/'
+# infile_name = f'../output/{mesh_prefix}-mesh/flow/{solver_type}/checkpoints/BDM_deforming_velocity/'
+# infile_name = f'../output/ex3/{mesh_prefix}-mesh/flow/{solver_type}/checkpoints/BDM_deforming_velocity/
+infile_name = f"../output/ex3/checkpoints/{solver_type}/BDM_deforming_velocity_T={T}_dt={dt}"
 mesh = a4d.read_mesh(filename=infile_name, comm=comm, read_from_partition=False)
 ft   = a4d.read_meshtags(filename=infile_name, mesh=mesh, meshtag_name='ft')
 
@@ -52,12 +58,6 @@ vertex_bot_aq = f_to_v.links(facet_bot_aq)[0]
 point_top_aq = mesh.geometry.x[vertex_top_aq, :]
 point_bot_aq = mesh.geometry.x[vertex_bot_aq, :]
 length_aq = np.sqrt(np.sum((point_top_aq-point_bot_aq)**2))
-
-T = 2
-dt = 0.01
-N = int(T / dt)
-times = np.linspace(0, T, N+1)
-times = times[1:]
 
 flowrates_top_aq = []
 flowrates_bot_aq = []
@@ -91,19 +91,33 @@ flowrates_bot_aq = np.array(flowrates_bot_aq)
 pressure_gradients_aq = np.array(pressure_gradients_aq)
 
 print(f'Sum of flow rates = {np.sum(flowrates_top_aq[1:]+flowrates_top_aq[:-1])/2*dt:.4g}')
-
+from IPython import embed;embed()
 fig, ax = plt.subplots(figsize=[16, 9])
 pl1, = ax.plot(times, flowrates_top_aq, color='k', label='flowrate')
 ax.set_ylabel('ml/s', fontsize=40)
 ax.tick_params(axis='both', labelsize=30)
 
-ax2 = ax.twinx()
-pl2, = ax2.plot(times, pressure_gradients_aq, color='r', label='pressure gradient')
-ax2.set_ylabel('mmHg/m', color=pl2.get_color(), fontsize=40)
-ax2.tick_params(axis='y', colors=pl2.get_color(), labelsize=30)
+ax_ = ax.twinx()
+pl_, = ax_.plot(times, pressure_gradients_aq, color='r', label='pressure gradient')
+ax_.set_ylabel('mmHg/m', color=pl_.get_color(), fontsize=40)
+ax_.tick_params(axis='y', colors=pl_.get_color(), labelsize=30)
 
 ax.set_xlabel('Time [s]', fontsize=40) 
-ax.legend([pl1, pl2], [pl1.get_label(), pl2.get_label()],
+ax.legend([pl1, pl_], [pl1.get_label(), pl_.get_label()],
            fontsize=20, loc='upper right', frameon=True, fancybox=False, edgecolor='k')
+fig.suptitle("Flowrate aqueduct")
 fig.tight_layout()
+fig.savefig(f"../output/illustrations/{solver_type}_flowrate_aqueduct")
+
+
+fig2, ax2 = plt.subplots(figsize=[16, 9])
+pl2, = ax2.plot(times, flowrates_top_aq, color='k', label='flowrate')
+ax2.set_ylabel('ml/s', fontsize=40)
+ax2.tick_params(axis='both', labelsize=30)
+ax2.legend([pl2], [pl2.get_label()],
+           fontsize=20, loc='upper right', frameon=True, fancybox=False, edgecolor='k')
+fig2.suptitle("Flowrate median aperture")
+fig2.tight_layout()
+fig2.savefig(f"../output/illustrations/{solver_type}_flowrate_median_aperture")
+
 plt.show()

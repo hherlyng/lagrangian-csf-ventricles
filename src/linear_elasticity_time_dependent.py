@@ -54,7 +54,7 @@ print(f"mu \t= {mu_value:.2f}\nlambda \t= {lam_value:.2f}")
 # Temporal parameters
 timestep = 0.0005
 dt = dfx.fem.Constant(mesh, timestep) 
-T = 5
+T = 2
 period = 1
 N = int(T / timestep)
 times = np.linspace(0, T, N+1)
@@ -66,16 +66,24 @@ vec_el = element("Lagrange", mesh.basix_cell(), 2, shape=(mesh.geometry.dim,))
 W = dfx.fem.functionspace(mesh, vec_el)
 wh = dfx.fem.Function(W) # Solution function
 wh_n = dfx.fem.Function(W) # Solution function at n
-wh_nmin = dfx.fem.Function(W) # Solution function at n-1
+wh_tilde = dfx.fem.Function(W) # Displacement predictor
+wh_dot_tilde = dfx.fem.Function(W) # Velocity predictor
+wh_dot_n = dfx.fem.Function(W) # Velocity corrector
+wh_ddot_n = dfx.fem.Function(W) # Acceleration corrector
+
 zero = dfx.fem.Function(W)
 print(f"\nNumber of degrees of freedom: {W.dofmap.index_map.size_global*W.dofmap.index_map_bs}")
 
 # Test and trial functions
 w, dw = ufl.TrialFunction(W), ufl.TestFunction(W)
 
+# Define Newmark parameters
+beta  = dfx.fem.Constant(mesh, dfx.default_scalar_type(1/4))
+gamma = dfx.fem.Constant(mesh, dfx.default_scalar_type(1/2))
+
 # The weak form
-a = rho*inner(w, dw)*dx + dt**2*(2*mu * inner(eps(w), eps(dw))*dx + lam * div(w)*div(dw)*dx)
-L = rho*inner(2*wh_n-wh_nmin, dw)*dx
+a = rho*inner(w / (beta*dt**2), dw)*dx + 2*mu * inner(eps(w), eps(dw))*dx + lam * div(w)*div(dw)*dx
+L = rho*inner(wh_tilde / (beta*dt**2), dw)*dx
 
 # Dirichlet BC on corpus callosum
 cc_disp_expr = WallDeformationCorpusCallosum(derivative=False)
@@ -182,19 +190,27 @@ for t in times:
         sc_disp_expr.t = bc_time
         sc_disp_func.interpolate(sc_disp_expr)
 
+    # Compute predictors
+    wh_tilde.x.array[:] = wh_n.x.array.copy() + dt.value * wh_dot_n.x.array.copy() + (1/2 - beta.value) * dt.value**2 * wh_ddot_n.x.array.copy()
+    wh_dot_tilde.x.array[:] = wh_dot_n.x.array.copy() + (1 - gamma.value) * dt.value * wh_ddot_n.x.array.copy()
+
     # Assemble linear system and solve the equations of linear elasticity
     A, b = assemble_system(A, b, a_cpp, L_cpp, bcs)
     solver.solve(b, wh.x.petsc_vec)
     wh.x.scatter_forward() # MPI communication
+    
+    # Compute correctors
+    wh_ddot_n.x.array[:] = (wh.x.array.copy() - wh_tilde.x.array.copy()) / (beta.value * dt.value**2)
+    wh_dot_n.x.array[:] = wh_dot_tilde.x.array.copy() + gamma.value * dt.value * wh_ddot_n.x.array.copy()
+    wh_n.x.array[:] = wh.x.array.copy() 
 
-
+    # Project velocity if in the final period
     if t >= final_period_start:
         wh_out.interpolate(wh)
         xdmf.write_function(wh_out, t)
         
         # Calculate deformation velocity by a backward difference in time
-        dw_dt.x.array[:] = \
-            (wh.x.array.copy() - wh_n.x.array.copy())/timestep
+        dw_dt.x.array[:] = wh_dot_n.x.array.copy()
 
         # Project deformation velocity into BDM 1 space for checkpointing
         projection_problem.solve()
@@ -208,10 +224,6 @@ for t in times:
         xdmf_vel.write_function(vh_out, t) 
 
         write_time += 1
-    
-    # Update deformation previous timesteps
-    wh_nmin.x.array[:] = wh_n.x.array.copy()
-    wh_n.x.array[:] = wh.x.array.copy() 
 
 xdmf.close()
 xdmf_vel.close()
