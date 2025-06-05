@@ -10,13 +10,18 @@ class WallDeformationCorpusCallosum:
                                         0.84, 0.90, 1.0])
     disp_interp = interp.CubicSpline(times, disp)
     
-    def __init__(self, derivative: bool):
+    def __init__(self, order: int):
         self.t = 0
         self.disp = self.disp_interp
-        self.order = 1 if derivative else 0
+        self.order = order
 
     def __call__(self, x):
-        amplitude = self.disp(self.t, self.order) # Evaluates function value of spline curve
+        """ Evaluates spline function, depending on the value of 'order':
+                - order=0: evaluates function value
+                - order=1: evaluates derivative function value
+                - order=2: evaluates second derivative function value
+        """
+        amplitude = self.disp(self.t, self.order) 
         return amplitude*np.stack((np.zeros(x.shape[1]),
                                    np.zeros(x.shape[1]),
                                    np.ones (x.shape[1])))
@@ -33,13 +38,18 @@ class WallDeformationSpinalCanal:
     times = np.arange(num_datapoints)/(num_datapoints-1)
     disp_interp = interp.CubicSpline(times, disp)
 
-    def __init__(self, derivative: bool):
+    def __init__(self, order: int):
         self.t = 0
         self.disp = self.disp_interp
-        self.order = 1 if derivative else 0
+        self.order = order
 
     def __call__(self, x):
-        amplitude = self.disp(self.t, self.order) # Evaluates function value of spline curve
+        """ Evaluates spline function, depending on the value of 'order':
+                - order=0: evaluates function value
+                - order=1: evaluates derivative function value
+                - order=2: evaluates second derivative function value
+        """
+        amplitude = self.disp(self.t, self.order) 
         return amplitude*np.stack((np.zeros(x.shape[1]),
                                    np.zeros(x.shape[1]),
                                    np.ones (x.shape[1])))
@@ -55,13 +65,18 @@ class WallDeformationCanalWall:
                                         0.84, 0.90, 1.0])
     disp_interp = interp.CubicSpline(times, disp)
 
-    def __init__(self, derivative: bool):
+    def __init__(self, order: int):
         self.t = 0
         self.disp = self.disp_interp
-        self.order = 1 if derivative else 0
+        self.order = order
 
     def __call__(self, x):
-        amplitude = self.disp(self.t, self.order) # Evaluates function value of spline curve
+        """ Evaluates spline function, depending on the value of 'order':
+                - order=0: evaluates function value
+                - order=1: evaluates derivative function value
+                - order=2: evaluates second derivative function value
+        """
+        amplitude = self.disp(self.t, self.order) 
         return amplitude*np.stack((np.zeros(x.shape[1]),
                                    np.zeros(x.shape[1]),
                                    np.ones (x.shape[1])))
