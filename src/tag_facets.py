@@ -3,7 +3,7 @@ import numpy   as np
 import pandas  as pd
 import dolfinx as dfx
 
-mesh_version = "medium"
+mesh_version = "fine"
 mesh_filename = f"../geometries/{mesh_version}_ventricles_mesh"
 cell_labels = range(3, 9)  # Extract cells with labels between 3 and 8
 with dfx.io.XDMFFile(MPI.COMM_WORLD, mesh_filename+".xdmf", "r") as xdmf:
@@ -22,6 +22,7 @@ mesh.topology.create_connectivity(fdim, tdim)
 mesh.topology.create_connectivity(tdim, fdim)
 c_to_f = mesh.topology.connectivity(tdim, fdim)
 boundary_facets = dfx.mesh.exterior_facet_indices(mesh.topology)
+
 
 tags = [101, # Lateral ventricles choroid plexus
         103, # Third ventricle choroid plexus
@@ -42,6 +43,11 @@ for i, csv_filename in enumerate(csv_filenames):
     if i==1:
         facets_rm = dfx.mesh.locate_entities_boundary(mesh, fdim, lambda x: x[1]>0.01119)
         facets_to_mark = [facet for facet in facets_to_mark if facet not in facets_rm]
+        # Fix for fine mesh
+        if mesh_version=="fine":
+            if 303358 in facets_rm: facets_to_mark.append(303358)
+            if 300832 in facets_rm: facets_to_mark.append(300832)
+
     facets_to_mark = np.array(facets_to_mark, dtype=np.int32)
 
     # Loop over the facets and mark them with the cilia tag

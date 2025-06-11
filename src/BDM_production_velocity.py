@@ -89,7 +89,7 @@ class FluidSolverALE:
         self.num_timesteps_per_period = int(self.period / timestep)
         self.mesh_prefix = mesh_prefix
         self.solver_type = solver_type
-        self.defo_input_filename = f"../output/{mesh_prefix}-mesh/deformation/checkpoints/time_dep_deformation_velocity_dt={timestep:.4g}_T={T:.4g}/"
+        self.defo_input_filename = f"../output/{mesh_prefix}-mesh/deformation/checkpoints/displacement_velocity_dt={timestep:.4g}_T={T:.4g}/"
         self.cpoint_filename = f"../output/{mesh_prefix}-mesh/flow/navier-stokes/checkpoints/cilia_direction_vectors/"
         self.check_results = check_results
 
@@ -208,7 +208,7 @@ class FluidSolverALE:
         self.ph = dfx.fem.Function(dfx.fem.functionspace(self.out_mesh, dg_el)); self.ph.name = 'pressure'
         self.uh_rel = dfx.fem.Function(dfx.fem.functionspace(self.out_mesh, dg_vec_el)); self.uh_rel.name = 'relative_velocity'
         
-        self.uh_ = dfx.fem.Function(V); self.uh_.name = "velocity"
+        self.uh_ = dfx.fem.Function(V); self.uh_.name = "cilia_direction"
         self.ph_ = dfx.fem.Function(Q); self.ph_.name = "pressure"
 
         # Prepare checkpoint file
@@ -225,18 +225,14 @@ class FluidSolverALE:
         
         print("Global number of dofs: ", V.dofmap.index_map.size_global+Q.dofmap.index_map.size_global)
     
-    def normalize_velocity(self, uh: dfx.fem.Function):
-            
-        u_reshaped = uh.x.array.reshape(
-                        (int(uh.x.array.__len__()/self.mesh.geometry.dim),
-                            self.mesh.geometry.dim))
-        u_reshaped_norm = np.sqrt(u_reshaped[:, 0]**2 + u_reshaped[:, 1]**2 + u_reshaped[:, 2]**2)
-        where_norm_is_zero = np.where(u_reshaped_norm < 1e-10)[0]
-        u_reshaped_norm[where_norm_is_zero] = 1.0
-        for i in range(self.mesh.geometry.dim): u_reshaped[:, i] /= u_reshaped_norm
-        uh.x.array[:] = u_reshaped.ravel()
+    def normalize_velocity(self, uh: dfx.fem.Function, eps: float=1e-12):
+        
+        norm = ufl.sqrt(inner(uh, uh))
+        uh_normed_expr = dfx.fem.Expression(uh / (norm + eps), uh.function_space.element.interpolation_points())
+        uh_normed = uh.copy()
+        uh_normed.interpolate(uh_normed_expr)
 
-        return uh
+        return uh_normed
 
     def create_solver(self):
         ksp = PETSc.KSP().create(self.comm)
@@ -304,11 +300,10 @@ class FluidSolverALE:
                 break 
 
         # Write to checkpoint file
-        self.u_direction = self.normalize_velocity(self.uh_)
-        a4d.write_function_on_input_mesh(filename=self.cpoint_filename, u=self.u_direction)
+        a4d.write_function_on_input_mesh(filename=self.cpoint_filename, u=self.uh_)
 
         if self.check_results:
-            self.u_direction_dg.interpolate(self.u_direction)
+            self.u_direction_dg.interpolate(self.uh_)
             self.vtx.write(0.0)
             self.vtx.close()
 
