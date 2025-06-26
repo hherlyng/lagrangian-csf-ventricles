@@ -105,7 +105,7 @@ def generate_data(input_filename: str,
     u = dfx.fem.Function(V)
 
     if write_xdmf_check:
-        xdmf_u = dfx.io.XDMFFile(MPI.COMM_WORLD, output_dir+f"{output_prefix}_bin_velocity_check.xdmf", "w")
+        xdmf_u = dfx.io.XDMFFile(MPI.COMM_WORLD, output_dir+f"bin_velocity.xdmf", "w")
         xdmf_u.write_mesh(mesh)
 
     if steady_state:
@@ -158,12 +158,15 @@ def main(argv=None):
     opts.add_argument("-g", "--governing_equations", type=str, help="Governing equations (Stokes or Navier-Stokes)")
     opts.add_argument("-o", "--output_prefix", type=str, default="brain", help="Prefix for output binaries")
     opts.add_argument("-m", "--mesh_prefix", type=str, help="Mesh prefix")
+    opts.add_argument("-v", "--model_variation", type=str, help="Model variation, which flow mechanisms are considered")
 
     args = parser.parse_args(argv)
     if args.mesh_prefix not in ["coarse", "medium", "fine"]:
         raise ValueError(f'Unknown mesh prefix, "coarse", "medium", or "fine".')
     if args.governing_equations not in ["stokes", "navier-stokes"]:
         raise ValueError(f'Unknown governing equations, choose "stokes" or "navier-stokes".')
+    if args.model_variation not in ["deformation+cilia+production", "deformation+cilia", "deformation+production"]:
+        raise ValueError("Unknown model variation.")
     
     # Set steady state flag
     steady = True if args.steady_state==1 else False
@@ -182,7 +185,7 @@ def main(argv=None):
     output_dir = f"/Users/hherlyng/flowVC/bin/{bin_dir}/{args.governing_equations}/"
 
     # Define checkpoint filename
-    cpoint_prefix = f"{args.element_family}_deforming_velocity"
+    cpoint_prefix = f"{args.element_family}_{args.model_variation}_velocity"
     velocity_input_filename = \
         f"../output/{args.mesh_prefix}-mesh/flow/{args.governing_equations}/checkpoints/{cpoint_prefix}_projection"
     

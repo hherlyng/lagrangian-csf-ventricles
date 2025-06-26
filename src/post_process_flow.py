@@ -27,11 +27,12 @@ times = dt*np.arange(0, int(period / dt))
 
 comm = MPI.COMM_WORLD
 mesh_prefix = 'medium'
-solver_type = 'navier-stokes'
+solver_type = 'stokes'
+model_variation = 'deformation+cilia+production'
 # infile_name = f'../output/{mesh_prefix}-mesh/flow/{solver_type}/checkpoints/chp+cilia+defo/'
 # infile_name = f'../output/{mesh_prefix}-mesh/flow/{solver_type}/checkpoints/BDM_deforming_velocity_T={T}_dt={dt}/'
 # infile_name = f'../output/ex3/{mesh_prefix}-mesh/flow/{solver_type}/checkpoints/BDM_deforming_velocity/
-infile_name = f"../output/ex3/flow/{solver_type}/checkpoints/BDM_no-cilia_velocity_T={T}_dt={dt}"
+infile_name = f"../output/ex3/flow/{solver_type}/checkpoints/BDM_{model_variation}_velocity_T={T}_dt={dt}"
 # infile_name = f"../output/ex3/flow/{solver_type}/checkpoints/BDM_deforming_velocity_T={T}_dt={dt}"
 mesh = a4d.read_mesh(filename=infile_name, comm=comm, read_from_partition=False)
 ft   = a4d.read_meshtags(filename=infile_name, mesh=mesh, meshtag_name='ft')
@@ -71,15 +72,15 @@ flowrates_top_aq = []
 flowrates_bot_aq = []
 pressure_gradients_aq = []
 
-vtk = dfx.io.VTKFile(comm, "velocity.pvd", "w")
-vtk.write_mesh(mesh)
+# vtk = dfx.io.VTKFile(comm, "velocity.pvd", "w")
+# vtk.write_mesh(mesh)
 
 for i, t in enumerate(times):
     print(f'Time t = {t:.4g}')
 
     a4d.read_function(filename=infile_name, u=uh, time=i, name='relative_velocity')
     a4d.read_function(filename=infile_name, u=ph, time=i, name='pressure')
-    uh_out.interpolate(uh)
+    # uh_out.interpolate(uh)
 
     # Calculate flow rates
     flowrate_top_aq = comm.allreduce(dfx.fem.assemble_scalar(flowrate_top_form)*m3_to_ml, op=MPI.SUM)
@@ -97,8 +98,8 @@ for i, t in enumerate(times):
     [l.append(val) for l, val in zip([flowrates_top_aq, flowrates_bot_aq, pressure_gradients_aq], 
                                      [flowrate_top_aq,  flowrate_bot_aq,  delta_pressure_aq])]
 
-    vtk.write_function(uh_out, t)
-vtk.close()
+#     vtk.write_function(uh_out, t)
+# vtk.close()
 # Convert lists to numpy arrays
 flowrates_top_aq = np.array(flowrates_top_aq)
 flowrates_bot_aq = np.array(flowrates_bot_aq)
@@ -134,7 +135,7 @@ fig2.tight_layout()
 
 save_figs = 0
 if save_figs:
-    fig.savefig(f"../output/illustrations/{solver_type}_flowrate_aqueduct")
-    fig2.savefig(f"../output/illustrations/{solver_type}_flowrate_median_aperture")
+    fig.savefig(f"../output/illustrations/flowrate_aqueduct_{model_variation}_{solver_type}")
+    fig2.savefig(f"../output/illustrations/flowrate_median_aperture_{model_variation}_{solver_type}")
 
 plt.show()

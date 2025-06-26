@@ -7,10 +7,9 @@ from basix.ufl import element
 from dolfinx.fem.petsc import LinearProblem
 
 def projection_problem_CG2_to_BDM1(vh_cg: dfx.fem.Function,
-                                   vh_bdm: dfx.fem.Function) -> LinearProblem:
+                                   vh_bdm: dfx.fem.Function,
+                                   dx: ufl.Measure) -> LinearProblem:
      V = vh_bdm.function_space
-     mesh = V.mesh
-     dx = ufl.Measure('dx', domain=mesh)
      eta, zeta = ufl.TrialFunction(V), ufl.TestFunction(V)
      a = ufl.inner(eta, zeta)*dx
      L = ufl.inner(vh_cg, zeta)*dx

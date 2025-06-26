@@ -324,13 +324,6 @@ class FluidSolverALE:
             a4d.read_function(filename=self.defo_input_filename, u=self.wh, name="defo_displacement", time=self.read_time)
             a4d.read_function(filename=self.defo_input_filename, u=self.u_defo_read, name="defo_velocity", time=self.read_time)
             self.u_defo.interpolate(self.u_defo_read)
-
-            u_chp_updated = create_normal_contribution_bc(
-                                    self.V, 
-                                    (-self.chp_velocity*self.n_hat
-                                        + dot(self.u_defo, self.n_hat)*self.n_hat),
-                                    self.facets_chp)
-            self.u_chp.interpolate(u_chp_updated)
         
             self.solve_blocked_system() # Solve the fluid equations of motion
 

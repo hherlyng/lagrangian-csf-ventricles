@@ -9,10 +9,16 @@ from basix.ufl         import element
 from dolfinx.fem.petsc import LinearProblem
 from utilities.parsers import CustomParser
 
-def project_velocity_field(N: int, T: float, mesh_prefix: str, solver_type: str, element_family: str, steady: bool):
+def project_velocity_field(N: int,
+                           T: float,
+                           mesh_prefix: str,
+                           solver_type: str,
+                           model_variation: str,
+                           element_family: str,
+                           steady: bool):
     # Velocity data
     velocity_input_filename = \
-        f"../output/{mesh_prefix}-mesh/flow/{solver_type}/checkpoints/BDM_deforming_velocity"
+        f"../output/{mesh_prefix}-mesh/flow/{solver_type}/checkpoints/BDM_{model_variation}_velocity"
     mesh = a4d.read_mesh(filename=velocity_input_filename,
                         comm=MPI.COMM_WORLD,
                         engine="BP4",
@@ -75,19 +81,29 @@ def main(argv=None):
     opts.add_argument("-e", "--element_family", type=str, default="BDM", help="Finite element family")
     opts.add_argument("-g", "--governing_equations", type=str, help="Governing equations (Stokes or Navier-Stokes)")
     opts.add_argument("-m", "--mesh_prefix", type=str, help="Mesh prefix")
+    opts.add_argument("-v", "--model_variation", type=str, help="Model variation, which flow mechanisms are considered")
 
     args = parser.parse_args(argv)
     if args.mesh_prefix not in ["coarse", "medium", "fine"]:
-        raise ValueError(f'Unknown mesh prefix, "coarse", "medium", or "fine".')
+        raise ValueError("Unknown mesh prefix, 'coarse', 'medium', or 'fine'.")
     if args.governing_equations not in ["stokes", "navier-stokes"]:
-        raise ValueError(f'Unknown governing equations, choose "stokes" or "navier-stokes".')
+        raise ValueError("Unknown governing equations, choose 'stokes' or 'navier-stokes'.")
+    if args.model_variation not in ["deformation+cilia+production", "deformation+cilia", "deformation+production"]:
+        raise ValueError("Unknown model variation.")
     
     steady = True if args.steady_state==1 else False
     T = args.final_time
     dt = args.timestep
     N = int(T / dt)
     print("Number of timestamps: ", N)
-    project_velocity_field(N, T, args.mesh_prefix, args.governing_equations, args.element_family, steady)
+    project_velocity_field(N,
+                           T,
+                           args.mesh_prefix,
+                           args.governing_equations,
+                           args.model_variation,
+                           args.element_family,
+                           steady
+                        )
 
 if __name__=='__main__':
     main()

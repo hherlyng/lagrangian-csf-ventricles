@@ -87,7 +87,7 @@ class FluidSolverALE:
         self.timestep = timestep
         self.N = int(T / timestep)
         self.times = np.linspace(0, T, self.N+1)
-        self.final_period_start = 0.0#int(T - self.period)
+        self.final_period_start = int(T - self.period)
         self.num_timesteps_per_period = int(self.period / timestep)
         self.mesh_prefix = mesh_prefix
         self.solver_type = solver_type

@@ -3,7 +3,7 @@ import numpy   as np
 import pandas  as pd
 import dolfinx as dfx
 
-mesh_version = "fine"
+mesh_version = "medium"
 mesh_filename = f"../geometries/{mesh_version}_ventricles_mesh"
 cell_labels = range(3, 9)  # Extract cells with labels between 3 and 8
 with dfx.io.XDMFFile(MPI.COMM_WORLD, mesh_filename+".xdmf", "r") as xdmf:
@@ -28,12 +28,16 @@ tags = [101, # Lateral ventricles choroid plexus
         103, # Third ventricle choroid plexus
         104, # Fourth ventricle choroid plexus
         28, # Lateral apertures boundary
-        110] # Corpus callosum boundary
+        110, # Corpus callosum boundary
+        112, # Third ventricle left deformation boundary
+        111] # Third ventricle right deformation boundary
 csv_filenames = [f"../geometries/selected_facets_lateralChP_{mesh_version}.csv",
                  f"../geometries/selected_facets_thirdChP_{mesh_version}.csv",
                  f"../geometries/selected_facets_fourthChP_{mesh_version}.csv",
                  f"../geometries/selected_facets_lateralApertures_{mesh_version}.csv",
-                 f"../geometries/selected_facets_corpus_callosum_{mesh_version}.csv"]
+                 f"../geometries/selected_facets_corpus_callosum_{mesh_version}.csv",
+                 f"../geometries/selected_facets_third_left_{mesh_version}.csv",
+                 f"../geometries/selected_facets_third_right_{mesh_version}.csv"]
 for i, csv_filename in enumerate(csv_filenames):
     df = pd.read_csv(csv_filename)
     selected_facets = df['vtkOriginalCellIds'].values
