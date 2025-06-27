@@ -5,4 +5,4 @@ geometries/ventricles-meshes
 # Files
 .cache
 __pycache__
-.npy
+*.npy
