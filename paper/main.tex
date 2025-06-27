@@ -538,7 +538,10 @@ Here $n$ denotes timestep. We set
 $\gamma=1/2$ and $\beta=1/4$, which yields
 an unconditionally stable scheme of
 second-order accuracy~\cite{newmark1959method}.
-We consider the system initially at rest.
+On the boundaries we impose a displacement $\gg$, the initial
+conditions for $\ww$, $\dot{\ww}$ and $\ddot{\ww}$ are 
+derived from $\gg$. On the traction-free and anchored
+boundaries, the geometry is initially at rest.
 The equations are solved for two cardiac cycles, and the
 displacement velocity $\dot{\ww}$ computed in the second cycle
 is used as a boundary condition in the fluid equations.
@@ -551,8 +554,12 @@ Temporal convergence was assessed
 with a Taylor vortex problem~\cite{Karniadakis2005Verification},
 where the first-order accuracy of the backward Euler scheme was
 confirmed. The discretization of the linear elasticity equations was
-verified using the method of manufactured solutions~\cite{Roache2001CodeSolutions},
-with the expected convergence rates confirmed.
+verified using the method of manufactured solutions~\cite{Roache2001CodeSolutions}.
+With quadratic basis functions, the errors of the displacement
+approximation measured in the $\bm{L}^2$ norm and
+$\bm{H}^1$ semi-norm converged at the optimal rates of three
+and two, respectively. In time, second-order accuracy of the 
+Newmark-$\beta$ method was confirmed.
 
 \section{Results}
 \subsection{Finite element flow simulations}
@@ -625,6 +632,31 @@ Herlyng2025AdvectionDiffusion}.
 \end{figure}
 
 \section{Discussion}
+
+\subsection{Brain motion}
+Despite using different techniques, all studies agree that
+maximum tissue displacement occurs during systole. Over-
+all, brain motion was found to be strongest in the cephalo-
+caudal direction [8], followed by lateral motion, with rela-
+tively little movement in the anteroposterior direction [7,
+20]. All studies reported the largest velocities and displace-
+ments of the brain occurred close to the central brain regions
+and base of the brain, in tissue adjacent to the circle of Wil-
+lis, foramen magnum and brain stem (midbrain, pons and
+medulla).
+
+% from https://pdf.sciencedirectassets.com/777084/1-s2.0-S2666522020X00037/1-s2.0-S2666522021000022/main.pdf?X-Amz-Security-Token=IQoJb3JpZ2luX2VjEGMaCXVzLWVhc3QtMSJGMEQCIFsYXTtc1RHMSmIK52xVkIvN%2Bumz2sbFhDOyeFEGBiEuAiAl6PomsgXFcKGN3W%2FSnUIQPx69iUpdnRiX%2Fd5YbdJQmSqzBQhcEAUaDDA1OTAwMzU0Njg2NSIMV3XPdDrmcSDbLJ3hKpAFwLI%2B%2FdeHrozPBeMvZR%2BgjYRec0A1YLbiheYjSXzNIEDXPMjOqmHwyUpcKuV5q2vAwY4FtBfu3WVSH8JWmR0%2Fk4cbcfXzHljQ6e%2BnHmfcqYNj2F0T3VSaokaOnGYW0LDYEtsJNxK1hofZIU5Zp2R8eOWBBpQiqWCD1s8lwzt1CosEgFK5j2H41WKplu0zTRXwyFeumPB8Qoh1BEXOBe%2BVnel%2FxwIa%2B35cQ1Bylcp%2FPqmBlSXvGjA%2FD52pPm%2B8KSVAveAggAIIH39FFEWVjYEMTV%2BcwPKmEVtSaTvf8FtXVKA%2ByIB%2FRyJztaT6HonLdqlg1q6yWdT755FfU8Hu4bKPSrZNOd9%2FcEX4H0HHfIp6YhDTcMnZrH39hkzazlWOFH3n0Pir6iIM%2BHraNZDqSEdbaYWVD4AjIo5TpIwQT5oFgjYx3%2BRevirU4weJgvtQXfT0zd83XlLWSd9%2F6vB5whVhgH7U9YeQ8RBuQ%2FW6%2FhsRGFpjaDd6wOwQtvxV0V6gIfv8ae7pXx7hnUCH8PLl5mTiJVCbuMkkCj4nKwbDj6Ym3iIEEFFXNm1LKAQUkQQycztXXUjOW2Rk%2BfFUFkFtyN0J12AbStuB%2FpgXm6LaBOMtRXvnAtFYVoczydgkGdvV6ATCzTQiRRRrfmjHSpdxiqalGkjKbyzFbrfjISlTsMpBKhUO1S5hicJb57g9WcBWFBFZFngoIxJDZTo6tkojKTvzbyQ9G%2BKQl0%2FEzSL%2Bh8VhufNitTYllU7hSvymQgzH%2BbLUoPyk13IkWi%2FIDzegYJCZrXw8JQ5cZcKjzqBGGgZY9PLx8BEpapsg4lvgGxZkKOfpCZt2TYJ8NJeDGMDpbdNi2QK9UhDhwPDYbcsnI9fw5TgwoML0wgY6sgEd0v8wRCBRjUbuThLGzI2ssmRgyGi%2BC%2Fsj868ag2Dr93D4YCmOUfX3iS3Gh7DFo2SN7sQqyuA5RSdvzVAQ7wszPxacr4JbbL7h%2FnD4XEGN1XIHYT7RrdpvzKDMcdxTmN17v8%2BF6IkVjfp8GSIYgSA3SN8%2FSENpcq9eVvTaWLS7MOBFeqM7DXNYszu3lsFQDyw4ja1%2FPXnSHSSNWdB79h%2BKbOaM%2FUL%2BFVocTURat90KfV9a&X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Date=20250626T121052Z&X-Amz-SignedHeaders=host&X-Amz-Expires=300&X-Amz-Credential=ASIAQ3PHCVTY4QUWI4GR%2F20250626%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Signature=2f39df75eab0574eb192f414e82add491e273736e459fd55b1d5d1bb7109491f&hash=78f6fddcd654398abfa1a1a00fd856c38f6b19d1e5a20a2758468389bf23a036&host=68042c943591013ac2b2430a89b270f6af2c76d8dfd086a07176afe7c76c2c61&pii=S2666522021000022&tid=spdf-fd31c558-5f4b-4954-9952-c411d8c39b2e&sid=f8d661842be6c741fd1bba05596e16d10e11gxrqb&type=client&tsoh=d3d3LnNjaWVuY2VkaXJlY3QuY29t&rh=d3d3LnNjaWVuY2VkaXJlY3QuY29t&ua=0c005f5653045e045c&rr=955c9a9f5baeeb55&cc=no
+Another interesting finding was
+the approximately symmetric medial-lateral expansion of the two hemi-
+spheres of the brain, which could be due to the cerebral arterial swelling
+during the cardiac cycle [62].
+One other contributing factor for the ob-
+served localized medial-lateral deformation near the periventricular re-
+gion, could be the enlargement of the 3𝑟𝑑 and lateral ventricles during
+the cardiac cycle [63,64]. 
+More specifically, in addition to the substantial mo-
+tion in the inferior brain structures, DENSE also showed large motion
+in the medial brain structures near the 3rd and lateral ventricles [65].
 
 \subsection{Limitations}
 There is an inherent uncertainty in the material parameters
