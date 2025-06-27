@@ -39,12 +39,14 @@ with dfx.io.XDMFFile(comm, f"../geometries/{mesh_prefix}_ventricles_mesh_tagged.
 
 mesh.topology.create_connectivity(facet_dim, facet_dim+1) # Create facet-cell connectivity
 
+output_dir = f"../output/{mesh_prefix}-mesh/deformation/"
+
 ds = ufl.Measure('ds', domain=mesh, subdomain_data=ft) # Boundary integral measure
 dx = ufl.Measure('dx', domain=mesh, subdomain_data=ct) # Volume integral measure
 eps = lambda arg: sym(grad(arg)) # The symmetric gradient
 
 # Material parameters
-E = 1500#1500 #3156 # Modulus of elasticity [Pa]
+E = 1500 #3156 # Modulus of elasticity [Pa]
 nu = 0.479 # Poisson's ratio [-]
 eta_value = 2*E/(1+nu) # First Lamé parameter value
 lam_value = nu*E/((1+nu)*(1-2*nu)) # Second Lamé parameter value
@@ -107,45 +109,38 @@ tw_disp_func_right = dfx.fem.Function(W)
 tw_disp_func_left  = dfx.fem.Function(W)
 bcs = []
 
-if len(ft.find(CORPUS_CALLOSUM))>0:
-    cc_dofs = dfx.fem.locate_dofs_topological(W, facet_dim, ft.find(CORPUS_CALLOSUM))
-    # cc_dofs = np.arange(cc_dofs*gdim, (cc_dofs+1)*gdim)
-    # num_cc_dofs = comm.allreduce(len(cc_dofs), op=MPI.SUM)
-    # print("Number of corpus callosum dofs: ", num_cc_dofs)
-    # assert num_cc_dofs>0, print("No corpus callosum dofs located.")
-    bcs.append(dfx.fem.dirichletbc(cc_disp_func, cc_dofs))
+cc_dofs = dfx.fem.locate_dofs_topological(W, facet_dim, ft.find(CORPUS_CALLOSUM))
+# cc_dofs = np.arange(cc_dofs*gdim, (cc_dofs+1)*gdim)
+# num_cc_dofs = comm.allreduce(len(cc_dofs), op=MPI.SUM)
+# print("Number of corpus callosum dofs: ", num_cc_dofs)
+# assert num_cc_dofs>0, print("No corpus callosum dofs located.")
+bcs.append(dfx.fem.dirichletbc(cc_disp_func, cc_dofs))
 
 
-if len(ft.find(CANAL_WALL))>0:
-    cw_dofs = dfx.fem.locate_dofs_topological(W, facet_dim, ft.find(CANAL_WALL))
-    # cw_dofs = np.arange(cw_dofs*gdim, (cw_dofs+1)*gdim)
-    # num_cw_dofs = comm.allreduce(len(cw_dofs), op=MPI.SUM)
-    # print("Number of canal wall dofs: ", num_cw_dofs)
-    bcs.append(dfx.fem.dirichletbc(cw_disp_func, cw_dofs))
+cw_dofs = dfx.fem.locate_dofs_topological(W, facet_dim, ft.find(CANAL_WALL))
+# cw_dofs = np.arange(cw_dofs*gdim, (cw_dofs+1)*gdim)
+# num_cw_dofs = comm.allreduce(len(cw_dofs), op=MPI.SUM)
+# print("Number of canal wall dofs: ", num_cw_dofs)
+bcs.append(dfx.fem.dirichletbc(cw_disp_func, cw_dofs))
 
+tw_dofs_right = dfx.fem.locate_dofs_topological(W, facet_dim, ft.find(THIRD_LATERAL_RIGHT))
+# tw_dofs_right = np.arange(tw_dofs_right*gdim, (tw_dofs_right+1)*gdim)
+# num_tw_dofs_right = comm.allreduce(len(tw_dofs_right), op=MPI.SUM)
+# print("Number of third ventricle wall (right) dofs: ", num_tw_dofs_right)
+bcs.append(dfx.fem.dirichletbc(tw_disp_func_right, tw_dofs_right))
 
-if len(ft.find(THIRD_LATERAL_RIGHT))>0:
-    tw_dofs_right = dfx.fem.locate_dofs_topological(W, facet_dim, ft.find(THIRD_LATERAL_RIGHT))
-    # tw_dofs_right = np.arange(tw_dofs_right*gdim, (tw_dofs_right+1)*gdim)
-    # num_tw_dofs_right = comm.allreduce(len(tw_dofs_right), op=MPI.SUM)
-    # print("Number of third ventricle wall (right) dofs: ", num_tw_dofs_right)
-    bcs.append(dfx.fem.dirichletbc(tw_disp_func_right, tw_dofs_right))
-
-
-if len(ft.find(THIRD_LATERAL_LEFT))>0:
-    tw_dofs_left = dfx.fem.locate_dofs_topological(W, facet_dim, ft.find(THIRD_LATERAL_LEFT))
-    # tw_dofs_left = np.arange(tw_dofs_left*gdim, (tw_dofs_left+1)*gdim)
-    # num_tw_dofs_left = comm.allreduce(len(tw_dofs_left), op=MPI.SUM)
-    # print("Number of third ventricle wall (left) dofs: ", num_tw_dofs_left)
-    bcs.append(dfx.fem.dirichletbc(tw_disp_func_left, tw_dofs_left))
+tw_dofs_left = dfx.fem.locate_dofs_topological(W, facet_dim, ft.find(THIRD_LATERAL_LEFT))
+# tw_dofs_left = np.arange(tw_dofs_left*gdim, (tw_dofs_left+1)*gdim)
+# num_tw_dofs_left = comm.allreduce(len(tw_dofs_left), op=MPI.SUM)
+# print("Number of third ventricle wall (left) dofs: ", num_tw_dofs_left)
+bcs.append(dfx.fem.dirichletbc(tw_disp_func_left, tw_dofs_left))
 
 # Anchor spinal canal
-if len(ft.find(CANAL_OUT))>0:
-    canal_out_dofs = dfx.fem.locate_dofs_topological(W, facet_dim, ft.find(CANAL_OUT))
-    bcs.append(dfx.fem.dirichletbc(zero, canal_out_dofs))
-if len(ft.find(LATERAL_APERTURES))>0:
-    apertures_dofs = dfx.fem.locate_dofs_topological(W, facet_dim, ft.find(LATERAL_APERTURES))
-    bcs.append(dfx.fem.dirichletbc(zero, apertures_dofs))
+
+# canal_out_dofs = dfx.fem.locate_dofs_topological(W, facet_dim, ft.find(CANAL_OUT))
+# bcs.append(dfx.fem.dirichletbc(zero, canal_out_dofs))
+# apertures_dofs = dfx.fem.locate_dofs_topological(W, facet_dim, ft.find(LATERAL_APERTURES))
+# bcs.append(dfx.fem.dirichletbc(zero, apertures_dofs))
     
 # Create linear system
 a_cpp, L_cpp = dfx.fem.form(a), dfx.fem.form(L)
@@ -158,6 +153,9 @@ opts = PETSc.Options()
 opts["ksp_type"] = "preonly"
 opts["pc_type"] = "lu"
 opts["pc_factor_mat_solver_type"] = "mumps"
+opts["mat_mumps_icntl_24"] = 1  # Option to support solving a singular matrix (rigid motions nullspace)
+opts["mat_mumps_icntl_25"] = 0  # Option to support solving a singular matrix (rigid motions nullspace)
+opts["ksp_error_if_not_converged"] = 1 # Throw an error if KSP solver does not converge
 
 # Create the solver object, set options and enable convergence monitoring
 solver = PETSc.KSP().create(comm)
@@ -165,8 +163,8 @@ solver.setOperators(A)
 solver.setFromOptions()
 solver.setMonitor(lambda _, its, rnorm: print(f"Iteration: {its}, residual: {rnorm}"))
 
-xdmf = dfx.io.XDMFFile(comm, f"../output/{mesh_prefix}-mesh/deformation/displacement_dt={timestep:.4g}_T={T:.4g}.xdmf", "w")
-xdmf_vel = dfx.io.XDMFFile(comm, f"../output/{mesh_prefix}-mesh/deformation/displacement_velocity_dt={timestep:.4g}_T={T:.4g}.xdmf", "w")
+xdmf = dfx.io.XDMFFile(comm, output_dir+f"displacement_dt={timestep:.4g}_T={T:.4g}.xdmf", "w")
+xdmf_vel = dfx.io.XDMFFile(comm, output_dir+f"displacement_velocity_dt={timestep:.4g}_T={T:.4g}.xdmf", "w")
 xdmf.write_mesh(mesh)
 xdmf_vel.write_mesh(mesh)
 CG1_vector_space = dfx.fem.functionspace(mesh,
@@ -177,7 +175,6 @@ CG1_vector_space = dfx.fem.functionspace(mesh,
 
 wh_out = dfx.fem.Function(CG1_vector_space)
 vh_out = dfx.fem.Function(CG1_vector_space)
-dw_dt = dfx.fem.Function(W)
 k = 1 # BDM element degree
 bdm_el = element("BDM", mesh.basix_cell(), k)
 BDM = dfx.fem.functionspace(mesh, bdm_el)
@@ -185,12 +182,12 @@ dw_dt_bdm = dfx.fem.Function(BDM)
 dw_dt_bdm.name = "defo_velocity"
 wh.name = "defo_displacement"
 
-vh_cpoint_filename = f"../output/{mesh_prefix}-mesh/deformation/checkpoints/displacement_velocity_dt={timestep:.4g}_T={T:.4g}/"
+vh_cpoint_filename = output_dir+f"checkpoints/displacement_velocity_dt={timestep:.4g}_T={T:.4g}/"
 a4d.write_mesh(filename=vh_cpoint_filename, mesh=mesh)
 a4d.write_meshtags(vh_cpoint_filename, mesh, ft, meshtag_name='ft')
 a4d.write_meshtags(vh_cpoint_filename, mesh, ct, meshtag_name='ct')
 
-projection_problem = projection_problem_CG2_to_BDM1(dw_dt, dw_dt_bdm, dx)
+projection_problem = projection_problem_CG2_to_BDM1(wh_dot, dw_dt_bdm, dx)
 
 A, b = assemble_system(A, b, a_cpp, L_cpp, bcs)
 
@@ -224,8 +221,6 @@ for t in times[1:]:
     # Solve and MPI communicate
     solver.solve(b, wh.x.petsc_vec)
     wh.x.scatter_forward()
-    print(wh.x.array.max())
-    print(wh.x.array.min())
     
     # Update functions
     wh_ddot.interpolate(acc_expr)
@@ -237,10 +232,6 @@ for t in times[1:]:
     if t >= final_period_start:
         wh_out.interpolate(wh)
         xdmf.write_function(wh_out, t)
-        
-        # Update deformation velocity
-        dw_dt.x.array[:] = wh_dot.x.array.copy()
-        print(dw_dt.x.array)
 
         # Project deformation velocity into BDM 1 space for checkpointing
         projection_problem.solve()
@@ -250,7 +241,7 @@ for t in times[1:]:
         a4d.write_function(filename=vh_cpoint_filename, u=dw_dt_bdm, time=write_time)
         
         # Interpolate the velocity into CG1 and write XDMF output
-        vh_out.interpolate(dw_dt) 
+        vh_out.interpolate(wh_dot) 
         xdmf_vel.write_function(vh_out, t) 
 
         write_time += 1
@@ -258,15 +249,17 @@ for t in times[1:]:
     wh_n.x.array[:] = wh.x.array.copy()
 
 import matplotlib.pyplot as plt
-plt.figure(1)
-plt.plot(times[1:], np.array(applied_bc1), 'r')
-plt.plot(times[1:], np.array(applied_bc2), 'b')
-plt.plot(times[1:], np.array(applied_bc3), 'g')
+fig, ax = plt.subplots(figsize=([12, 8]))
+ax.plot(times[1:], np.array(applied_bc1), 'r', label="Corpus callosum")
+ax.plot(times[1:], np.array(applied_bc2), 'b', label="Canal wall")
+ax.plot(times[1:], np.array(applied_bc3), 'g', label="3V wall")
+ax.legend()
+fig.savefig("../output/illustrations/applied_BCs_deformation")
 plt.show()
 
-np.save("applied_bc_corpus_callosum", np.array(applied_bc1))
-np.save("applied_bc_canal_wall", np.array(applied_bc2))
-np.save("applied_bc_3V_wall", np.array(applied_bc3))
+np.save(output_dir+"applied_bc_corpus_callosum", np.array(applied_bc1))
+np.save(output_dir+"applied_bc_canal_wall", np.array(applied_bc2))
+np.save(output_dir+"applied_bc_3V_wall", np.array(applied_bc3))
 
 xdmf.close()
 xdmf_vel.close()

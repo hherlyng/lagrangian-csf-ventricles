@@ -26,13 +26,11 @@ period = 1
 times = dt*np.arange(0, int(period / dt))
 
 comm = MPI.COMM_WORLD
-mesh_prefix = 'medium'
-solver_type = 'stokes'
+mesh_prefix = 'fine'
+solver_type = 'navier-stokes'
 model_variation = 'deformation+cilia+production'
-# infile_name = f'../output/{mesh_prefix}-mesh/flow/{solver_type}/checkpoints/chp+cilia+defo/'
 # infile_name = f'../output/{mesh_prefix}-mesh/flow/{solver_type}/checkpoints/BDM_deforming_velocity_T={T}_dt={dt}/'
-# infile_name = f'../output/ex3/{mesh_prefix}-mesh/flow/{solver_type}/checkpoints/BDM_deforming_velocity/
-infile_name = f"../output/ex3/flow/{solver_type}/checkpoints/BDM_{model_variation}_velocity_T={T}_dt={dt}"
+infile_name = f"../output/ex3/{mesh_prefix}-mesh/flow/{solver_type}/checkpoints/BDM_{model_variation}_velocity_T={T}_dt={dt}"
 # infile_name = f"../output/ex3/flow/{solver_type}/checkpoints/BDM_deforming_velocity_T={T}_dt={dt}"
 mesh = a4d.read_mesh(filename=infile_name, comm=comm, read_from_partition=False)
 ft   = a4d.read_meshtags(filename=infile_name, mesh=mesh, meshtag_name='ft')
@@ -133,9 +131,9 @@ ax2.legend([pl2], [pl2.get_label()],
 fig2.suptitle("Flowrate median aperture")
 fig2.tight_layout()
 
-save_figs = 0
+save_figs = 1
 if save_figs:
-    fig.savefig(f"../output/illustrations/flowrate_aqueduct_{model_variation}_{solver_type}")
-    fig2.savefig(f"../output/illustrations/flowrate_median_aperture_{model_variation}_{solver_type}")
+    fig.savefig(f"../output/illustrations/flowrate_aqueduct_mesh={mesh_prefix}_model={model_variation}_solver={solver_type}")
+    fig2.savefig(f"../output/illustrations/flowrate_median_aperture_mesh={mesh_prefix}_model={model_variation}_solver={solver_type}")
 
 plt.show()
