@@ -29,7 +29,6 @@ comm = MPI.COMM_WORLD
 mesh_prefix = 'fine'
 solver_type = 'navier-stokes'
 model_variation = 'deformation+cilia+production'
-# infile_name = f'../output/{mesh_prefix}-mesh/flow/{solver_type}/checkpoints/BDM_deforming_velocity_T={T}_dt={dt}/'
 infile_name = f"../output/ex3/{mesh_prefix}-mesh/flow/{solver_type}/checkpoints/BDM_{model_variation}_velocity_T={T}_dt={dt}"
 # infile_name = f"../output/ex3/flow/{solver_type}/checkpoints/BDM_deforming_velocity_T={T}_dt={dt}"
 mesh = a4d.read_mesh(filename=infile_name, comm=comm, read_from_partition=False)
