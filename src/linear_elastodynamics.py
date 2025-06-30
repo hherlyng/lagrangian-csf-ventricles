@@ -10,7 +10,7 @@ from petsc4py  import PETSc
 from basix.ufl import element
 from dolfinx.fem.petsc    import create_matrix, create_vector, assemble_vector, apply_lifting
 from utilities.fem        import assemble_system
-from utilities.projection import projection_problem_CG2_to_BDM1
+from utilities.projection import projection_problem_CG_to_BDM
 from utilities.deformation_data import WallDeformationCorpusCallosum, WallDeformationCanalWall, WallDeformationThirdVentricle
 
 print = PETSc.Sys.Print
@@ -48,8 +48,8 @@ eps = lambda arg: sym(grad(arg)) # The symmetric gradient
 # Material parameters
 E = 1500 #3156 # Modulus of elasticity [Pa]
 nu = 0.479 # Poisson's ratio [-]
-eta_value = 2*E/(1+nu) # First Lamé parameter value
-lam_value = nu*E/((1+nu)*(1-2*nu)) # Second Lamé parameter value
+eta_value = 2*E / (1+nu) # First Lamé parameter value
+lam_value = nu*E / ((1+nu) * (1-2*nu)) # Second Lamé parameter value
 eta = dfx.fem.Constant(mesh, eta_value) # First Lamé parameter
 lam = dfx.fem.Constant(mesh, lam_value) # Second Lamé parameter
 rho = dfx.fem.Constant(mesh, 1000.0) # Ventricular wall density [kg/m^3]
@@ -63,7 +63,7 @@ beta  = dfx.fem.Constant(mesh, dfx.default_scalar_type(1/4*(gamma.value + 1/2)**
 # Temporal parameters
 timestep = 0.001
 dt = dfx.fem.Constant(mesh, timestep) 
-T = 3
+T = 3.0
 period = 1
 N = int(T / timestep)
 times = np.linspace(0, T, N+1)
@@ -71,8 +71,11 @@ final_period_start = int(T - period)
 write_time = 0
 
 # Finite elements
-vec_el = element("Lagrange", mesh.basix_cell(), 2, shape=(mesh.geometry.dim,))
+p = 2
+vec_el = element("Lagrange", mesh.basix_cell(), p, shape=(mesh.geometry.dim,))
 W = dfx.fem.functionspace(mesh, vec_el)
+W_y = W.sub(1) # y displacement space
+W_z = W.sub(2) # z displacement space
 wh = dfx.fem.Function(W) # Displacement function
 wh_n = dfx.fem.Function(W) # Displacement function at previous timestep
 wh_dot = dfx.fem.Function(W) # Velocity function
@@ -109,31 +112,31 @@ tw_disp_func_right = dfx.fem.Function(W)
 tw_disp_func_left  = dfx.fem.Function(W)
 bcs = []
 
-cc_dofs = dfx.fem.locate_dofs_topological(W, facet_dim, ft.find(CORPUS_CALLOSUM))
+cc_dofs = dfx.fem.locate_dofs_topological((W_z, W), facet_dim, ft.find(CORPUS_CALLOSUM))
 # cc_dofs = np.arange(cc_dofs*gdim, (cc_dofs+1)*gdim)
 # num_cc_dofs = comm.allreduce(len(cc_dofs), op=MPI.SUM)
 # print("Number of corpus callosum dofs: ", num_cc_dofs)
 # assert num_cc_dofs>0, print("No corpus callosum dofs located.")
-bcs.append(dfx.fem.dirichletbc(cc_disp_func, cc_dofs))
+bcs.append(dfx.fem.dirichletbc(cc_disp_func, cc_dofs, W_z))
 
 
-cw_dofs = dfx.fem.locate_dofs_topological(W, facet_dim, ft.find(CANAL_WALL))
+cw_dofs = dfx.fem.locate_dofs_topological((W_z, W), facet_dim, ft.find(CANAL_WALL))
 # cw_dofs = np.arange(cw_dofs*gdim, (cw_dofs+1)*gdim)
 # num_cw_dofs = comm.allreduce(len(cw_dofs), op=MPI.SUM)
 # print("Number of canal wall dofs: ", num_cw_dofs)
-bcs.append(dfx.fem.dirichletbc(cw_disp_func, cw_dofs))
+bcs.append(dfx.fem.dirichletbc(cw_disp_func, cw_dofs, W_z))
 
-tw_dofs_right = dfx.fem.locate_dofs_topological(W, facet_dim, ft.find(THIRD_LATERAL_RIGHT))
+tw_dofs_right = dfx.fem.locate_dofs_topological((W_y, W), facet_dim, ft.find(THIRD_LATERAL_RIGHT))
 # tw_dofs_right = np.arange(tw_dofs_right*gdim, (tw_dofs_right+1)*gdim)
 # num_tw_dofs_right = comm.allreduce(len(tw_dofs_right), op=MPI.SUM)
 # print("Number of third ventricle wall (right) dofs: ", num_tw_dofs_right)
-bcs.append(dfx.fem.dirichletbc(tw_disp_func_right, tw_dofs_right))
+bcs.append(dfx.fem.dirichletbc(tw_disp_func_right, tw_dofs_right, W_y))
 
-tw_dofs_left = dfx.fem.locate_dofs_topological(W, facet_dim, ft.find(THIRD_LATERAL_LEFT))
+tw_dofs_left = dfx.fem.locate_dofs_topological((W_y, W), facet_dim, ft.find(THIRD_LATERAL_LEFT))
 # tw_dofs_left = np.arange(tw_dofs_left*gdim, (tw_dofs_left+1)*gdim)
 # num_tw_dofs_left = comm.allreduce(len(tw_dofs_left), op=MPI.SUM)
 # print("Number of third ventricle wall (left) dofs: ", num_tw_dofs_left)
-bcs.append(dfx.fem.dirichletbc(tw_disp_func_left, tw_dofs_left))
+bcs.append(dfx.fem.dirichletbc(tw_disp_func_left, tw_dofs_left, W_y))
 
 # Anchor spinal canal
 
@@ -187,7 +190,7 @@ a4d.write_mesh(filename=vh_cpoint_filename, mesh=mesh)
 a4d.write_meshtags(vh_cpoint_filename, mesh, ft, meshtag_name='ft')
 a4d.write_meshtags(vh_cpoint_filename, mesh, ct, meshtag_name='ct')
 
-projection_problem = projection_problem_CG2_to_BDM1(wh_dot, dw_dt_bdm, dx)
+projection_problem = projection_problem_CG_to_BDM(wh_dot, dw_dt_bdm, dx)
 
 A, b = assemble_system(A, b, a_cpp, L_cpp, bcs)
 
@@ -195,19 +198,32 @@ applied_bc1 = []
 applied_bc2 = []
 applied_bc3 = []
 
-for t in times[1:]:
+# Energy norms
+E_kinetic = dfx.fem.form(1/2*rho * inner(wh_n, wh_n) * dx)
+E_elastic = dfx.fem.form(1/2 * inner(sigma(wh_n), eps(wh_n)) * dx)
+
+energy = np.zeros((len(times), 2))
+max_disp = np.zeros((len(times), 4))
+point_disp = np.zeros((len(times), 3))
+point_dof = dfx.fem.locate_dofs_topological(W, mesh.topology.dim-1, ft.find(CORPUS_CALLOSUM))[0]
+point_dofs = np.arange(point_dof * (mesh.topology.dim), (point_dof + 1) * (mesh.topology.dim))
+
+for i, t in enumerate(times[1:], 1):
     
     print(f"\nTime t = {t:.5g}")
 
     # Update displacement BCs
     cc_disp_expr.increment_index(t)
-    cc_disp_func.interpolate(cc_disp_expr)
+    cc_disp_func.x.array[:] = cc_disp_expr()
+    # cc_disp_func.interpolate(cc_disp_expr)
     applied_bc1.append(cc_disp_expr.applied_bc)
     cw_disp_expr.increment_index(t)
-    cw_disp_func.interpolate(cw_disp_expr)
+    cw_disp_func.x.array[:] = cw_disp_expr()
+    # cw_disp_func.interpolate(cw_disp_expr)
     applied_bc2.append(cw_disp_expr.applied_bc)
     tw_disp_expr.increment_index(t)
-    tw_disp_func_right.interpolate(tw_disp_expr)
+    tw_disp_func_right.x.array[:] = tw_disp_expr()
+    # tw_disp_func_right.interpolate(tw_disp_expr)
     tw_disp_func_left.x.array[:] = -1.0*tw_disp_func_right.x.array.copy()
     applied_bc3.append(tw_disp_expr.applied_bc)
 
@@ -227,6 +243,19 @@ for t in times[1:]:
     wh_dot.interpolate(vel_expr)
     wh_ddot_n.x.array[:] = wh_ddot.x.array.copy()
     wh_dot_n.x.array[:]  = wh_dot.x.array.copy() 
+    wh_n.x.array[:] = wh.x.array.copy()
+
+    # Calculate energies
+    energy[i, 0] = comm.allreduce(dfx.fem.assemble_scalar(E_kinetic), op=MPI.SUM)
+    energy[i, 1] = comm.allreduce(dfx.fem.assemble_scalar(E_elastic), op=MPI.SUM)
+
+    point_disp[i, :] = wh.x.array[point_dofs]
+    max_disp[i, 0] = wh.sub(0).collapse().x.array.max()
+    max_disp[i, 1] = wh.sub(1).collapse().x.array.max()
+    max_disp[i, 2] = wh.sub(2).collapse().x.array.max()
+    max_disp[i, 3] = np.sqrt(wh.sub(0).collapse().x.array**2
+                           + wh.sub(1).collapse().x.array**2
+                           + wh.sub(2).collapse().x.array**2).max()
 
     # Project velocity if in the final period
     if t >= final_period_start:
@@ -246,7 +275,8 @@ for t in times[1:]:
 
         write_time += 1
 
-    wh_n.x.array[:] = wh.x.array.copy()
+xdmf.close()
+xdmf_vel.close()
 
 import matplotlib.pyplot as plt
 fig, ax = plt.subplots(figsize=([12, 8]))
@@ -254,12 +284,35 @@ ax.plot(times[1:], np.array(applied_bc1), 'r', label="Corpus callosum")
 ax.plot(times[1:], np.array(applied_bc2), 'b', label="Canal wall")
 ax.plot(times[1:], np.array(applied_bc3), 'g', label="3V wall")
 ax.legend()
-fig.savefig("../output/illustrations/applied_BCs_deformation")
+fig.savefig(f"../output/illustrations/applied_BCs_deformation_p={p}_E={E}_dt={timestep}.png")
 plt.show()
 
 np.save(output_dir+"applied_bc_corpus_callosum", np.array(applied_bc1))
 np.save(output_dir+"applied_bc_canal_wall", np.array(applied_bc2))
 np.save(output_dir+"applied_bc_3V_wall", np.array(applied_bc3))
 
-xdmf.close()
-xdmf_vel.close()
+fig2, ax2 = plt.subplots(figsize=([12, 8]))
+ax2.plot(times, energy[:, 0], 'r', label="Kinetic energy")
+ax2.plot(times, energy[:, 1], 'b', label="Elastic energy")
+ax2.legend()
+fig2.savefig(f"../output/illustrations/verification/energies_p={p}_E={E}_dt={timestep}.png")
+plt.show()
+
+fig3, ax3 = plt.subplots(figsize=([12, 8]))
+ax3.plot(times, max_disp[:, 0], 'k', label="Max x disp")
+ax3.plot(times, max_disp[:, 1], 'r', label="Max y disp")
+ax3.plot(times, max_disp[:, 2], 'b', label="Max z disp")
+ax3.plot(times, max_disp[:, 3], color='k', linestyle='-.', label="Max mag.")
+ax3.plot(times, point_disp[:, 0], 'g', label="Point x disp")
+ax3.plot(times, point_disp[:, 1], 'c', label="Point y disp")
+ax3.plot(times, point_disp[:, 2], 'm', label="Point z disp")
+ax3.legend()
+fig3.savefig(f"../output/illustrations/verification/displacements_p={p}_E={E}_dt={timestep}.png")
+plt.show()
+
+fig4, ax4 = plt.subplots(figsize=([12, 8]))
+ax4.plot(times[1:], np.array(applied_bc1), 'k', label="Applied BC")
+ax4.plot(times[1:], point_disp[1:, 2], 'm', label="Point z disp")
+ax4.legend()
+fig4.savefig(f"../output/illustrations/verification/corpus_callosum_p={p}_E={E}_dt={timestep}.png")
+plt.show()

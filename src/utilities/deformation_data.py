@@ -43,16 +43,17 @@ class WallDeformationCorpusCallosum:
             return 1.0
         return (6/(2*self.T)**5)*self.t**5 - (15/(2*self.T)**4)*self.t**4 + (10/(2*self.T)**3)*self.t**3
 
-    def __call__(self, x):
+    def __call__(self):
         """ Evaluates displacement spline function.
         """
         scale_factor = self.scaling()
         amplitude = scale_factor*self.disp_final[self.index]
         self.applied_bc = amplitude
+        return amplitude 
 
-        return amplitude*np.stack((np.zeros(x.shape[1]),
-                                   np.zeros(x.shape[1]),
-                                   np.ones (x.shape[1])))
+        # return amplitude*np.stack((np.zeros(x.shape[1]),
+        #                            np.zeros(x.shape[1]),
+        #                            np.ones (x.shape[1])))
 
 
 class WallDeformationCanalWall:
@@ -92,16 +93,16 @@ class WallDeformationCanalWall:
             return 1.0
         return (6/(2*self.T)**5)*self.t**5 - (15/(2*self.T)**4)*self.t**4 + (10/(2*self.T)**3)*self.t**3
 
-    def __call__(self, x):
+    def __call__(self):
         """ Evaluates displacement spline function.
         """
         scale_factor = self.scaling()
         amplitude = scale_factor*self.disp_final[self.index]
         self.applied_bc = amplitude
-
-        return amplitude*np.stack((np.zeros(x.shape[1]),
-                                   np.zeros(x.shape[1]),
-                                   np.ones (x.shape[1])))
+        return amplitude
+        # return amplitude*np.stack((np.zeros(x.shape[1]),
+        #                            np.zeros(x.shape[1]),
+        #                            np.ones (x.shape[1])))
 
 class WallDeformationThirdVentricle:
     """ Displacement curve for the third ventricle walls in right-left direction
@@ -115,8 +116,8 @@ class WallDeformationThirdVentricle:
         self.set_data()
     
     def set_data(self):
-        x = [0.0, 0.09191583610188261, 0.13842746400885936, 0.18715393133997785, 0.2336655592469546, 0.27906976744186046, 0.3289036544850498, 0.41971207087486156, 0.49058693244739754, 0.5592469545957918, 0.6090808416389811, 0.6566998892580288, 0.7021040974529347, 0.7508305647840531, 0.7929125138427464, 0.8438538205980066, 0.9335548172757475, 1.0]
-        y = [0.0, -0.0066298342541436465, 0.0029834254143646407, 0.019005524861878453, 0.027845303867403314, 0.029281767955801105, 0.028066298342541436, 0.027955801104972377, 0.026077348066298342, 0.019558011049723757, 0.02243093922651934, 0.020773480662983426, 0.014806629834254143, 0.019447513812154697, 0.005635359116022099, 0.0066298342541436465, 0.004088397790055248, 0.0]
+        x = [0.0, 0.09191583610188261, 0.13842746400885936, 0.18715393133997785, 0.2336655592469546, 0.27906976744186046, 0.3289036544850498, 0.41971207087486156, 0.49058693244739754, 0.5592469545957918, 0.6090808416389811, 0.6566998892580288, 0.7021040974529347, 0.7929125138427464, 0.8438538205980066, 0.9335548172757475, 1.0]
+        y = [0.0, -0.0066298342541436465, 0.0029834254143646407, 0.019005524861878453, 0.027845303867403314, 0.029281767955801105, 0.028066298342541436, 0.027955801104972377, 0.026077348066298342, 0.02243093922651934, 0.020773480662983426, 0.019558011049723757, 0.014806629834254143, 0.0066298342541436465, 0.005635359116022099, 0.004088397790055248, 0.0]
         disp_data = np.array(y)*1e-3 # Convert from mm to m
         times = np.array(x)
         disp_interp = interp.CubicSpline(times, disp_data, bc_type="periodic")
@@ -140,13 +141,13 @@ class WallDeformationThirdVentricle:
             return 1.0
         return (6/(2*self.T)**5)*self.t**5 - (15/(2*self.T)**4)*self.t**4 + (10/(2*self.T)**3)*self.t**3
 
-    def __call__(self, x):
+    def __call__(self):
         """ Evaluates displacement spline function.
         """
         scale_factor = self.scaling()
         amplitude = scale_factor*self.disp_final[self.index]
         self.applied_bc = amplitude
-
-        return amplitude*np.stack((np.ones (x.shape[1]),
-                                   np.zeros(x.shape[1]),
-                                   np.zeros(x.shape[1])))
+        return amplitude
+        # return amplitude*np.stack((np.ones (x.shape[1]),
+        #                            np.zeros(x.shape[1]),
+        #                            np.zeros(x.shape[1])))

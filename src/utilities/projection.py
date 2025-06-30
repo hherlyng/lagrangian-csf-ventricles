@@ -6,7 +6,7 @@ from mpi4py    import MPI
 from basix.ufl import element
 from dolfinx.fem.petsc import LinearProblem
 
-def projection_problem_CG2_to_BDM1(vh_cg: dfx.fem.Function,
+def projection_problem_CG_to_BDM(vh_cg: dfx.fem.Function,
                                    vh_bdm: dfx.fem.Function,
                                    dx: ufl.Measure) -> LinearProblem:
      V = vh_bdm.function_space
