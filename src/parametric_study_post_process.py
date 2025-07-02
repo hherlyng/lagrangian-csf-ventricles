@@ -31,7 +31,7 @@ mesh_prefix = 'medium'
 solver_type = 'navier-stokes'
 model_variations = ['deformation']
 moduli = [500, 1500, 3000]
-degrees = [1]
+degrees = [2]
 
 infile_0 = f"../output/ex3/{mesh_prefix}-mesh/flow-E={moduli[0]}-k={degrees[0]}/{solver_type}/checkpoints/BDM_{model_variations[0]}_velocity_T={T}_dt={dt:.4g}"
 
@@ -42,8 +42,10 @@ n = ufl.FacetNormal(mesh)
 dS = ufl.Measure('dS', domain=mesh, subdomain_data=ft)
 
 # Compute cross-sectional areas and length of aqueduct
-facet_top_aq = ft.find(AQUEDUCT_TOP)[0]
+area_top_aq = dfx.fem.assemble_scalar(dfx.fem.form(1*dS(AQUEDUCT_TOP)))
+area_bot_aq = dfx.fem.assemble_scalar(dfx.fem.form(1*dS(AQUEDUCT_BOT)))
 facet_bot_aq = ft.find(AQUEDUCT_BOT)[0]
+facet_top_aq = ft.find(AQUEDUCT_TOP)[0]
 mesh.topology.create_connectivity(mesh.topology.dim-1, 0)
 f_to_v = mesh.topology.connectivity(mesh.topology.dim-1, 0)
 vertex_top_aq = f_to_v.links(facet_top_aq)[0]
@@ -76,8 +78,6 @@ for j, E in enumerate(moduli):
         u_flux = ufl.dot(ufl.avg(uh), n('-'))
         flowrate_top_form = dfx.fem.form(u_flux*dS(AQUEDUCT_TOP))
         flowrate_bot_form = dfx.fem.form(u_flux*dS(AQUEDUCT_BOT))
-        area_top_aq = dfx.fem.assemble_scalar(dfx.fem.form(1*dS(AQUEDUCT_TOP)))
-        area_bot_aq = dfx.fem.assemble_scalar(dfx.fem.form(1*dS(AQUEDUCT_BOT)))
         mean_pressure_top_form = dfx.fem.form(ufl.avg(ph)*dS(AQUEDUCT_TOP))
         mean_pressure_bot_form = dfx.fem.form(ufl.avg(ph)*dS(AQUEDUCT_BOT))
 
@@ -146,7 +146,7 @@ fig2.tight_layout()
 
 save_figs = 1
 if save_figs:
-    fig.savefig(f"../output/illustrations/flowrates_pressure-gradients_aqueduct_mesh={mesh_prefix}_solver={solver_type}")
-    fig2.savefig(f"../output/illustrations/flowrates_median_aperture_mesh={mesh_prefix}_solver={solver_type}")
+    fig.savefig(f"../output/illustrations/flowrates_pressure-gradients_aqueduct_k={degrees}_E={moduli}_mesh={mesh_prefix}_solver={solver_type}")
+    fig2.savefig(f"../output/illustrations/flowrates_median_aperture_k={degrees}_E={moduli}_mesh={mesh_prefix}_solver={solver_type}")
 
 plt.show()

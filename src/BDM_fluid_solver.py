@@ -35,8 +35,11 @@ CHOROID_PLEXUS_THIRD = 103
 CHOROID_PLEXUS_FOURTH = 104
 LATERAL_APERTURES = 28
 CORPUS_CALLOSUM = 110
-THIRD_LATERAL_RIGHT = 111
-THIRD_LATERAL_LEFT = 112
+THIRD_RIGHT = 111
+THIRD_LEFT = 112
+LATERAL_RIGHT = 113
+LATERAL_LEFT = 114
+
 
 # Cell tags
 CANAL = 3
@@ -61,7 +64,8 @@ Tangent = lambda v, n: v - n*dot(v, n)
 zero_traction_tags = (CANAL_OUT, LATERAL_APERTURES)
 cilia_tags = (AQUEDUCT_WALL, FORAMINA_34_WALL, LATERAL_VENTRICLES_WALL, FOURTH_VENTRICLE_WALL,
               CANAL_WALL, THIRD_VENTRICLE_WALL, CHOROID_PLEXUS_LATERAL, CHOROID_PLEXUS_THIRD,
-              CHOROID_PLEXUS_FOURTH, CORPUS_CALLOSUM, THIRD_LATERAL_LEFT, THIRD_LATERAL_RIGHT)
+              CHOROID_PLEXUS_FOURTH, CORPUS_CALLOSUM, THIRD_LEFT, THIRD_RIGHT, LATERAL_LEFT,
+              LATERAL_RIGHT)
 choroid_plexus_tags = (CHOROID_PLEXUS_LATERAL, CHOROID_PLEXUS_THIRD, CHOROID_PLEXUS_FOURTH)
 
 
@@ -94,6 +98,7 @@ class FluidSolverALE:
                     timestep: float,
                     mesh_prefix: str,
                     stiffness: int,
+                    polynomial_degree: int,
                     element_degree: int,
                     model_version: int,
                     solver_type: str,
@@ -114,7 +119,7 @@ class FluidSolverALE:
         self.solver_type = solver_type
         self.model_version = model_version
         self.bc_types = self.bc_types_dict[model_version] if not calc_cilia_direction_vectors else ["production"]
-        self.defo_input_filename = f"../output/{mesh_prefix}-mesh/deformation-E={int(stiffness)}/checkpoints/displacement_velocity_dt={timestep:.4g}_T={T:.4g}/"
+        self.defo_input_filename = f"../output/{mesh_prefix}-mesh/deformation_p={polynomial_degree}_E={int(stiffness)}/checkpoints/displacement_velocity_dt={timestep:.4g}_T={T:.4g}/"
         self.write_cpoint = write_checkpoint
         self.write_output = write_output
         self.output_dir = f"../output/{self.mesh_prefix}-mesh/flow-E={int(stiffness)}-k={int(element_degree)}/"
@@ -298,7 +303,6 @@ class FluidSolverALE:
         
         # Compile forms used to calculate volumes and mean pressures
         self.vol = dfx.fem.form(dfx.fem.Constant(mesh, dfx.default_real_type(1.0))* J * dx)
-        self.volumes = [self.vol]
         self.mean_pressure_form_ = dfx.fem.form(self.ph_ * J*dx) # Reference configuration
 
         # Set up Stokes problem linear system
@@ -442,7 +446,6 @@ class FluidSolverALE:
 
                 # Calculate mean pressures and subtract to make means = 0
                 vol = self.comm.allreduce(dfx.fem.assemble_scalar(self.vol), op=MPI.SUM)
-                self.volumes.append(vol)
                 mean_pressure_ = 1/vol*self.comm.allreduce(dfx.fem.assemble_scalar(self.mean_pressure_form_), op=MPI.SUM)
                 self.ph_.x.array[:] -= mean_pressure_
                 
@@ -473,6 +476,7 @@ def main(argv=None):
     input_opts = parser.add_argument_group("Input options", "Options for reading input")
     input_opts.add_argument("-m", "--mesh_prefix", type=str, help="Mesh prefix")
     input_opts.add_argument("-s", "--stiffness", type=int, help="Material stiffness (Young's modulus)")
+    input_opts.add_argument("-p", "--polynomial_degree", type=int, help="Polynomial degree of solid model elements")
 
     discretization_opts = parser.add_argument_group("Temporal options", "Options for the discretization")
     discretization_opts.add_argument("-T", "--final_time", type=float, help="Final time of simulation")
@@ -482,7 +486,7 @@ def main(argv=None):
     model_opts = parser.add_argument_group("Model options", "Options for the fluid model")
     model_opts.add_argument("-g", "--governing_equations", type=str, help="Governing equations (Stokes or Navier-Stokes)")
     model_opts.add_argument("-v", "--model_version", type=int, help="The model version/which flow mechanisms to consider")
-    model_opts.add_argument("-p", "--cilia_direction", type=int, default=0, help="Solve for the cilia direction vectors (steady-state production velocity)")
+    model_opts.add_argument("-cd", "--cilia_direction", type=int, default=0, help="Solve for the cilia direction vectors (steady-state production velocity)")
 
     solver_opts = parser.add_argument_group("Solver options", "Options for the linear solver")
     solver_opts.add_argument("-d", "--direct", type=int, default=1, help="Use direct solver")
@@ -501,6 +505,7 @@ def main(argv=None):
                             args.timestep,
                             args.mesh_prefix,
                             args.stiffness,
+                            args.polynomial_degree,
                             args.element_degree,
                             args.model_version,
                             args.governing_equations,

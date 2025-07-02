@@ -29,15 +29,20 @@ tags = [101, # Lateral ventricles choroid plexus
         104, # Fourth ventricle choroid plexus
         28, # Lateral apertures boundary
         110, # Corpus callosum boundary
-        112, # Third ventricle left deformation boundary
-        111] # Third ventricle right deformation boundary
+        112, # Third ventricle left boundary
+        111, # Third ventricle right boundary
+        114, # Lateral ventricle left boundary
+        113  # Lateral ventricle right boundary
+        ] 
 csv_filenames = [f"../geometries/selected_facets_lateralChP_{mesh_version}.csv",
                  f"../geometries/selected_facets_thirdChP_{mesh_version}.csv",
                  f"../geometries/selected_facets_fourthChP_{mesh_version}.csv",
                  f"../geometries/selected_facets_lateralApertures_{mesh_version}.csv",
-                 f"../geometries/selected_facets_corpus_callosum_{mesh_version}.csv",
-                 f"../geometries/selected_facets_third_left_{mesh_version}.csv",
-                 f"../geometries/selected_facets_third_right_{mesh_version}.csv"]
+                 f"../geometries/selected_facets_laterals_corpus_callosum_{mesh_version}.csv",
+                 f"../geometries/selected_facets_3V_left_{mesh_version}.csv",
+                 f"../geometries/selected_facets_3V_right_{mesh_version}.csv",
+                 f"../geometries/selected_facets_LV_left_{mesh_version}.csv",
+                 f"../geometries/selected_facets_LV_right_{mesh_version}.csv"]
 for i, csv_filename in enumerate(csv_filenames):
     df = pd.read_csv(csv_filename)
     selected_facets = df['vtkOriginalCellIds'].values
