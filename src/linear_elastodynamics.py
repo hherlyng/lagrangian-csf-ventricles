@@ -13,12 +13,16 @@ from pathlib   import Path
 from dolfinx.fem.petsc    import create_matrix, create_vector, assemble_vector, apply_lifting
 from utilities.fem        import assemble_system
 from utilities.projection import projection_problem_CG_to_BDM
-from utilities.deformation_data import WallDeformationCorpusCallosum, WallDeformationCanalWall, WallDeformationThirdVentricle
+from utilities.deformation_data import (DisplacementCorpusCallosumCephalocaudal, 
+                                        DisplacementCaudateNucleusHeadLateral,
+                                        DisplacementCanalAndFourthVentricleAnteroposterior,
+                                        DisplacementThirdVentricleLateral)
 
-print = PETSc.Sys.Print
+# print = PETSc.Sys.Print
 
 # Mesh tags
 CANAL_WALL = 13
+FOURTH_VENTRICLE_WALL = 18
 CANAL_OUT  = 23
 LATERAL_APERTURES = 28
 CORPUS_CALLOSUM = 110
@@ -26,6 +30,8 @@ THIRD_RIGHT = 111
 THIRD_LEFT = 112
 LATERAL_RIGHT = 113
 LATERAL_LEFT = 114
+THIRD_ANTERIOR = 115
+THIRD_POSTERIOR = 116
 
 # Solve linear elasticity equation on the ventricles. Wall motion is 
 # prescribed in time at a single point (close to corpus callosum).
@@ -39,10 +45,9 @@ with dfx.io.XDMFFile(comm, f"../geometries/{mesh_prefix}_ventricles_mesh_tagged.
     # Generate mesh entities    
     facet_dim = mesh.topology.dim-1
     mesh.topology.create_entities(facet_dim) # Create facets
+    mesh.topology.create_connectivity(facet_dim, facet_dim+1) # Create facet-cell connectivity
     ft = xdmf.read_meshtags(mesh, "ft")
     ct = xdmf.read_meshtags(mesh, "ct")
-
-mesh.topology.create_connectivity(facet_dim, facet_dim+1) # Create facet-cell connectivity
 
 
 ds = ufl.Measure('ds', domain=mesh, subdomain_data=ft) # Boundary integral measure
@@ -50,7 +55,7 @@ dx = ufl.Measure('dx', domain=mesh, subdomain_data=ct) # Volume integral measure
 eps = lambda arg: sym(grad(arg)) # The symmetric gradient
 
 # Material parameters
-E = 500 #3156 # Modulus of elasticity [Pa]
+E = float(sys.argv[3]) #3156 # Modulus of elasticity [Pa]
 nu = 0.479 # Poisson's ratio [-]
 eta_value = 2*E / (1+nu) # First Lamé parameter value
 lam_value = nu*E / ((1+nu) * (1-2*nu)) # Second Lamé parameter value
@@ -67,7 +72,7 @@ beta  = dfx.fem.Constant(mesh, dfx.default_scalar_type(1/4*(gamma.value + 1/2)**
 # Temporal parameters
 timestep = 0.001
 dt = dfx.fem.Constant(mesh, timestep) 
-T = 3.0
+T = 0.005
 period = 1
 N = int(T / timestep)
 times = np.linspace(0, T, N+1)
@@ -75,10 +80,11 @@ final_period_start = int(T - period)
 write_time = 0
 
 # Finite elements
-p = 3
+p = int(sys.argv[2])
 vec_el = element("Lagrange", mesh.basix_cell(), p, shape=(mesh.geometry.dim,))
 W = dfx.fem.functionspace(mesh, vec_el)
 W_x = W.sub(0) # x displacement space
+W_y = W.sub(1) # y displacement space
 W_z = W.sub(2) # z displacement space
 wh = dfx.fem.Function(W) # Displacement function
 wh_n = dfx.fem.Function(W) # Displacement function at previous timestep
@@ -107,35 +113,41 @@ a = rho/(beta*dt**2)*inner(w, dw)*dx + inner(sigma(w), eps(dw)) * dx
 L = rho*inner(wh_n/(beta*dt**2) + wh_dot_n/(beta*dt) + (1-2*beta)/(2*beta)*wh_ddot_n, dw) * dx 
 
 # Dirichlet BCs on corpus callosum and canal wall
-cc_disp_expr = WallDeformationCorpusCallosum(period=period, timestep=timestep)
+cc_disp_expr = DisplacementCorpusCallosumCephalocaudal(period=period, timestep=timestep)
+cwfv_disp_expr = DisplacementCanalAndFourthVentricleAnteroposterior(period=period, timestep=timestep)
+tv_disp_expr = DisplacementThirdVentricleLateral(period=period, timestep=timestep)
+lv_disp_expr = DisplacementCaudateNucleusHeadLateral(period=period, timestep=timestep)
 cc_disp_func = dfx.fem.Function(W)
-cw_disp_func = dfx.fem.Function(W)
-cw_disp_expr = WallDeformationCanalWall(period=period, timestep=timestep)
-tw_disp_expr = WallDeformationThirdVentricle(period=period, timestep=timestep)
-tw_disp_func_right = dfx.fem.Function(W)
-tw_disp_func_left  = dfx.fem.Function(W)
-lw_disp_func_right = dfx.fem.Function(W)
-lw_disp_func_left  = dfx.fem.Function(W)
+cwfv_disp_func = dfx.fem.Function(W)
+tv_disp_func_right = dfx.fem.Function(W)
+tv_disp_func_left  = dfx.fem.Function(W)
+lv_disp_func_right = dfx.fem.Function(W)
+lv_disp_func_left  = dfx.fem.Function(W)
 bcs = []
 
 # Set BCs
 cc_dofs = dfx.fem.locate_dofs_topological((W_z, W), facet_dim, ft.find(CORPUS_CALLOSUM))
 bcs.append(dfx.fem.dirichletbc(cc_disp_func, cc_dofs, W_z))
 
-cw_dofs = dfx.fem.locate_dofs_topological((W_z, W), facet_dim, ft.find(CANAL_WALL))
-bcs.append(dfx.fem.dirichletbc(cw_disp_func, cw_dofs, W_z))
+lv_dofs_right = dfx.fem.locate_dofs_topological((W_x, W), facet_dim, ft.find(LATERAL_RIGHT))
+bcs.append(dfx.fem.dirichletbc(lv_disp_func_right, lv_dofs_right, W_x))
 
-lw_dofs_right = dfx.fem.locate_dofs_topological((W_x, W), facet_dim, ft.find(LATERAL_RIGHT))
-bcs.append(dfx.fem.dirichletbc(lw_disp_func_right, lw_dofs_right, W_x))
+lv_dofs_left  = dfx.fem.locate_dofs_topological((W_x, W), facet_dim, ft.find(LATERAL_LEFT))
+bcs.append(dfx.fem.dirichletbc(lv_disp_func_left, lv_dofs_left, W_x))
 
-lw_dofs_left  = dfx.fem.locate_dofs_topological((W_x, W), facet_dim, ft.find(LATERAL_LEFT))
-bcs.append(dfx.fem.dirichletbc(lw_disp_func_left, lw_dofs_left, W_x))
+tv_dofs_right = dfx.fem.locate_dofs_topological((W_x, W), facet_dim, ft.find(THIRD_RIGHT))
+bcs.append(dfx.fem.dirichletbc(tv_disp_func_right, tv_dofs_right, W_x))
 
-tw_dofs_right = dfx.fem.locate_dofs_topological((W_x, W), facet_dim, ft.find(THIRD_RIGHT))
-bcs.append(dfx.fem.dirichletbc(tw_disp_func_right, tw_dofs_right, W_x))
+tv_dofs_left  = dfx.fem.locate_dofs_topological((W_x, W), facet_dim, ft.find(THIRD_LEFT))
+bcs.append(dfx.fem.dirichletbc(tv_disp_func_left, tv_dofs_left, W_x))
 
-tw_dofs_left  = dfx.fem.locate_dofs_topological((W_x, W), facet_dim, ft.find(THIRD_LEFT))
-bcs.append(dfx.fem.dirichletbc(tw_disp_func_left, tw_dofs_left, W_x))
+cwfv_facets = np.concatenate((ft.find(FOURTH_VENTRICLE_WALL), ft.find(CANAL_WALL)))
+cwfv_antpost_dofs = dfx.fem.locate_dofs_topological((W_y, W), facet_dim, cwfv_facets)
+bcs.append(dfx.fem.dirichletbc(cwfv_disp_func, cwfv_antpost_dofs, W_y))
+
+# Zero displacement in x direction on the lower part of the geometry
+cwfv_lateral_dofs = dfx.fem.locate_dofs_topological((W_x, W), facet_dim, cwfv_facets)
+bcs.append(dfx.fem.dirichletbc(zero, cwfv_lateral_dofs, W_x))
     
 # Create linear system
 a_cpp, L_cpp = dfx.fem.form(a), dfx.fem.form(L)
@@ -169,17 +181,17 @@ BDM = dfx.fem.functionspace(mesh, bdm_el)
 dw_dt_bdm = dfx.fem.Function(BDM)
 dw_dt_bdm.name = "defo_velocity"
 wh.name = "defo_displacement"
-output_dir = f"../output/{mesh_prefix}-mesh/deformation_p={p}_E={E}/"
+output_dir = f"../output/{mesh_prefix}-mesh/deformation_p={p}_E={E:.0f}/"
 data_dir = output_dir+"data/"
 Path(data_dir).mkdir(parents=True, exist_ok=True)
 
-xdmf = dfx.io.XDMFFile(comm, output_dir+f"displacement_p={p}_E={E}_dt={timestep:.4g}_T={T:.4g}.xdmf", "w")
-xdmf_vel = dfx.io.XDMFFile(comm, output_dir+f"displacement_p={p}_E={E}_velocity_dt={timestep:.4g}_T={T:.4g}.xdmf", "w")
+xdmf = dfx.io.XDMFFile(comm, output_dir+f"displacement_p={p}_E={E:.0f}_dt={timestep:.4g}_T={T:.0f}.xdmf", "w")
+xdmf_vel = dfx.io.XDMFFile(comm, output_dir+f"displacement_p={p}_E={E:.0f}_velocity_dt={timestep:.4g}_T={T:.0f}.xdmf", "w")
 xdmf.write_mesh(mesh)
 xdmf_vel.write_mesh(mesh)
 
 if write_output:
-    vh_cpoint_filename = output_dir+f"checkpoints/displacement_velocity_dt={timestep:.4g}_T={T:.4g}/"
+    vh_cpoint_filename = output_dir+f"checkpoints/displacement_velocity_dt={timestep:.4g}_T={T:.0f}/"
     a4d.write_mesh(filename=vh_cpoint_filename, mesh=mesh)
     a4d.write_meshtags(vh_cpoint_filename, mesh, ft, meshtag_name='ft')
     a4d.write_meshtags(vh_cpoint_filename, mesh, ct, meshtag_name='ct')
@@ -200,7 +212,8 @@ point_disp = np.zeros((len(times), 3))
 # Compute cells for point evaluation of the deformation function wh
 cell = []
 point_on_proc = []
-random_point = np.array([0.00046821, -0.03849799, -0.05351012])
+random_point = np.array([0.000435316, 0.0346574, 0.0150221])
+# random_point = np.array([-0.00013767, 0.00550183, 0.00806552])
 bb_tree = dfx.geometry.bb_tree(mesh, mesh.topology.dim)
 cell_candidates = dfx.geometry.compute_collisions_points(bb_tree, random_point)
 colliding_cells = dfx.geometry.compute_colliding_cells(mesh, cell_candidates, random_point)
@@ -214,6 +227,7 @@ if len(colliding_cells.links(0)>0):
 applied_bc1 = []
 applied_bc2 = []
 applied_bc3 = []
+applied_bc4 = []
 
 for i, t in enumerate(times[1:], 1):
     
@@ -221,14 +235,20 @@ for i, t in enumerate(times[1:], 1):
 
     # Update displacement BCs
     cc_disp_expr.increment_index(t)
-    cc_disp_func.x.array[:] = cc_disp_expr()
-    cw_disp_expr.increment_index(t)
-    cw_disp_func.x.array[:] = cw_disp_expr()
-    tw_disp_expr.increment_index(t)
-    tw_disp_func_left.x.array[:] = tw_disp_expr()
-    tw_disp_func_right.x.array[:] = -1.0*tw_disp_func_left.x.array.copy()
-    lw_disp_func_left.x.array[:] = 0.75*tw_disp_func_left.x.array.copy()
-    lw_disp_func_right.x.array[:] = -1.0*lw_disp_func_left.x.array.copy()
+    cc_disp_expr()
+    cc_disp_func.x.array[:] = cc_disp_expr.amplitude
+    cwfv_disp_expr.increment_index(t)
+    cwfv_disp_expr()
+    cwfv_disp_func.x.array[:] = cwfv_disp_expr.amplitude
+    tv_disp_expr.increment_index(t)
+    tv_disp_expr()
+    tv_disp_func_right.x.array[:] = tv_disp_expr.amplitude
+    tv_disp_func_left.x.array[:] = -1.0*tv_disp_expr.amplitude
+
+    lv_disp_expr.increment_index(t)
+    lv_disp_expr()
+    lv_disp_func_right.x.array[:] = lv_disp_expr.amplitude
+    lv_disp_func_left.x.array[:] = -1.0*lv_disp_expr.amplitude
     
     # Assemble right-hand side
     with b.localForm() as local_b_vec: local_b_vec.set(0.0)
@@ -252,7 +272,7 @@ for i, t in enumerate(times[1:], 1):
     energy[i, 0] = comm.allreduce(dfx.fem.assemble_scalar(E_kinetic), op=MPI.SUM)
     energy[i, 1] = comm.allreduce(dfx.fem.assemble_scalar(E_elastic), op=MPI.SUM)
 
-    if len(point_on_proc)>0:
+    if len(cell)>0:
         point_disp[i, :] = wh.eval(x=random_point, cells=cell)
 
     max_disp[i, 0] = comm.allreduce(wh.sub(0).collapse().x.array.max(), op=MPI.MAX)
@@ -263,9 +283,10 @@ for i, t in enumerate(times[1:], 1):
                                 + wh.sub(2).collapse().x.array**2).max(),
                                 op=MPI.MAX)
     
-    applied_bc1.append(cc_disp_expr.applied_bc)
-    applied_bc2.append(cw_disp_expr.applied_bc)
-    applied_bc3.append(tw_disp_expr.applied_bc)
+    applied_bc1.append(cc_disp_expr.amplitude)
+    applied_bc2.append(cwfv_disp_expr.amplitude)
+    applied_bc3.append(tv_disp_expr.amplitude)
+    applied_bc4.append(lv_disp_expr.amplitude)
 
     # Project velocity if in the final period
     if t >= final_period_start and write_output:
@@ -289,16 +310,26 @@ if write_output:
     xdmf.close()
     xdmf_vel.close()
 
+# Perform parallell communication
+point_disp = comm.gather(point_disp, root=0)
+
 if comm.rank==0:
+    # Get the point displacements
+    for array in point_disp:
+        if np.sum(np.abs(array)) > 0.0:
+            point_disp = array
+            break
+
     import matplotlib.pyplot as plt
     fig_dir = "../output/illustrations/verification/"
     Path(fig_dir).mkdir(parents=True, exist_ok=True)
     fig, ax = plt.subplots(figsize=([12, 8]))
     ax.plot(times[1:], np.array(applied_bc1), 'r', label="Corpus callosum")
-    ax.plot(times[1:], np.array(applied_bc2), 'b', label="Canal wall")
+    ax.plot(times[1:], np.array(applied_bc2), 'b', label="Canal & 4V walls")
     ax.plot(times[1:], np.array(applied_bc3), 'g', label="3V wall")
+    ax.plot(times[1:], np.array(applied_bc4), 'm', label="Caudate nucleus")
     ax.legend()
-    fig.savefig(fig_dir+f"applied_BCs_deformation_p={p}_E={E}_dt={timestep}.png")
+    fig.savefig(fig_dir+f"applied_BCs_deformation_p={p}_E={E:.0f}_dt={timestep}.png")
     plt.show()
     np.save(data_dir+f"applied_bc_corpus_callosum_dt={timestep}.npy", np.array(applied_bc1))
     np.save(data_dir+f"applied_bc_canal_wall__dt={timestep}.npy", np.array(applied_bc2))
@@ -308,7 +339,7 @@ if comm.rank==0:
     ax2.plot(times, energy[:, 0], 'r', label="Kinetic energy")
     ax2.plot(times, energy[:, 1], 'b', label="Elastic energy")
     ax2.legend()
-    fig2.savefig(fig_dir+f"MPI={comm.size}_energies_p={p}_E={E}_dt={timestep}.png")
+    fig2.savefig(fig_dir+f"MPI={comm.size}_energies_p={p}_E={E:.0f}_dt={timestep}.png")
     plt.show()
     np.save(data_dir+f"energies_dt={timestep}.npy", energy)
 
@@ -321,7 +352,7 @@ if comm.rank==0:
     ax3.plot(times, point_disp[:, 1], 'c', label="Point y disp")
     ax3.plot(times, point_disp[:, 2], 'm', label="Point z disp")
     ax3.legend()
-    fig3.savefig(fig_dir+f"MPI={comm.size}_displacements_p={p}_E={E}_dt={timestep}.png")
+    fig3.savefig(fig_dir+f"MPI={comm.size}_displacements_p={p}_E={E:.0f}_dt={timestep}.png")
     plt.show()
     np.save(data_dir+f"max_displacements_dt={timestep}.npy", max_disp)
     np.save(data_dir+f"point_displacements_dt={timestep}.npy", point_disp)

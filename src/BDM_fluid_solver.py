@@ -39,7 +39,8 @@ THIRD_RIGHT = 111
 THIRD_LEFT = 112
 LATERAL_RIGHT = 113
 LATERAL_LEFT = 114
-
+THIRD_ANTERIOR = 115
+THIRD_POSTERIOR = 116
 
 # Cell tags
 CANAL = 3
@@ -65,7 +66,7 @@ zero_traction_tags = (CANAL_OUT, LATERAL_APERTURES)
 cilia_tags = (AQUEDUCT_WALL, FORAMINA_34_WALL, LATERAL_VENTRICLES_WALL, FOURTH_VENTRICLE_WALL,
               CANAL_WALL, THIRD_VENTRICLE_WALL, CHOROID_PLEXUS_LATERAL, CHOROID_PLEXUS_THIRD,
               CHOROID_PLEXUS_FOURTH, CORPUS_CALLOSUM, THIRD_LEFT, THIRD_RIGHT, LATERAL_LEFT,
-              LATERAL_RIGHT)
+              LATERAL_RIGHT, THIRD_ANTERIOR, THIRD_POSTERIOR)
 choroid_plexus_tags = (CHOROID_PLEXUS_LATERAL, CHOROID_PLEXUS_THIRD, CHOROID_PLEXUS_FOURTH)
 
 
@@ -102,6 +103,7 @@ class FluidSolverALE:
                     element_degree: int,
                     model_version: int,
                     solver_type: str,
+                    use_direct_solver: int,
                     write_checkpoint: int,
                     write_output: int,
                     calc_cilia_direction_vectors: int
@@ -117,12 +119,13 @@ class FluidSolverALE:
         self.element_degree = element_degree
         self.mesh_prefix = mesh_prefix
         self.solver_type = solver_type
+        self.use_direct_solver = use_direct_solver
         self.model_version = model_version
         self.bc_types = self.bc_types_dict[model_version] if not calc_cilia_direction_vectors else ["production"]
-        self.defo_input_filename = f"../output/{mesh_prefix}-mesh/deformation_p={polynomial_degree}_E={int(stiffness)}/checkpoints/displacement_velocity_dt={timestep:.4g}_T={T:.4g}/"
+        self.defo_input_filename = f"../output/{mesh_prefix}-mesh/deformation_p={polynomial_degree}_E={stiffness:.0f}/checkpoints/displacement_velocity_dt={timestep:.4g}_T={T:.0f}/"
         self.write_cpoint = write_checkpoint
         self.write_output = write_output
-        self.output_dir = f"../output/{self.mesh_prefix}-mesh/flow-E={int(stiffness)}-k={int(element_degree)}/"
+        self.output_dir = f"../output/{self.mesh_prefix}-mesh/flow_p={polynomial_degree}_E={stiffness:.0f}_k={element_degree}_dt={timestep:.4g}_T={T:.0f}/"
         self.calc_cilia_direction_vectors = calc_cilia_direction_vectors
         
         self.mesh = a4d.read_mesh(self.defo_input_filename, self.comm)
@@ -162,7 +165,7 @@ class FluidSolverALE:
         dg_el  = element("DG", mesh.basix_cell(), k-1)
         dg_vec_el = element("DG", mesh.basix_cell(), k, shape=(mesh.geometry.dim,))
         self.V = V = dfx.fem.functionspace(mesh, bdm_el)
-        Q = dfx.fem.functionspace(mesh, dg_el)
+        self.Q = Q = dfx.fem.functionspace(mesh, dg_el)
         self.u_ = dfx.fem.Function(V) # Velocity at previous timestep
         self.u_defo = dfx.fem.Function(V) # Deformation velocity
         c_vel = self.u_ - self.u_defo # Convection velocity
@@ -276,9 +279,13 @@ class FluidSolverALE:
         self.cells = np.array(cells)
         self.points_on_proc = np.array(points_on_proc)
 
-        # Calculate offsets
-        self.offset_u = V.dofmap.index_map.size_local * V.dofmap.index_map_bs
-        self.offset_p = self.offset_u + Q.dofmap.index_map.size_local*Q.dofmap.index_map_bs
+        # Compute offsets and create index ranges
+        V_imap = V.dofmap.index_map
+        Q_imap = Q.dofmap.index_map
+        self.offset_u = V_imap.size_local * V.dofmap.bs 
+        self.offset_p = self.offset_u + Q_imap.size_local*Q.dofmap.bs
+        self.loc_u_idx = np.arange(V_imap.local_range[0], V_imap.local_range[1], dtype=np.int32)
+        self.loc_p_idx = np.arange(Q_imap.local_range[0], Q_imap.local_range[1], dtype=np.int32)
 
         # Setup I/O functions and files      
         self.uh_ = dfx.fem.Function(V); self.uh_.name = "velocity"
@@ -287,17 +294,17 @@ class FluidSolverALE:
         self.u_defo_read = dfx.fem.Function(dfx.fem.functionspace(mesh, element("BDM", mesh.basix_cell(), 1)))
 
         if self.write_output:
-            velocity_output_filename = self.output_dir+f"{self.solver_type}/BDM_{self.models[self.model_version]}_T={self.T:.4g}_dt={self.timestep:.4g}.bp"
+            velocity_output_filename = self.output_dir+f"{self.solver_type}/BDM_{self.models[self.model_version]}_velocity.bp"
             self.uh_dg_ = dfx.fem.Function(dfx.fem.functionspace(self.mesh, dg_vec_el)); self.uh_dg_.name = "relative_velocity"
             self.velocity_output = dfx.io.VTXWriter(self.comm, velocity_output_filename.removesuffix(".pvd") + ".bp", [self.uh_dg_], "BP4")
-            pressure_output_filename = self.output_dir+f"{self.solver_type}/BDM_{self.models[self.model_version]}_pressure_T={self.T:.4g}_dt={self.timestep:.4g}.bp"
+            pressure_output_filename = self.output_dir+f"{self.solver_type}/BDM_{self.models[self.model_version]}_pressure.bp"
             self.pressure_output = dfx.io.VTXWriter(self.comm, pressure_output_filename.removesuffix(".pvd") + ".bp", [self.ph_], "BP4")
 
         if self.write_cpoint:
             if self.calc_cilia_direction_vectors:
                 self.cpoint_filename = f"../output/{self.mesh_prefix}-mesh/cilia_direction_vectors/"
             else:
-                self.cpoint_filename = self.output_dir+f"{self.solver_type}/checkpoints/BDM_{self.models[self.model_version]}_velocity_T={self.T:.4g}_dt={self.timestep:.4g}"
+                self.cpoint_filename = self.output_dir+f"{self.solver_type}/checkpoints/BDM_{self.models[self.model_version]}_velocity"
             a4d.write_mesh(self.cpoint_filename, mesh)
             a4d.write_meshtags(self.cpoint_filename, mesh, self.ft)
         
@@ -309,11 +316,11 @@ class FluidSolverALE:
         self.A = create_matrix_block(self.a) # System matrix
         self.xh = self.A.createVecRight() # Solution vector
         self.b = create_vector_block(self.L) # RHS vector
-        self.create_solver()
+        self.create_direct_solver() if self.use_direct_solver else self.create_iterative_solver()
         
-        print("Global number of dofs: ", V.dofmap.index_map.size_global+Q.dofmap.index_map.size_global)
+        print("Global number of dofs: ", V.dofmap.index_map.size_global*V.dofmap.bs + Q.dofmap.index_map.size_global)
 
-    def create_solver(self):
+    def create_direct_solver(self):
         ksp = PETSc.KSP().create(self.comm)
         ksp.setOperators(self.A)
         ksp.setType("preonly")
@@ -325,6 +332,39 @@ class FluidSolverALE:
         opts["mat_mumps_icntl_24"] = 1  # Option to support solving a singular matrix (pressure nullspace)
         opts["mat_mumps_icntl_25"] = 0  # Option to support solving a singular matrix (pressure nullspace)
         opts["ksp_error_if_not_converged"] = 1 # Throw an error if KSP solver does not converge
+        ksp.setFromOptions()
+
+        # Store solver
+        self.ksp = ksp
+    
+    def create_iterative_solver(self):
+        ksp = PETSc.KSP().create(self.comm)
+        ksp.setOperators(self.A)
+        ksp.setType("gmres")
+        ksp.getPC().setType("fieldsplit")
+
+        # Create index sets for the fieldsplit
+        u_idx_set = PETSc.IS().createGeneral(self.loc_u_idx)
+        p_idx_set = PETSc.IS().createGeneral(self.loc_p_idx)
+        ksp.getPC().setFieldSplitIS(("u", u_idx_set),
+                                    ("p", p_idx_set)
+                                    )
+        petsc_options = {
+            "ksp_rtol": 1e-6,
+            "pc_fieldsplit_type": "schur",
+            "pc_fieldsplit_schur_fact_type": "full",
+            "fieldsplit_u_ksp_type": "preonly",
+            "fieldsplit_u_pc_type": "lu", # or "gamg" for algebraic multigrid
+            "fieldsplit_p_ksp_type" : "preonly",
+            "fieldsplit_p_pc_type" : "jacobi",
+            "ksp_error_if_not_converged" : 1, # Throw an error if KSP solver does not converge
+            "ksp_view" : None
+        }
+        opts = PETSc.Options()  # type: ignore
+        for key, value in zip(petsc_options.keys(), petsc_options.values()):
+            opts[key] = value
+
+        ksp.setMonitor(lambda _, its, rnorm: print(f"Iteration: {its}, residual: {rnorm}"))
         ksp.setFromOptions()
 
         # Store solver
@@ -509,6 +549,7 @@ def main(argv=None):
                             args.element_degree,
                             args.model_version,
                             args.governing_equations,
+                            args.direct,
                             args.checkpoint,
                             args.output,
                             args.cilia_direction)    

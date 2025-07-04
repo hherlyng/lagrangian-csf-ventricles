@@ -32,7 +32,9 @@ tags = [101, # Lateral ventricles choroid plexus
         112, # Third ventricle left boundary
         111, # Third ventricle right boundary
         114, # Lateral ventricle left boundary
-        113  # Lateral ventricle right boundary
+        113,  # Lateral ventricle right boundary
+        115, # Third ventricle anterior boundary
+        116 # Third ventricle posterior boundary
         ] 
 csv_filenames = [f"../geometries/selected_facets_lateralChP_{mesh_version}.csv",
                  f"../geometries/selected_facets_thirdChP_{mesh_version}.csv",
@@ -42,7 +44,10 @@ csv_filenames = [f"../geometries/selected_facets_lateralChP_{mesh_version}.csv",
                  f"../geometries/selected_facets_3V_left_{mesh_version}.csv",
                  f"../geometries/selected_facets_3V_right_{mesh_version}.csv",
                  f"../geometries/selected_facets_LV_left_{mesh_version}.csv",
-                 f"../geometries/selected_facets_LV_right_{mesh_version}.csv"]
+                 f"../geometries/selected_facets_LV_right_{mesh_version}.csv",
+                 f"../geometries/selected_facets_3V_anterior_{mesh_version}.csv",
+                 f"../geometries/selected_facets_3V_posterior_{mesh_version}.csv"
+                ]
 for i, csv_filename in enumerate(csv_filenames):
     df = pd.read_csv(csv_filename)
     selected_facets = df['vtkOriginalCellIds'].values
