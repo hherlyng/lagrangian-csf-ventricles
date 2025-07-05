@@ -6,3 +6,5 @@ geometries/ventricles-meshes
 .cache
 __pycache__
 *.npy
+*.h5
+*.xdmf
