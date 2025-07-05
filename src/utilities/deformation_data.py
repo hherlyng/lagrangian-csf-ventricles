@@ -41,9 +41,9 @@ class DisplacementCorpusCallosumCephalocaudal:
         self.index += 1
 
     def scaling(self):
-        if self.t >= (2*self.T):
+        if self.t >= (2*self.P):
             return 1.0
-        return (6/(2*self.T)**5)*self.t**5 - (15/(2*self.T)**4)*self.t**4 + (10/(2*self.T)**3)*self.t**3
+        return (6/(2*self.P)**5)*self.t**5 - (15/(2*self.P)**4)*self.t**4 + (10/(2*self.P)**3)*self.t**3
 
     def __call__(self):
         """ Evaluates displacement spline function.
@@ -95,9 +95,9 @@ class DisplacementCaudateNucleusHeadLateral:
         self.index += 1
 
     def scaling(self):
-        if self.t >= (2*self.T):
+        if self.t >= (2*self.P):
             return 1.0
-        return (6/(2*self.T)**5)*self.t**5 - (15/(2*self.T)**4)*self.t**4 + (10/(2*self.T)**3)*self.t**3
+        return (6/(2*self.P)**5)*self.t**5 - (15/(2*self.P)**4)*self.t**4 + (10/(2*self.P)**3)*self.t**3
 
     def __call__(self):
         """ Evaluates displacement spline function.
@@ -197,9 +197,9 @@ class DisplacementThirdVentricleLateral:
         self.index += 1
 
     def scaling(self):
-        if self.t >= (2*self.T):
+        if self.t >= (2*self.P):
             return 1.0
-        return (6/(2*self.T)**5)*self.t**5 - (15/(2*self.T)**4)*self.t**4 + (10/(2*self.T)**3)*self.t**3
+        return (6/(2*self.P)**5)*self.t**5 - (15/(2*self.P)**4)*self.t**4 + (10/(2*self.P)**3)*self.t**3
 
     def __call__(self):
         """ Evaluates displacement spline function.
@@ -245,9 +245,9 @@ class WallDeformationThirdVentricleAnteriorPosterior:
         self.index += 1
 
     def scaling(self):
-        if self.t >= (2*self.T):
+        if self.t >= (2*self.P):
             return 1.0
-        return (6/(2*self.T)**5)*self.t**5 - (15/(2*self.T)**4)*self.t**4 + (10/(2*self.T)**3)*self.t**3
+        return (6/(2*self.P)**5)*self.t**5 - (15/(2*self.P)**4)*self.t**4 + (10/(2*self.P)**3)*self.t**3
 
     def __call__(self):
         """ Evaluates displacement spline function.
