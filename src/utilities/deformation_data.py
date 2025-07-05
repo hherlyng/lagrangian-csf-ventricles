@@ -7,10 +7,13 @@ class DisplacementCorpusCallosumCephalocaudal:
         (z axis, positive in cranial direction (towards head)).
         Adapted from Kurtcuoglu et al. (2007), Soellinger et al. (2007, 2009)."""
     
-    def __init__(self, period: float, timestep: float):
+    def __init__(self, period: float, timestep: float, final_time: float):
+        """ Constructor. Assumes period and final_time are integers. """
         self.t = 0.0
-        self.T = period
+        self.P = period
         self.N = int(period / timestep)+1
+        self.T = final_time
+        assert final_time > 2*period, print("Ramp up occurs over two periods, ensure final time > 2*period.")
         self.index = 0
         self.set_data()
 
@@ -21,15 +24,17 @@ class DisplacementCorpusCallosumCephalocaudal:
         times = np.array(x)
         disp_interp = interp.CubicSpline(times, disp_data, bc_type="periodic")
         refined_times = np.linspace(times[0], times[-1], self.N)
-
+        num_final_periods = int(self.T) - int(self.P)
+        
         # Construct interpolated deformation data that is windowed 
-        # in the initial phase
+        # in the initial period
         window = tukey(len(refined_times), alpha=0.25)
         halfway_index = int(self.N/2)
         disp_first_half = window[:halfway_index]*disp_interp(refined_times, 0)[:halfway_index]
         disp_second_half = disp_interp(refined_times, 0)[halfway_index:]
-        disp_two_periods = np.concatenate((disp_interp(refined_times, 0)[1:], disp_interp(refined_times, 0)[1:]))
-        self.disp_final = np.concatenate((disp_first_half, disp_second_half, disp_two_periods))
+        first_period_windowed = np.concatenate((disp_first_half, disp_second_half))
+        final_periods = np.concatenate(([disp_interp(refined_times, 0)[1:] for _ in range(num_final_periods)]))
+        self.disp_final = np.concatenate((first_period_windowed, final_periods))
     
     def increment_index(self, t: float):
         self.t = t
@@ -56,10 +61,13 @@ class DisplacementCaudateNucleusHeadLateral:
 
         Adapted from Soellinger et al. (2009), Enzmann & Pelc (1992)."""
     
-    def __init__(self, period: float, timestep: float):
+    def __init__(self, period: float, timestep: float, final_time: float):
+        """ Constructor. Assumes period and final_time are integers. """
         self.t = 0.0
-        self.T = period
+        self.P = period
         self.N = int(period / timestep)+1
+        self.T = final_time
+        assert final_time > 2*period, print("Ramp up occurs over two periods, ensure final time > 2*period.")
         self.index = 0
         self.set_data()
 
@@ -70,15 +78,17 @@ class DisplacementCaudateNucleusHeadLateral:
         times = np.array(x)
         disp_interp = interp.CubicSpline(times, disp_data, bc_type="periodic")
         refined_times = np.linspace(times[0], times[-1], self.N)
-
+        num_final_periods = int(self.T) - int(self.P)
+        
         # Construct interpolated deformation data that is windowed 
-        # in the initial phase
+        # in the initial period
         window = tukey(len(refined_times), alpha=0.25)
         halfway_index = int(self.N/2)
         disp_first_half = window[:halfway_index]*disp_interp(refined_times, 0)[:halfway_index]
         disp_second_half = disp_interp(refined_times, 0)[halfway_index:]
-        disp_two_periods = np.concatenate((disp_interp(refined_times, 0)[1:], disp_interp(refined_times, 0)[1:]))
-        self.disp_final = np.concatenate((disp_first_half, disp_second_half, disp_two_periods))
+        first_period_windowed = np.concatenate((disp_first_half, disp_second_half))
+        final_periods = np.concatenate(([disp_interp(refined_times, 0)[1:] for _ in range(num_final_periods)]))
+        self.disp_final = np.concatenate((first_period_windowed, final_periods))
     
     def increment_index(self, t: float):
         self.t = t
@@ -100,10 +110,13 @@ class DisplacementCanalAndFourthVentricleAnteroposterior:
         ventricle in the anteroposterior (fore-hind) direction (y axis, positive in fore direction).
         Adapted from Zhong et al. (2009), Greitz et al. (1992)."""
 
-    def __init__(self, period: float, timestep: float):
+    def __init__(self, period: float, timestep: float, final_time: float):
+        """ Constructor. Assumes period and final_time are integers. """
         self.t = 0.0
-        self.T = period
+        self.P = period
         self.N = int(period / timestep)+1
+        self.T = final_time
+        assert final_time > 2*period, print("Ramp up occurs over two periods, ensure final time > 2*period.")
         self.index = 0
         self.set_data()
     
@@ -114,24 +127,26 @@ class DisplacementCanalAndFourthVentricleAnteroposterior:
         times = np.array(x)
         disp_interp = interp.CubicSpline(times, disp_data, bc_type="periodic")
         refined_times = np.linspace(times[0], times[-1], self.N)
+        num_final_periods = int(self.T) - int(self.P)
         
         # Construct interpolated deformation data that is windowed 
-        # in the initial phase
+        # in the initial period
         window = tukey(len(refined_times), alpha=0.25)
         halfway_index = int(self.N/2)
         disp_first_half = window[:halfway_index]*disp_interp(refined_times, 0)[:halfway_index]
         disp_second_half = disp_interp(refined_times, 0)[halfway_index:]
-        disp_two_periods = np.concatenate((disp_interp(refined_times, 0)[1:], disp_interp(refined_times, 0)[1:]))
-        self.disp_final = np.concatenate((disp_first_half, disp_second_half, disp_two_periods)) 
+        first_period_windowed = np.concatenate((disp_first_half, disp_second_half))
+        final_periods = np.concatenate(([disp_interp(refined_times, 0)[1:] for _ in range(num_final_periods)]))
+        self.disp_final = np.concatenate((first_period_windowed, final_periods))
     
-    def increment_index(self, t: float):
+    def increment_index(self, t: float):    
         self.t = t
         self.index += 1
 
     def scaling(self):
-        if self.t >= (2*self.T):
+        if self.t >= (2*self.P):
             return 1.0
-        return (6/(2*self.T)**5)*self.t**5 - (15/(2*self.T)**4)*self.t**4 + (10/(2*self.T)**3)*self.t**3
+        return (6/(2*self.P)**5)*self.t**5 - (15/(2*self.P)**4)*self.t**4 + (10/(2*self.P)**3)*self.t**3
 
     def __call__(self):
         """ Evaluates displacement spline function.
@@ -148,29 +163,34 @@ class DisplacementThirdVentricleLateral:
 
         Adapted from Greitz et al. (1992), Soellinger et al. (2009)."""
 
-    def __init__(self, period: float, timestep: float):
+    def __init__(self, period: float, timestep: float, final_time: float):
+        """ Constructor. Assumes period and final_time are integers. """
         self.t = 0.0
-        self.T = period
+        self.P = period
         self.N = int(period / timestep)+1
+        self.T = final_time
+        assert final_time > 2*period, print("Ramp up occurs over two periods, ensure final time > 2*period.")
         self.index = 0
         self.set_data()
     
     def set_data(self):
         x = np.linspace(0.0, 1.0, 11)
-        y = [0.0, -0.03, -0.08, -0.108, -0.113, -0.095, -0.06, -0.035, -0.02, -0.012, 0.0]
+        y = [0.0, 0.005, -0.02, -0.03, -0.0285, -0.0275, -0.0225, -0.015, -0.0075, -0.005, 0.0]
         disp_data = np.array(y)*1e-3 # Convert from mm to m
         times = np.array(x)
         disp_interp = interp.CubicSpline(times, disp_data, bc_type="periodic")
         refined_times = np.linspace(times[0], times[-1], self.N)
+        num_final_periods = int(self.T) - int(self.P)
         
         # Construct interpolated deformation data that is windowed 
-        # in the initial phase
+        # in the initial period
         window = tukey(len(refined_times), alpha=0.25)
         halfway_index = int(self.N/2)
         disp_first_half = window[:halfway_index]*disp_interp(refined_times, 0)[:halfway_index]
         disp_second_half = disp_interp(refined_times, 0)[halfway_index:]
-        disp_two_periods = np.concatenate((disp_interp(refined_times, 0)[1:], disp_interp(refined_times, 0)[1:]))
-        self.disp_final = np.concatenate((disp_first_half, disp_second_half, disp_two_periods)) 
+        first_period_windowed = np.concatenate((disp_first_half, disp_second_half))
+        final_periods = np.concatenate(([disp_interp(refined_times, 0)[1:] for _ in range(num_final_periods)]))
+        self.disp_final = np.concatenate((first_period_windowed, final_periods))
     
     def increment_index(self, t: float):
         self.t = t
@@ -191,10 +211,13 @@ class WallDeformationThirdVentricleAnteriorPosterior:
     """ Displacement curve for the third ventricle walls in anterior-posterior direction
         (i.e. y axis, positive in right (?) direction). (Adapted from Soellinger et al., 2009)"""
 
-    def __init__(self, period: float, timestep: float):
+    def __init__(self, period: float, timestep: float, final_time: float):
+        """ Constructor. Assumes period and final_time are integers. """
         self.t = 0.0
-        self.T = period
+        self.P = period
         self.N = int(period / timestep)+1
+        self.T = final_time
+        assert final_time > 2*period, print("Ramp up occurs over two periods, ensure final time > 2*period.")
         self.index = 0
         self.set_data()
     
@@ -205,15 +228,17 @@ class WallDeformationThirdVentricleAnteriorPosterior:
         times = np.array(x)
         disp_interp = interp.CubicSpline(times, disp_data, bc_type="periodic")
         refined_times = np.linspace(times[0], times[-1], self.N)
+        num_final_periods = int(self.T) - int(self.P)
         
         # Construct interpolated deformation data that is windowed 
-        # in the initial phase
+        # in the initial period
         window = tukey(len(refined_times), alpha=0.25)
         halfway_index = int(self.N/2)
         disp_first_half = window[:halfway_index]*disp_interp(refined_times, 0)[:halfway_index]
         disp_second_half = disp_interp(refined_times, 0)[halfway_index:]
-        disp_two_periods = np.concatenate((disp_interp(refined_times, 0)[1:], disp_interp(refined_times, 0)[1:]))
-        self.disp_final = np.concatenate((disp_first_half, disp_second_half, disp_two_periods)) 
+        first_period_windowed = np.concatenate((disp_first_half, disp_second_half))
+        final_periods = np.concatenate(([disp_interp(refined_times, 0)[1:] for _ in range(num_final_periods)]))
+        self.disp_final = np.concatenate((first_period_windowed, final_periods))
     
     def increment_index(self, t: float):
         self.t = t

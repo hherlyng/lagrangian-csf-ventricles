@@ -32,8 +32,9 @@ solver_type = 'navier-stokes'
 model_variations = ['deformation']
 moduli = [500, 1500, 3000]
 degrees = [2]
+p = 2
 
-infile_0 = f"../output/ex3/{mesh_prefix}-mesh/flow-E={moduli[0]}-k={degrees[0]}/{solver_type}/checkpoints/BDM_{model_variations[0]}_velocity_T={T}_dt={dt:.4g}"
+infile_0 = f"../output/ex3/{mesh_prefix}-mesh/flow_p={p}_E={moduli[0]}_k={degrees[0]}_dt={dt:.4g}_T={T}/{solver_type}/checkpoints/BDM_{model_variations[0]}_velocity"
 
 # Initial setup of mesh
 mesh = a4d.read_mesh(filename=infile_0, comm=comm)
@@ -82,7 +83,7 @@ for j, E in enumerate(moduli):
         mean_pressure_bot_form = dfx.fem.form(ufl.avg(ph)*dS(AQUEDUCT_BOT))
 
         for model_variation in model_variations:
-            infile_name = f"../output/ex3/{mesh_prefix}-mesh/flow-E={E}-k={k}/{solver_type}/checkpoints/BDM_{model_variation}_velocity_T={T}_dt={dt:.4g}"
+            infile_name = f"../output/ex3/{mesh_prefix}-mesh/flow_p={p}_E={E}_k={k}_dt={dt:.4g}_T={T}/{solver_type}/checkpoints/BDM_{model_variation}_velocity"
             print(f"\nPost processing results from file:\n{infile_name}\n")
 
             flowrates_top_aq = []
@@ -146,7 +147,7 @@ fig2.tight_layout()
 
 save_figs = 1
 if save_figs:
-    fig.savefig(f"../output/illustrations/flowrates_pressure-gradients_aqueduct_k={degrees}_E={moduli}_mesh={mesh_prefix}_solver={solver_type}")
-    fig2.savefig(f"../output/illustrations/flowrates_median_aperture_k={degrees}_E={moduli}_mesh={mesh_prefix}_solver={solver_type}")
+    fig.savefig(f"../output/illustrations/flowrates_pressure-gradients_aqueduct_p={p}_k={degrees}_E={moduli}_mesh={mesh_prefix}_solver={solver_type}")
+    fig2.savefig(f"../output/illustrations/flowrates_median_aperture_p={p}_k={degrees}_E={moduli}_mesh={mesh_prefix}_solver={solver_type}")
 
 plt.show()

@@ -116,6 +116,7 @@ class FluidSolverALE:
         self.times = np.linspace(0, T, self.N+1)
         self.final_period_start = int(T - self.period)
         self.num_timesteps_per_period = int(self.period / timestep)
+        self.polynomial_degree = polynomial_degree
         self.element_degree = element_degree
         self.mesh_prefix = mesh_prefix
         self.solver_type = solver_type
@@ -148,7 +149,7 @@ class FluidSolverALE:
         dS = ufl.Measure('dS', domain=mesh, metadata={'quadrature_degree' : self.quadrature_degree}) # Interior facet integral
 
         # Create finite element function in P2 space for the mesh displacement
-        vec_el = element("Lagrange", mesh.basix_cell(), 2, shape=(mesh.geometry.dim,))
+        vec_el = element("Lagrange", mesh.basix_cell(), self.polynomial_degree, shape=(mesh.geometry.dim,))
         W = dfx.fem.functionspace(mesh, vec_el)
         self.wh = dfx.fem.Function(W)
 
@@ -270,7 +271,8 @@ class FluidSolverALE:
         cell_candidates = dfx.geometry.compute_collisions_points(bb_tree, self.x_reference)
         colliding_cells = dfx.geometry.compute_colliding_cells(self.out_mesh, cell_candidates, self.x_reference)
         for i, point in enumerate(self.x_reference):
-            if len(colliding_cells.links(i)>0):
+            from IPython import embed;embed()
+            if len(colliding_cells.links(i))>0:
                 cc = colliding_cells.links(i)[0]
                 cells.append(cc)
                 points_on_proc.append(point)
@@ -296,9 +298,9 @@ class FluidSolverALE:
         if self.write_output:
             velocity_output_filename = self.output_dir+f"{self.solver_type}/BDM_{self.models[self.model_version]}_velocity.bp"
             self.uh_dg_ = dfx.fem.Function(dfx.fem.functionspace(self.mesh, dg_vec_el)); self.uh_dg_.name = "relative_velocity"
-            self.velocity_output = dfx.io.VTXWriter(self.comm, velocity_output_filename.removesuffix(".pvd") + ".bp", [self.uh_dg_], "BP4")
+            self.velocity_output = dfx.io.VTXWriter(self.comm, velocity_output_filename, [self.uh_dg_], "BP4")
             pressure_output_filename = self.output_dir+f"{self.solver_type}/BDM_{self.models[self.model_version]}_pressure.bp"
-            self.pressure_output = dfx.io.VTXWriter(self.comm, pressure_output_filename.removesuffix(".pvd") + ".bp", [self.ph_], "BP4")
+            self.pressure_output = dfx.io.VTXWriter(self.comm, pressure_output_filename, [self.ph_], "BP4")
 
         if self.write_cpoint:
             if self.calc_cilia_direction_vectors:

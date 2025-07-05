@@ -48,18 +48,16 @@ zeta = dfx.fem.Constant(mesh, 2.0)
 theta = dfx.fem.Constant(mesh, 0.1)
 
 # Define Generalized-alpha method parameters
-alpha_m = dfx.fem.Constant(mesh, dfx.default_scalar_type(0.2))
-alpha_f = dfx.fem.Constant(mesh, dfx.default_scalar_type(0.4))
-gamma = dfx.fem.Constant(mesh, dfx.default_scalar_type(0.5 + alpha_m.value - alpha_f.value))
+gamma = dfx.fem.Constant(mesh, dfx.default_scalar_type(0.5))
 beta  = dfx.fem.Constant(mesh, dfx.default_scalar_type(1/4*(gamma.value + 0.5)**2))
 
-print(gamma.value, beta.value, alpha_m.value, alpha_f.value)
+print(f"Gamma = {gamma.value}, Beta = {beta.value}")
 
 # Temporal parameters
-timestep = 1/8
+timestep = 1e-2
 dt = dfx.fem.Constant(mesh, dfx.default_scalar_type(timestep)) 
-T = 1
-period = 1
+T = timestep*10
+period = T
 N = int(T / timestep)
 times = np.linspace(0, T, N+1)
 final_period_start = int(T - period)
@@ -81,8 +79,10 @@ zero = dfx.fem.Function(W)
 # Create exact solution expression and function
 if dim==2:
     xx, yy = ufl.SpatialCoordinate(mesh)
-    u_exact = ufl.as_vector((1+ufl.sin(xx) + theta*tt**4,
-                             1+phi*ufl.cos(yy) + theta*tt**4))
+    u_exact = ufl.as_vector((1+ufl.sin(xx) + ufl.cos(xx)*theta*tt**4,
+                             1+phi*ufl.cos(yy) + ufl.sin(yy)*theta*tt**4))
+    v_exact = ufl.diff(u_exact, ufl.variable(tt))
+    a_exact = ufl.diff(v_exact, ufl.variable(tt))
     theta_vector = ufl.as_vector((1.0, 1.0))
 else:
     xx, yy, zz = ufl.SpatialCoordinate(mesh)
@@ -103,19 +103,37 @@ wh_ddot_n.interpolate(lambda x: 12*theta*tt.value**2*np.stack((np.ones(x.shape[1
 
 sigma = lambda w: 2.0*eta*eps(w) + lam*ufl.tr(eps(w))*ufl.Identity(dim)
 
+# Damping parameters
+eta_M = dfx.fem.Constant(mesh, 0.0) # Damping proportional to inertia
+eta_K = dfx.fem.Constant(mesh, 5e-3) # Damping proportional to stiffness
+
 # Test and trial functions
 w, dw = ufl.TrialFunction(W), ufl.TestFunction(W)
 
 # Compute forcing term
-f = rho*12*theta*theta_vector*tt**2 - div(sigma(u_exact))
+f = rho*a_exact - div(sigma(u_exact)) + eta_M*rho*v_exact - eta_K*div(sigma(v_exact))
 # f = - div(sigma(u_exact))
 
+
+###############
+
+acc = 1 / beta / dt**2 * (wh - wh_n - dt * wh_dot_n) + wh_ddot_n * (1 - 1 / 2 / beta)
+acc_expr = dfx.fem.Expression(acc, W.element.interpolation_points())
+
+vel = wh_dot_n + dt * ((1 - gamma) * wh_ddot_n + gamma * wh_ddot)
+vel_expr = dfx.fem.Expression(vel, W.element.interpolation_points())
+
+##################
+
 # The weak form
-a = (1-alpha_m)/(beta*dt**2)*rho*inner(w, dw)*dx + (1-alpha_f)*inner(sigma(w), eps(dw)) * dx
-L = rho*inner(wh_n*(1-alpha_m)/(beta*dt**2) + wh_dot_n*(1-alpha_m)/(beta*dt) + (1-alpha_m-2*beta)/(2*beta)*wh_ddot_n, dw) * dx \
-    - alpha_f*inner(sigma(wh_n), eps(dw)) * dx + inner(f, dw) * dx
-# a = inner(sigma(w), eps(dw)) * dx
-# L = inner(f, dw) * dx
+# The weak form
+a = rho/(beta*dt**2)*inner(w, dw)*dx + inner(sigma(w), eps(dw)) * dx
+L = rho*inner(wh_n/(beta*dt**2) + wh_dot_n/(beta*dt) + (1-2*beta)/(2*beta)*wh_ddot_n, dw) * dx 
+
+# Add Rayleigh damping: eta_M * M(v) + eta_K * K(v), where M = mass matrix, K = stiffness matrix, v = velocity
+a += gamma/(beta*dt) * (eta_M*rho*inner(w, dw)*dx + eta_K*inner(sigma(w), eps(dw))*dx)
+v_res = wh_dot_n + dt*wh_ddot_n*(1-gamma) - gamma/(beta*dt)*(wh_n + dt*wh_dot_n) + dt*gamma*wh_ddot_n*(2*beta-1)/(2*beta)
+L -= (eta_M*rho* inner(v_res, dw)*dx + eta_K * inner(sigma(v_res), eps(dw))*dx)
 
 mesh.topology.create_connectivity(facet_dim, mesh.topology.dim)
 exterior_facets = dfx.mesh.exterior_facet_indices(mesh.topology)
@@ -137,16 +155,6 @@ opts["mat_mumps_icntl_14"] = 80  # Increase MUMPS working memory
 opts["mat_mumps_icntl_24"] = 1  # Option to support solving a singular matrix (pressure nullspace)
 opts["mat_mumps_icntl_25"] = 0  # Option to support solving a singular matrix (pressure nullspace)
 opts["ksp_error_if_not_converged"] = 1 # Throw an error if KSP solver does not converge
-# opts["ksp_type"] = "cg"
-# opts["ksp_rtol"] = 1e-8 # Relative tolerance
-# opts["pc_type"] = "gamg"
-
-# # Use Chebyshev smoothing for the multigrid PC
-# opts["mg_levels_ksp_type"] = "chebyshev"
-# opts["mg_levels_pc_type"]  = "jacobi"
-
-# # Improve the estimate of eigenvalues for the Chebyshev smoothing
-# opts["mg_levels_ksp_chebyshev_esteig_steps"] = 10
 
 # Create the solver object, set options and enable convergence monitoring
 solver = PETSc.KSP().create(comm)
@@ -155,6 +163,7 @@ solver.setFromOptions()
 solver.setMonitor(lambda _, its, rnorm: print(f"Iteration: {its}, residual: {rnorm}"))
 
 xdmf = dfx.io.XDMFFile(comm, f"../output/square-mesh/deformation/displacement_dt={timestep:.4g}_T={T:.4g}.xdmf", "w")
+print(f"../output/square-mesh/deformation/displacement_dt={timestep:.4g}_T={T:.4g}.xdmf")
 xdmf_vel = dfx.io.XDMFFile(comm, f"../output/square-mesh/deformation/displacement_velocity_dt={timestep:.4g}_T={T:.4g}.xdmf", "w")
 xdmf.write_mesh(mesh)
 xdmf_vel.write_mesh(mesh)
@@ -188,7 +197,7 @@ A, b = assemble_system(A, b, a_cpp, L_cpp, bcs)
 for t in times:
     
     print(f"\nTime t = {t:.5g}")
-    tt.value = t - alpha_f.value*dt.value
+    tt.value = t
 
     # Update displacement BCs
     u_exact_bc.interpolate(u_exact_expr)
@@ -203,13 +212,13 @@ for t in times:
     # Solve
     solver.solve(b, wh.x.petsc_vec)
     wh.x.scatter_forward() # MPI communication
-    
+
     # Update functions
-    wh_ddot.x.array[:] = 1/(beta.value*dt.value**2) * (wh.x.array.copy() - wh_n.x.array.copy() - dt.value*wh_dot_n.x.array.copy()) - (1-2*beta.value)/(2*beta.value)*wh_ddot_n.x.array.copy()
-    wh_dot.x.array[:] = wh_dot_n.x.array.copy() + dt.value*((1-gamma.value)*wh_ddot_n.x.array.copy() + gamma.value*wh_ddot.x.array.copy())
-    wh_n.x.array[:] = wh.x.array.copy()
+    wh_ddot.interpolate(acc_expr)
+    wh_dot.interpolate(vel_expr)
     wh_ddot_n.x.array[:] = wh_ddot.x.array.copy()
-    wh_dot_n.x.array[:]  = wh_dot.x.array.copy()
+    wh_dot_n.x.array[:]  = wh_dot.x.array.copy() 
+    wh_n.x.array[:] = wh.x.array.copy()
 
     # Project velocity if in the final period
     if t >= final_period_start:

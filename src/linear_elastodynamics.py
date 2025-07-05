@@ -18,7 +18,7 @@ from utilities.deformation_data import (DisplacementCorpusCallosumCephalocaudal,
                                         DisplacementCanalAndFourthVentricleAnteroposterior,
                                         DisplacementThirdVentricleLateral)
 
-# print = PETSc.Sys.Print
+print = PETSc.Sys.Print
 
 # Mesh tags
 CANAL_WALL = 13
@@ -37,8 +37,8 @@ THIRD_POSTERIOR = 116
 # prescribed in time at a single point (close to corpus callosum).
 write_output = int(sys.argv[1])
 comm = MPI.COMM_WORLD
-mesh_prefix = 'medium'
-with dfx.io.XDMFFile(comm, f"../geometries/{mesh_prefix}_ventricles_mesh_tagged.xdmf", "r") as xdmf:
+mesh_suffix = '0'
+with dfx.io.XDMFFile(comm, f"../geometries/ventricles_{mesh_suffix}.xdmf", "r") as xdmf:
     mesh = xdmf.read_mesh()
     gdim = mesh.geometry.dim
     
@@ -48,7 +48,6 @@ with dfx.io.XDMFFile(comm, f"../geometries/{mesh_prefix}_ventricles_mesh_tagged.
     mesh.topology.create_connectivity(facet_dim, facet_dim+1) # Create facet-cell connectivity
     ft = xdmf.read_meshtags(mesh, "ft")
     ct = xdmf.read_meshtags(mesh, "ct")
-
 
 ds = ufl.Measure('ds', domain=mesh, subdomain_data=ft) # Boundary integral measure
 dx = ufl.Measure('dx', domain=mesh, subdomain_data=ct) # Volume integral measure
@@ -72,8 +71,9 @@ beta  = dfx.fem.Constant(mesh, dfx.default_scalar_type(1/4*(gamma.value + 1/2)**
 # Temporal parameters
 timestep = 0.001
 dt = dfx.fem.Constant(mesh, timestep) 
-T = 0.005
 period = 1
+num_periods = int(sys.argv[4])
+T = period*num_periods
 N = int(T / timestep)
 times = np.linspace(0, T, N+1)
 final_period_start = int(T - period)
@@ -108,15 +108,29 @@ w, dw = ufl.TrialFunction(W), ufl.TestFunction(W)
 # Stress tensor
 sigma = lambda w: 2.0*eta*eps(w) + lam*ufl.tr(eps(w))*ufl.Identity(mesh.geometry.dim)
 
+# Damping parameters
+eta_M = dfx.fem.Constant(mesh, 0.0) # Damping proportional to inertia
+eta_K = dfx.fem.Constant(mesh, 0.05) # Damping proportional to stiffness
+
 # The weak form
 a = rho/(beta*dt**2)*inner(w, dw)*dx + inner(sigma(w), eps(dw)) * dx
 L = rho*inner(wh_n/(beta*dt**2) + wh_dot_n/(beta*dt) + (1-2*beta)/(2*beta)*wh_ddot_n, dw) * dx 
 
+# Add Rayleigh damping: eta_M * M(v) + eta_K * K(v), where M = mass matrix, K = stiffness matrix, v = velocity
+a += gamma/(beta*dt) * (eta_M*rho*inner(w, dw)*dx + eta_K*inner(sigma(w), eps(dw))*dx)
+v_res = wh_dot_n + dt*wh_ddot_n*(1-gamma) - gamma/(beta*dt)*(wh_n + dt*wh_dot_n) + dt*gamma*wh_ddot_n*(2*beta-1)/(2*beta)
+L -= (eta_M*rho* inner(v_res, dw)*dx + eta_K * inner(sigma(v_res), eps(dw))*dx)
+    
+# Create linear system
+a_cpp, L_cpp = dfx.fem.form(a), dfx.fem.form(L)
+A = create_matrix(a_cpp)
+b = create_vector(L_cpp)
+
 # Dirichlet BCs on corpus callosum and canal wall
-cc_disp_expr = DisplacementCorpusCallosumCephalocaudal(period=period, timestep=timestep)
-cwfv_disp_expr = DisplacementCanalAndFourthVentricleAnteroposterior(period=period, timestep=timestep)
-tv_disp_expr = DisplacementThirdVentricleLateral(period=period, timestep=timestep)
-lv_disp_expr = DisplacementCaudateNucleusHeadLateral(period=period, timestep=timestep)
+cc_disp_expr = DisplacementCorpusCallosumCephalocaudal(period=period, timestep=timestep, final_time=T)
+cwfv_disp_expr = DisplacementCanalAndFourthVentricleAnteroposterior(period=period, timestep=timestep, final_time=T)
+tv_disp_expr = DisplacementThirdVentricleLateral(period=period, timestep=timestep, final_time=T)
+lv_disp_expr = DisplacementCaudateNucleusHeadLateral(period=period, timestep=timestep, final_time=T)
 cc_disp_func = dfx.fem.Function(W)
 cwfv_disp_func = dfx.fem.Function(W)
 tv_disp_func_right = dfx.fem.Function(W)
@@ -141,18 +155,121 @@ bcs.append(dfx.fem.dirichletbc(tv_disp_func_right, tv_dofs_right, W_x))
 tv_dofs_left  = dfx.fem.locate_dofs_topological((W_x, W), facet_dim, ft.find(THIRD_LEFT))
 bcs.append(dfx.fem.dirichletbc(tv_disp_func_left, tv_dofs_left, W_x))
 
-cwfv_facets = np.concatenate((ft.find(FOURTH_VENTRICLE_WALL), ft.find(CANAL_WALL)))
-cwfv_antpost_dofs = dfx.fem.locate_dofs_topological((W_y, W), facet_dim, cwfv_facets)
-bcs.append(dfx.fem.dirichletbc(cwfv_disp_func, cwfv_antpost_dofs, W_y))
+# Anchor perimeter of outlet
+# Get the facets of the outlet and the canal wall
+outlet_facets = ft.indices[ft.values==CANAL_OUT]
+wall_facets = ft.indices[ft.values==CANAL_WALL]
 
-# Zero displacement in x direction on the lower part of the geometry
-cwfv_lateral_dofs = dfx.fem.locate_dofs_topological((W_x, W), facet_dim, cwfv_facets)
-bcs.append(dfx.fem.dirichletbc(zero, cwfv_lateral_dofs, W_x))
-    
-# Create linear system
-a_cpp, L_cpp = dfx.fem.form(a), dfx.fem.form(L)
-A = create_matrix(a_cpp)
-b = create_vector(L_cpp)
+# Get the connectivity from facets (dim-1) to vertices (dim=0)
+mesh.topology.create_connectivity(facet_dim, 0)
+f_to_v = mesh.topology.connectivity(facet_dim, 0)
+
+# Parallell communication
+if len(outlet_facets) > 0:
+    local_outlet_vertices = np.unique(np.concatenate([f_to_v.links(f) for f in outlet_facets]))
+else:
+    local_outlet_vertices = np.array([], dtype=np.int32)
+
+all_outlet_vertices_list = comm.allgather(local_outlet_vertices) # Gather all local vertex arrays from all processes
+global_outlet_vertices = np.unique(np.concatenate(all_outlet_vertices_list)) # Create a single global array of unique vertices
+
+if len(wall_facets) > 0:
+    local_wall_vertices = np.unique(np.concatenate([f_to_v.links(f) for f in wall_facets]))
+else:
+    local_wall_vertices = np.array([], dtype=np.int32)
+
+# The perimeter vertices are the intersection of the two sets of vertices
+# Gather and create global array to compute intersection globally
+all_wall_vertices_list = comm.allgather(local_wall_vertices)
+global_wall_vertices = np.unique(np.concatenate(all_wall_vertices_list))
+outlet_perimeter_vertices = np.intersect1d(global_outlet_vertices, global_wall_vertices)
+
+# Find which outlet_perimeter_vertices are owned locally on the process
+owned_vertex_range = mesh.topology.index_map(0).local_range # Get the start and end+1 of the owned vertex range on this process
+
+# Create a boolean mask to filter the vertices
+is_owned = (outlet_perimeter_vertices >= owned_vertex_range[0]) & \
+           (outlet_perimeter_vertices < owned_vertex_range[1])
+
+# Apply the mask to get only the vertices owned by this process
+local_perimeter_vertices = outlet_perimeter_vertices[is_owned]
+
+# Now find the outlet perimeter dofs
+mesh.topology.create_connectivity(0, mesh.topology.dim) # Create connectivity from vertices (dim=0) to cells (dim)
+outlet_perimeter_dofs_x = dfx.fem.locate_dofs_topological((W_x, W), 0, local_perimeter_vertices)
+outlet_perimeter_dofs_y = dfx.fem.locate_dofs_topological((W_y, W), 0, local_perimeter_vertices)
+
+bcs.append(dfx.fem.dirichletbc(zero, outlet_perimeter_dofs_x, W_x))
+bcs.append(dfx.fem.dirichletbc(zero, outlet_perimeter_dofs_y, W_y))
+
+
+### EIGENVALUE PROBLEM ### 
+import slepc4py
+from slepc4py import SLEPc
+slepc4py.init(sys.argv)
+PETSc.Options().setValue("-eps_view", None)
+# Stiffness bilinear form
+a = inner(sigma(w), eps(dw)) * dx
+# Mass bilinear form
+m = rho * inner(w, dw) * dx
+
+# Important: Apply boundary conditions to the stiffness matrix assembly
+K = dfx.fem.petsc.assemble_matrix(dfx.fem.form(a), bcs=bcs)
+K.assemble()
+
+# The mass matrix is not affected by Dirichlet BCs
+M = dfx.fem.petsc.assemble_matrix(dfx.fem.form(m))
+M.assemble()
+print("Assembled")
+
+# 4. Set up and solve the Eigenvalue Problem with SLEPc
+sl_eps = SLEPc.EPS().create(comm)
+sl_eps.setOperators(K, M)
+sl_eps.setProblemType(SLEPc.EPS.ProblemType.GHEP) # Generalized Hermitian Eigenvalue Problem
+
+# Set the solver to find the eigenvalues with the smallest magnitude (lowest frequencies)
+sl_eps.setWhichEigenpairs(SLEPc.EPS.Which.SMALLEST_REAL)
+sl_eps.setDimensions(nev=5) # Number of eigenvalues to compute
+sl_eps.setFromOptions()
+sl_eps.solve()
+
+# 5. Extract and print the results
+nconv = sl_eps.getConverged()
+print(f"Number of converged eigenvalues: {nconv}")
+
+if nconv > 0:
+    # Create a dolfinx function to store the eigenvector (mode shape)
+    uh = dfx.fem.Function(W, name="Mode Shape")
+    # Create vectors for the real and imaginary parts of the eigenvector
+    vr, vi = K.getVecs()
+
+    print("\n   Frequency (Hz)")
+    print("--------------------")
+    for i in range(nconv):
+        lambda_i = sl_eps.getEigenpair(i, vr, vi)[0].real
+        # Convert eigenvalue ω² to frequency in Hz
+        freq_hz = np.sqrt(lambda_i) / (2 * np.pi)
+        
+        # Check for non-physical "zero-energy" modes close to 0 Hz
+        if freq_hz > 1e-2:
+            print(f"{i+1:2d}: {freq_hz:8.4f}")
+
+# Optional: Save the first physical mode shape to a file for visualization
+if nconv > 0:
+    with dfx.io.XDMFFile(MPI.COMM_WORLD, "mode_shape.xdmf", "w") as xdmf:
+        # Find first non-zero frequency mode
+        for i in range(nconv):
+            lambda_i = sl_eps.getEigenpair(i, vr, vi)[0].real
+            if np.sqrt(lambda_i) / (2 * np.pi) > 1e-2:
+                # Copy the eigenvector from the PETSc vector to the dolfinx function
+                uh.vector.setArray(vr.getArray())
+                uh.x.scatter_forward()
+                xdmf.write_mesh(mesh)
+                xdmf.write_function(uh, 0.0)
+                print(f"\nSaved mode shape for frequency {np.sqrt(lambda_i)/(2*np.pi):.4f} Hz to mode_shape.xdmf")
+                break
+
+exit()
 
 # Configure linear solver based on
 # conjugate gradient with algebraic multigrid preconditioning
@@ -181,12 +298,12 @@ BDM = dfx.fem.functionspace(mesh, bdm_el)
 dw_dt_bdm = dfx.fem.Function(BDM)
 dw_dt_bdm.name = "defo_velocity"
 wh.name = "defo_displacement"
-output_dir = f"../output/{mesh_prefix}-mesh/deformation_p={p}_E={E:.0f}/"
+output_dir = f"../output/mesh_{mesh_suffix}/deformation_p={p}_E={E:.0f}/"
 data_dir = output_dir+"data/"
 Path(data_dir).mkdir(parents=True, exist_ok=True)
 
-xdmf = dfx.io.XDMFFile(comm, output_dir+f"displacement_p={p}_E={E:.0f}_dt={timestep:.4g}_T={T:.0f}.xdmf", "w")
-xdmf_vel = dfx.io.XDMFFile(comm, output_dir+f"displacement_p={p}_E={E:.0f}_velocity_dt={timestep:.4g}_T={T:.0f}.xdmf", "w")
+xdmf = dfx.io.XDMFFile(comm, output_dir+f"displacement_dt={timestep:.4g}_T={T:.0f}.xdmf", "w")
+xdmf_vel = dfx.io.XDMFFile(comm, output_dir+f"displacement_velocity_dt={timestep:.4g}_T={T:.0f}.xdmf", "w")
 xdmf.write_mesh(mesh)
 xdmf_vel.write_mesh(mesh)
 
@@ -211,18 +328,14 @@ point_disp = np.zeros((len(times), 3))
 
 # Compute cells for point evaluation of the deformation function wh
 cell = []
-point_on_proc = []
 random_point = np.array([0.000435316, 0.0346574, 0.0150221])
-# random_point = np.array([-0.00013767, 0.00550183, 0.00806552])
 bb_tree = dfx.geometry.bb_tree(mesh, mesh.topology.dim)
 cell_candidates = dfx.geometry.compute_collisions_points(bb_tree, random_point)
 colliding_cells = dfx.geometry.compute_colliding_cells(mesh, cell_candidates, random_point)
-if len(colliding_cells.links(0)>0):
+if len(colliding_cells.links(0))>0:
     cc = colliding_cells.links(0)[0]
     cell.append(cc)
     cell = np.array(cell)
-    point_on_proc.append(random_point)
-    point_on_proc = np.array(point_on_proc)[0]
 
 applied_bc1 = []
 applied_bc2 = []
@@ -237,9 +350,11 @@ for i, t in enumerate(times[1:], 1):
     cc_disp_expr.increment_index(t)
     cc_disp_expr()
     cc_disp_func.x.array[:] = cc_disp_expr.amplitude
+
     cwfv_disp_expr.increment_index(t)
     cwfv_disp_expr()
     cwfv_disp_func.x.array[:] = cwfv_disp_expr.amplitude
+
     tv_disp_expr.increment_index(t)
     tv_disp_expr()
     tv_disp_func_right.x.array[:] = tv_disp_expr.amplitude
@@ -334,6 +449,7 @@ if comm.rank==0:
     np.save(data_dir+f"applied_bc_corpus_callosum_dt={timestep}.npy", np.array(applied_bc1))
     np.save(data_dir+f"applied_bc_canal_wall__dt={timestep}.npy", np.array(applied_bc2))
     np.save(data_dir+f"applied_bc_3V_wall_dt={timestep}.npy", np.array(applied_bc3))
+    np.save(data_dir+f"applied_bc_caudate_nucleus_dt={timestep}.npy", np.array(applied_bc4))
 
     fig2, ax2 = plt.subplots(figsize=([12, 8]))
     ax2.plot(times, energy[:, 0], 'r', label="Kinetic energy")

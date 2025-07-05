@@ -18,7 +18,10 @@ AQUEDUCT_BOT = 58
 pa_to_mmhg = 1/133.3 # Pascal [Pa] to millimeters Mercury [mmHg]
 m3_to_ml = 1e6 # Meters cubed [m^3] to milliliters [ml]
 
-k = 1 # Element degree
+p = 2 # CG element degree
+k = 1 # BDM element degree
+E = 500 # Young's modulus
+
 T = 3.0
 dt = 0.001
 N = int(T / dt)
@@ -29,8 +32,7 @@ comm = MPI.COMM_WORLD
 mesh_prefix = 'fine'
 solver_type = 'navier-stokes'
 model_variation = 'deformation+cilia+production'
-infile_name = f"../output/ex3/{mesh_prefix}-mesh/flow/{solver_type}/checkpoints/BDM_{model_variation}_velocity_T={T}_dt={dt}"
-# infile_name = f"../output/ex3/flow/{solver_type}/checkpoints/BDM_deforming_velocity_T={T}_dt={dt}"
+infile_name = f"../output/ex3/{mesh_prefix}-mesh/flow_p={p}_E={E}_k={k}_dt={dt:.4g}_T={T}/{solver_type}/checkpoints/BDM_{model_variation}_velocity"
 mesh = a4d.read_mesh(filename=infile_name, comm=comm, read_from_partition=False)
 ft   = a4d.read_meshtags(filename=infile_name, mesh=mesh, meshtag_name='ft')
 
