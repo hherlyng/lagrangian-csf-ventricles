@@ -1,17 +1,17 @@
 import ufl
 import sys
-
+import dolfinx.fem.petsc
+import slepc4py
 import numpy   as np
 import dolfinx as dfx
 
 from ufl       import inner, grad, sym
 from mpi4py    import MPI
 from petsc4py  import PETSc
+from slepc4py  import SLEPc
 from basix.ufl import element
-from dolfinx.fem.petsc    import create_matrix, create_vector
 from utilities.deformation_data import (DisplacementCorpusCallosumCephalocaudal, 
                                         DisplacementCaudateNucleusHeadLateral,
-                                        DisplacementCanalAndFourthVentricleAnteroposterior,
                                         DisplacementThirdVentricleLateral)
 
 print = PETSc.Sys.Print
@@ -33,7 +33,7 @@ THIRD_POSTERIOR = 116
 # prescribed in time at a single point (close to corpus callosum).
 write_output = int(sys.argv[1])
 comm = MPI.COMM_WORLD
-mesh_suffix = '0'
+mesh_suffix = int(sys.argv[5]) # Refinement degree of mesh
 with dfx.io.XDMFFile(comm, f"../geometries/ventricles_{mesh_suffix}.xdmf", "r") as xdmf:
     mesh = xdmf.read_mesh()
     gdim = mesh.geometry.dim
@@ -93,7 +93,6 @@ sigma = lambda w: 2.0*eta*eps(w) + lam*ufl.tr(eps(w))*ufl.Identity(mesh.geometry
 
 # Dirichlet BCs on corpus callosum and canal wall
 cc_disp_expr = DisplacementCorpusCallosumCephalocaudal(period=period, timestep=timestep, final_time=T)
-cwfv_disp_expr = DisplacementCanalAndFourthVentricleAnteroposterior(period=period, timestep=timestep, final_time=T)
 tv_disp_expr = DisplacementThirdVentricleLateral(period=period, timestep=timestep, final_time=T)
 lv_disp_expr = DisplacementCaudateNucleusHeadLateral(period=period, timestep=timestep, final_time=T)
 cc_disp_func = dfx.fem.Function(W)
@@ -168,8 +167,7 @@ bcs.append(dfx.fem.dirichletbc(zero, outlet_perimeter_dofs_x, W_x))
 bcs.append(dfx.fem.dirichletbc(zero, outlet_perimeter_dofs_y, W_y))
 
 ##--------- THE EIGENVALUE PROBLEM ---------## 
-import slepc4py
-from slepc4py import SLEPc
+print(f"Setting up eigenvalue problem on mesh_{mesh_suffix} with p={p} elements")
 slepc4py.init(sys.argv)
 PETSc.Options().setValue("-eps_view", None)
 PETSc.Options().setValue("-eps_monitor", None)
@@ -178,11 +176,11 @@ m = rho * inner(w, dw) * dx # Mass bilinear form
 a = inner(sigma(w), eps(dw)) * dx # Stiffness bilinear form
 
 # Apply boundary conditions to the stiffness matrix assembly
-K = dfx.fem.petsc.assemble_matrix(dfx.fem.form(a), bcs=bcs)
+K = dolfinx.fem.petsc.assemble_matrix(dfx.fem.form(a), bcs=bcs)
 K.assemble()
 
 # The mass matrix is not affected by Dirichlet BCs
-M = dfx.fem.petsc.assemble_matrix(dfx.fem.form(m))
+M = dolfinx.fem.petsc.assemble_matrix(dfx.fem.form(m))
 M.assemble()
 print("Assembled")
 
@@ -212,11 +210,11 @@ print(f"Number of converged eigenvalues: {nconv}")
 
 if nconv > 0:
     # Create a dolfinx function to store the eigenvector (mode shape)
-    uh = dfx.fem.Function(W, name="Mode Shape")
+    uh = dfx.fem.Function(W, name="mode shape")
     # Create vectors for the real and imaginary parts of the eigenvector
     vr, vi = K.getVecs()
 
-    print("\n   Frequency (Hz)")
+    print("\n Frequency (Hz)")
     print("--------------------")
     for i in range(nconv):
         lambda_i = sl_eps.getEigenpair(i, vr, vi).real
@@ -230,7 +228,7 @@ if nconv > 0:
 if write_output:
     # Save the first physical mode shape to a file for visualization
     if nconv > 0:
-        with dfx.io.VTXWriter(MPI.COMM_WORLD, "mode_shape.bp", [uh], "BP5") as vtx:
+        with dfx.io.VTXWriter(MPI.COMM_WORLD, f"../output/mesh_{mesh_suffix}/mode_shape.bp", [uh], "BP5") as vtx:
             # Find first non-zero frequency mode
             for i in range(nconv):
                 lambda_i = sl_eps.getEigenpair(i, vr, vi).real

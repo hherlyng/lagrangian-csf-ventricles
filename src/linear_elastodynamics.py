@@ -39,7 +39,7 @@ THIRD_POSTERIOR = 116
 
 write_output = int(sys.argv[1])
 comm = MPI.COMM_WORLD
-mesh_suffix = '0' # Refinement degree of mesh
+mesh_suffix = int(sys.argv[5]) # Refinement degree of mesh
 with dfx.io.XDMFFile(comm, f"../geometries/ventricles_{mesh_suffix}.xdmf", "r") as xdmf:
     mesh = xdmf.read_mesh()
     gdim = mesh.geometry.dim
