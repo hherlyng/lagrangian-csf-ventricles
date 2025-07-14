@@ -15,3 +15,6 @@ dependencies:
   - mpich
   - colormaps
   - imageio
+  - gmsh
+  - pip:
+     - gmsh
