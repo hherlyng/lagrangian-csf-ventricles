@@ -1,8 +1,12 @@
 from mpi4py import MPI
+import sys
 import numpy as np
 import dolfinx as dfx
 
-with dfx.io.XDMFFile(MPI.COMM_WORLD, "../../geometries/ventricles_1.xdmf", "r") as xdmf:
+input_mesh_suffix = int(sys.argv[1])
+output_mesh_suffix = input_mesh_suffix+1
+
+with dfx.io.XDMFFile(MPI.COMM_WORLD, f"../../geometries/ventricles_{input_mesh_suffix}.xdmf", "r") as xdmf:
     mesh = xdmf.read_mesh()
     tdim = mesh.topology.dim
     fdim = mesh.topology.dim-1
@@ -24,7 +28,7 @@ ft_refined.name = "ft"
 ct_refined = dfx.mesh.MeshTags(dfx.cpp.refinement.transfer_cell_meshtag(ct._cpp_object, mesh_refined._cpp_object.topology, parent_cells))
 ct_refined.name = "ct"
 
-with dfx.io.XDMFFile(mesh_refined.comm, "../../geometries/ventricles_2.xdmf", "w") as xdmf:
+with dfx.io.XDMFFile(mesh_refined.comm, f"../../geometries/ventricles_{output_mesh_suffix}.xdmf", "w") as xdmf:
     xdmf.write_mesh(mesh_refined)
     xdmf.write_meshtags(ft_refined, mesh_refined.geometry)
     xdmf.write_meshtags(ct_refined, mesh_refined.geometry)

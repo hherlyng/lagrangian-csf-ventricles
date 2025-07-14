@@ -351,7 +351,8 @@ We consider three fluid motion-inducing mechanisms, and model them as follows:
     \item Ciliary beating, modeled as a tangential traction acting on the fluid at the boundary (see~\Cref{subsubsec:cilia})
 \end{itemize}
 We impose zero normal traction at the lateral apertures and the cut-off of the spinal canal
-to model them as open boundaries that allow for in- and outflow.
+to model them as open boundaries that allow for in- and outflow. On all of the cilia boundaries,
+we impose a Navier slip boundary condition in the tangential direction.
 
 \subsubsection{Brain ventricles deformation}\label{subsubsec:deformation}
 To model the impact of ventricular wall deformations
@@ -365,21 +366,27 @@ $\dot{\ww}=\partial\ww/\partial t$. The
 displacement $\ww(\xx, t)$ is obtained
 by a smooth extension of displacement data
 with the following approach. The brain ventricles 
-are assumed to be a linear elastic solid. Displacement 
-boundary conditions based on measurement data
+are assumed to be a solid exhibiting linear viscoelastic
+properties, which is modeled by the time-dependent 
+equations of linear elasticity with Rayleigh damping.
+Displacement boundary conditions based on measurement data
 are imposed on parts of the geometry boundary, while the rest
-is considered traction-free. The equations of linear elasticity
-are then solved to yield $\ww(\xx, t)$.
+is considered traction-free. The solid mechanics equations
+are then solved to yield $\ww(\xx, t)$ and $\dot{\ww}(\xx, t)$,
+and the latter (the displacement velocity) is imposed
+as a boundary condition in the fluid model.
 
-Assuming that the brain ventricles are linear elastic material,
+Assuming that the brain ventricles are a linear elastic material
+with an inherent damping modeled by Rayleigh damping,
 the displacement is governed by
 \begin{equation}
-    \rho\pdiffdifft{\ww} - \nabla\cdot\bsigma_s = \bm{0} \quad\mathrm{in \ \mathcal{D}},
+    \rho\pdiffdifft{\ww} + \zeta\pdifft{\ww} - \nabla\cdot\bsigma_s = \bm{0} \quad\mathrm{in \ \mathcal{D}},
     \label{eq:strong_linear_elasticity_1}
 \end{equation}
-where $\bsigma_s = 2\eta\beps(\ww) + \lambda\mathrm{tr}(\beps(\ww))\delta$ is the
-solid stress tensor, in which $\eta$ and $\lambda$ are the Lamé parameters of the ventricular walls
-and $\delta$ is the Kronecker delta. Applying the divergence operator, \Cref{eq:strong_linear_elasticity_1}
+where $\zeta$ is the damping factor and $\bsigma_s = 2\eta\beps(\ww) + \lambda\mathrm{tr}(\beps(\ww))\delta$ is the
+solid stress tensor, in which $\eta$ and $\lambda$ are the Lamé parameters of the ventricular walls,
+and $\delta$ is the Kronecker delta. 
+\fixme{Applying the divergence operator, \Cref{eq:strong_linear_elasticity_1}
 takes the form
 \begin{equation}
     \rho\pdiffdifft{\ww} - 2\eta\nabla\cdot\beps(\ww) - \lambda\nabla(\nabla\cdot\ww) = \bm{0},
@@ -394,17 +401,21 @@ We impose the boundary conditions
 On $\mathcal{S}_1$ we impose a given deformation $\bm{g}(\xx, t)$, whereas
 $\mathcal{S}_2$ is considered traction-free. The boundary $\mathcal{S}_3$
 is clamped. 
-The displacement $\bm{g}$ is based on brain displacement
-measurements done in the sagittal plane
-\cite{Kurtcuoglu2007ComputationalSylvius},
-showing displacements along the feet-head axis ($z$ axis),
-and we therefore set $\bm{g}(\xx, t) = (0, 0, g_z(\xx, t))$.
+The displacements $\bm{g}$ is based on brain displacement
+experimental measurements.\cite{Kurtcuoglu2007ComputationalSylvius,
+Enzmann1992BrainImaging, soellinger20093d, soellinger2007assessment,
+greitz1992pulsatile}
 
 The Lamé parameters are derived from the Poisson's ratio $\nu=0.479$ and Young's modulus
-$E=1500$ Pa of white matter brain tissue that surrounds the ventricles
-\cite{Causemann2022HumanFramework}. We remark that there is
+$E=1500$ Pa of brain tissue that surrounds the ventricles. The Poisson's ratio was chosen
+to represent a near incompressibility of the ventricular system,
+while the Young's modulus represents an average of gray and white matter
+brain tissue surrounding the ventricular system
+\cite{Causemann2022HumanFramework, Budday2015Mechanical}.
+We remark that there is
 uncertainty in these material parameters with various values
-reported in the literature\cite{Cheng2010ComputationalModel, Cheng2007UnconfinedCompression}.
+reported in the literature\cite{Budday2015Mechanical, Cheng2010ComputationalModel,
+Cheng2007UnconfinedCompression, Sweetman2011ThreeDimensional}.
 We chose the same values as Causemann~\emph{et al.}~\cite{Causemann2022HumanFramework}
 both to provide a basis of comparison with their work, but also due the facts that
 (i) the brain ventricles walls are nearly incompressible, which a
@@ -521,13 +532,13 @@ For the Navier-Stokes equations, we solve the Stokes equations
 (with $\uu_0(\xx)=\bm{0}$) and use the solution
 $\uu_{\mathrm{Stk}}(\xx)$ as initial condition;
 $\uu_0(\xx)=\uu_{\mathrm{Stk}}(\xx)$. 
-The fluid equations are solved for five cardiac cycles,
-and the velocity fields of the last cycle are used
+The fluid equations are solved for two cardiac cycles,
+and the velocity fields of the second cycle are used
 to calculate FTLE fields.
 
-The linear elasticity equations (\Cref{eq:strong_linear_elasticity_1})
+The time-dependent linear elasticity equations (\Cref{eq:strong_linear_elasticity_1})
 are solved using a finite element
-method, with quadratic continuous Lagrange elements for the
+method, with \fixme{quadratic} continuous Lagrange elements for the
 spatial discretization. In time, the
 equations are discretized with a Newmark-$\beta$ method:
 \begin{align*}
@@ -538,14 +549,21 @@ Here $n$ denotes timestep. We set
 $\gamma=1/2$ and $\beta=1/4$, which yields
 an unconditionally stable scheme of
 second-order accuracy~\cite{newmark1959method}.
-On the boundaries we impose a displacement $\gg$, the initial
+On the boundaries we impose a displacement $\bm{g}$, the initial
 conditions for $\ww$, $\dot{\ww}$ and $\ddot{\ww}$ are 
-derived from $\gg$. On the traction-free and anchored
+derived from $\bm{g}$. On the traction-free and anchored
 boundaries, the geometry is initially at rest.
-The equations are solved for two cardiac cycles, and the
-displacement velocity $\dot{\ww}$ computed in the second cycle
+The equations are solved for three cardiac cycles, and the
+displacement velocity $\dot{\ww}$ computed in the third cycle
 is used as a boundary condition in the fluid equations.
+Over the first two cardiac cycles, a ramp-up of the
+boundary condition magnitudes was performed. Additionally, during 
+the first half of the initial cardiac cycle, a cosine window is applied
+to the magnitude data to ensure the system starts from rest with
+$\ww(\xx, 0) = \dot{\ww}(\xx, 0) = \ddot{\ww}(\xx, 0) = \bm{0}$.
 
+The model implementations were verified using the
+Method of Manufactured Solutions~\cite{Roache2001CodeSolutions}.
 Convergence properties of the fluid discretization scheme were assessed with two
 model problems. To assess spatial convergence, we solved a channel flow
 problem, observing linear convergence in both the velocity error measured
@@ -553,9 +571,8 @@ in the $\bm{H}^1$ semi-norm and the pressure error measured in the $L^2$ norm.
 Temporal convergence was assessed
 with a Taylor vortex problem~\cite{Karniadakis2005Verification},
 where the first-order accuracy of the backward Euler scheme was
-confirmed. The discretization of the linear elasticity equations was
-verified using the method of manufactured solutions~\cite{Roache2001CodeSolutions}.
-With quadratic basis functions, the errors of the displacement
+confirmed. Solving the linear elasticity equations numerically
+with quadratic basis functions, the errors of the displacement
 approximation measured in the $\bm{L}^2$ norm and
 $\bm{H}^1$ semi-norm converged at the optimal rates of three
 and two, respectively. In time, second-order accuracy of the 
@@ -652,7 +669,7 @@ spheres of the brain, which could be due to the cerebral arterial swelling
 during the cardiac cycle [62].
 One other contributing factor for the ob-
 served localized medial-lateral deformation near the periventricular re-
-gion, could be the enlargement of the 3𝑟𝑑 and lateral ventricles during
+gion, could be the enlargement of the 3rd and lateral ventricles during
 the cardiac cycle [63,64]. 
 More specifically, in addition to the substantial mo-
 tion in the inferior brain structures, DENSE also showed large motion
