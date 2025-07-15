@@ -354,26 +354,34 @@ We impose zero normal traction at the lateral apertures and the cut-off of the s
 to model them as open boundaries that allow for in- and outflow. On all of the cilia boundaries,
 we impose a Navier slip boundary condition in the tangential direction.
 
+\begin{figure}
+    \centering
+    \includegraphics[width=\textwidth]{graphics/figure_elastodynamics.png}
+    \caption{Parts of the figure were created with BioRender.}
+    \label{fig:model_sketch}
+\end{figure}
+
+
 \subsubsection{Brain ventricles deformation}\label{subsubsec:deformation}
-To model the impact of ventricular wall deformations
-on CSF flow, we impose a
-displacement velocity as a boundary
-condition when solving the flow equations.
-We define the displacement of the brain
-ventricles as $\ww(\xx, t)\in H^2(\DD)$,
-and the displacement velocity is
-$\dot{\ww}=\partial\ww/\partial t$. The
-displacement $\ww(\xx, t)$ is obtained
-by a smooth extension of displacement data
-with the following approach. The brain ventricles 
-are assumed to be a solid exhibiting linear viscoelastic
-properties, which is modeled by the time-dependent 
-equations of linear elasticity with Rayleigh damping.
-Displacement boundary conditions based on measurement data
-are imposed on parts of the geometry boundary, while the rest
-is considered traction-free. The solid mechanics equations
-are then solved to yield $\ww(\xx, t)$ and $\dot{\ww}(\xx, t)$,
-and the latter (the displacement velocity) is imposed
+The main driver of intraventricular CSF flow is cardiac pulsatility.
+During systole, the blood vessels in the brain expand and followingly also
+the parenchyma, putting pressure on the ventricular system. The inward displacement
+of the brain ventricles leads to antegrade (from cephalic to caudal) CSf flow.
+When the blood vessels relax and contract during diastole, the flow reverses and
+CSF flows back into the system.
+
+We model CSF flow driven by ventricular wall deformations by
+imposing a wall displacement velocity as boundary condition when solving the flow equations.
+The displacement velocity is obtained through a smooth extension of experimental
+brain tissue displacement data by solving time-dependent equations of
+linear elasticity. We define the displacement of the brain
+ventricles as $\ww(\xx, t)\in H^2(\DD)$ and the displacement velocity
+$\dot{\ww}=\partial\ww/\partial t$. The brain ventricles 
+are assumed to be a linear elastic solid, with viscoelastic
+behavior modeled by Rayleigh damping. Displacement boundary
+conditions based on experiments data are imposed on parts of the boundary,
+while the rest is considered traction-free. The dynamic equations are solved to yield
+$\ww(\xx, t)$ and $\dot{\ww}(\xx, t)$, with the latter imposed
 as a boundary condition in the fluid model.
 
 Assuming that the brain ventricles are a linear elastic material
@@ -386,25 +394,40 @@ the displacement is governed by
 where $\zeta$ is the damping factor and $\bsigma_s = 2\eta\beps(\ww) + \lambda\mathrm{tr}(\beps(\ww))\delta$ is the
 solid stress tensor, in which $\eta$ and $\lambda$ are the Lamé parameters of the ventricular walls,
 and $\delta$ is the Kronecker delta. 
-\fixme{Applying the divergence operator, \Cref{eq:strong_linear_elasticity_1}
-takes the form
-\begin{equation}
-    \rho\pdiffdifft{\ww} - 2\eta\nabla\cdot\beps(\ww) - \lambda\nabla(\nabla\cdot\ww) = \bm{0},
-    \quad\mathrm{in \ \mathcal{D}}.
-\end{equation}
+
 We impose the boundary conditions
 \begin{alignat}{2}
     \ww(\xx, t) &= \bm{g}(\xx, t) &&\quad\mathrm{on \ \mathcal{S}_1}, \\
-    \bsigma_s\nn &= \bm{0} &&\quad\mathrm{on \ \mathcal{S}_2}, \\
-    \ww(\xx, t) &= \bm{0} &&\quad\mathrm{on \ \mathcal{S}_3}.
+    w_x(\xx, t) = w_y(\xx, t) &= \bm{0} &&\quad\mathrm{on \ \mathcal{S}_2}, \\
+    \bsigma_s\nn &= \bm{0} &&\quad\mathrm{on \ \mathcal{S}_3}, \\
 \end{alignat}
-On $\mathcal{S}_1$ we impose a given deformation $\bm{g}(\xx, t)$, whereas
-$\mathcal{S}_2$ is considered traction-free. The boundary $\mathcal{S}_3$
-is clamped. 
-The displacements $\bm{g}$ is based on brain displacement
-experimental measurements.\cite{Kurtcuoglu2007ComputationalSylvius,
+On $\mathcal{S}_1$ we impose deformations $\bm{g}(\xx, t)$ determined from experimental
+data. The boundary $\mathcal{S}_1$ constitutes several parts of the geometry with specific
+boundary data extracted from research literature\cite{Kurtcuoglu2007ComputationalSylvius,
 Enzmann1992BrainImaging, soellinger20093d, soellinger2007assessment,
-greitz1992pulsatile}
+greitz1992pulsatile}:
+\begin{itemize}
+    \item The roof of the lateral ventricles, where corpus callosum displacement data is imposed;
+    \item The lateral sides of the frontal horns, where caudate nucleus displacement data is imposed;
+    \item The occipital and posterior horns, where we impose a systolic contraction followed by a
+    diastolic expansion;
+    \item The walls of the third ventricle, where thalamus displacement data is imposed;
+    \item The floors of the lateral and third ventricles, where we impose a downward motion.
+\end{itemize}
+The last boundary condition has only motion in the $z$ direction (which aligns with the feet-head direction)
+imposed, while all the other boundary conditions are imposed normal to the wall. The magnitudes of the
+displacemnt boundary conditions and the resulting volume changes of the lateral
+and third ventricles, which are the drivers of CSF flow, are given in~\Cref{fig:model_sketch}.
+
+The boundary $\mathcal{S}_2$ is the perimeter of the spinal canal outlet.
+It is anchored in the $x$ (right-left) and $y$ (anterior-posterior) directions
+to avoid rigid body motions, while reflecting the fact that surrounding tissue
+is holding it mostly in place in these directions. In the $z$ direction the
+boundary $\mathcal{S}_2$ is considered traction-free.
+
+Finally, the boundary $\mathcal{S}_3$ is traction-free in all directions. These
+parts are the remaining parts of the geometry not mentioned, and certain small
+regions delineating different displacement BC regions, to avoid stress concentrations.
 
 The Lamé parameters are derived from the Poisson's ratio $\nu=0.479$ and Young's modulus
 $E=1500$ Pa of brain tissue that surrounds the ventricles. The Poisson's ratio was chosen
@@ -426,7 +449,8 @@ had no impact on clinically relevant features such
 as displaced flow volume in the computational work of
 Causemann~\emph{et al.}~\cite{Causemann2022HumanFramework},
 and so we expect the precise choice of $E$ not to
-influence the general trends of the results.
+influence the general trends of the results, but rather
+only the required magnitude of the applied displacements $\gg(\xx, t)$.
 
 \subsubsection{Choroid plexus secretion}\label{subsubsec:secretion}
 CSF is mainly produced by the choroid plexus tissue.
@@ -532,15 +556,15 @@ For the Navier-Stokes equations, we solve the Stokes equations
 (with $\uu_0(\xx)=\bm{0}$) and use the solution
 $\uu_{\mathrm{Stk}}(\xx)$ as initial condition;
 $\uu_0(\xx)=\uu_{\mathrm{Stk}}(\xx)$. 
-The fluid equations are solved for two cardiac cycles,
-and the velocity fields of the second cycle are used
+The fluid equations are solved for \fixme{two cardiac cycles},
+and the velocity fields of the \fixme{second cycle} are used
 to calculate FTLE fields.
 
 The time-dependent linear elasticity equations (\Cref{eq:strong_linear_elasticity_1})
-are solved using a finite element
-method, with \fixme{quadratic} continuous Lagrange elements for the
+are solved using a finite element method with
+\fixme{quadratic} continuous Lagrange elements for the
 spatial discretization. In time, the
-equations are discretized with a Newmark-$\beta$ method:
+equations are discretized with the Newmark-$\beta$ method:
 \begin{align*}
     \dot{\ww}_{n+1} &= \dot{\ww}_n + (1 - \gamma)\Delta t\ddot{\ww}_n + \gamma\Delta t\ddot{\ww}_{n+1}, \\
     \ww_{n+1} &= \ww_n + \Delta t\dot{\ww}_n + (\frac{1}{2} - \beta)\Delta t^2\ddot{\ww}_n + \beta\Delta t^2\ddot{\ww}_{n+1}.
@@ -549,10 +573,6 @@ Here $n$ denotes timestep. We set
 $\gamma=1/2$ and $\beta=1/4$, which yields
 an unconditionally stable scheme of
 second-order accuracy~\cite{newmark1959method}.
-On the boundaries we impose a displacement $\bm{g}$, the initial
-conditions for $\ww$, $\dot{\ww}$ and $\ddot{\ww}$ are 
-derived from $\bm{g}$. On the traction-free and anchored
-boundaries, the geometry is initially at rest.
 The equations are solved for three cardiac cycles, and the
 displacement velocity $\dot{\ww}$ computed in the third cycle
 is used as a boundary condition in the fluid equations.
@@ -560,6 +580,7 @@ Over the first two cardiac cycles, a ramp-up of the
 boundary condition magnitudes was performed. Additionally, during 
 the first half of the initial cardiac cycle, a cosine window is applied
 to the magnitude data to ensure the system starts from rest with
+the initial conditions
 $\ww(\xx, 0) = \dot{\ww}(\xx, 0) = \ddot{\ww}(\xx, 0) = \bm{0}$.
 
 The model implementations were verified using the
