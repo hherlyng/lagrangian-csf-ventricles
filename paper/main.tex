@@ -249,21 +249,7 @@ reveal repelling structures (unstable manifolds) of the flow,
 whereas integration backward in time 
 reveal attracting structures (stable manifolds).
 
-To compute FTLE fields, we initiate a cartesian grid of particles at a
-time $t_0$ and compute the flow map $\phi_{t_0}^{t_0+T}$
-by numerical integration with a fourth-order Runge-Kutta scheme.
-For integration, the timestep size $\Delta t = \fixme{0.001}$
-was chosen based on the CFL condition
-$\Delta t \leq C h_{\mathrm{min}}/u_{\mathrm{max}}$,
-where $C=0.5$, $h_{\mathrm{min}}$ is the minimal edge length
-of the mesh, and $u_{\mathrm{max}}$ is
-the maximum velocity magnitude.
-Computation is parallelized, uses a local element search technique
-to interpolate the velocity field, and only loads velocity data
-at the current timestep to minimize memory load. Further details on the
-method is provided in previous work~\cite{shadden2010computational}.
-
-\subsection{The governing equations of cerebrospinal fluid flow}
+\subsection{The governing equations of brain ventricular cerebrospinal fluid flow}
 We consider flow of an incompressible, Newtonian fluid of density $\rho$ and dynamic viscosity
 $\mu$ in a domain $\DD\subset\mathbb{R}^d$ with boundary $\partial\DD=\Scal$.
 Neglecting graviational force, no body forces are acting on the fluid.
@@ -301,7 +287,7 @@ In this setup, the governing equations are
     &= \hat{\nabla}\cdot\TT \label{eq:ALE_momentum_eq} \\
     \hat{\nabla}\cdot\uu &= 0 \label{eq:ALE_continuity_eq}
 \end{alignat}
-where $\cc$ is the deformation velocity and
+where $\cc$ is the displacement velocity and
 $\hat{\nabla}$ is the differential operator in the deformed domain.
 In \Cref{eq:ALE_momentum_eq} and \Cref{eq:ALE_continuity_eq},
 all variables are evaluated in the reference configuration.
@@ -341,26 +327,61 @@ is retained to account for transient effects. We will compute
 flow in human brain ventricles with both the Navier-Stokes and the
 time-dependent Stokes equations to compare the two.
 
-\subsection{Flow mechanisms and boundary conditions}
-We consider three fluid motion-inducing mechanisms, and model them as follows:
+Boundary conditions that close the fluid equations of motion
+are based on three fluid motion-inducing mechanisms, modeled as follows:
 \begin{itemize}
-    \item Deformations of the brain ventricles related to the cardiac and respiratory cycles,
-    modeled with an imposed deformation velocity (see~\Cref{subsubsec:deformation})
+    \item Deformation of the brain ventricles related to cardiac pulsatility,
+    modeled by imposing a displacement velocity $\dot{\ww}(\xx, t)$
+    normal to the ventricular walls (see~\Cref{subsubsec:deformation})
     \item Secretion of CSF from the choroid plexus,
-    modeled with an influx boundary condition on the velocity (see~\Cref{subsubsec:secretion})
-    \item Ciliary beating, modeled as a tangential traction acting on the fluid at the boundary (see~\Cref{subsubsec:cilia})
+    modeled by imposing a velocity $u_{\mathrm{ChP}}$ normal to the wall
+    which reflects a total influx of CSF (see~\Cref{subsubsec:secretion})
+    \item Ciliary beating, modeled by a tangential traction $\btau$
+    acting on the fluid at the boundary (see~\Cref{subsubsec:cilia})
 \end{itemize}
-We impose zero normal traction at the lateral apertures and the cut-off of the spinal canal
-to model them as open boundaries that allow for in- and outflow. On all of the cilia boundaries,
-we impose a Navier slip boundary condition in the tangential direction.
+Further details on modeling the mechanisms are outlined in the three subsections
+subsequent to the current. The boundary conditions for the human model read
+\begin{alignat}{2}
+    \uu\cdot\nn &= \dot{\ww}(\xx, t) &&\quad\mathrm{on \ \mathcal{S}_1}, \\
+    \uu\cdot\nn &= -u_{\mathrm{ChP}} &&\quad\mathrm{on \ \mathcal{S}_2}, \\
+    \TT_{\parallel} &= \btau = \tau(\xx) P_{\nn}(\rr) - \alpha(\uu\cdot\bm{t}) &&\quad\mathrm{on \ \mathcal{S}_1\cup\mathcal{S}_2}, \\
+    (\mu\nabla\uu - p\mathbf{I})\nn &= \bm{0} &&\quad\mathrm{on \ \mathcal{S}_4}. \label{eq:outlet_BC}
+\end{alignat}
+Here $\TT_{\parallel}=\TT\nn - (\TT\nn\cdot\nn)\nn$ is the tangential traction
+vector and $P_{\nn}(\cdot)$ is the projection of a vector onto a plane normal
+to $\nn$. The third condition is a Navier slip boundary condition where the
+friction coefficient $\alpha=\mu/L$ is determined by the dynamic viscosity and
+the slip length $L$. For the human brain, we choose $L=10$ \textmu m,
+the typical length of a cilium, resulting in $\alpha=100$.
+The ventricular walls of the third and fourth ventricles
+as well as the cerebral aqueduct are pupulated with motile cilia.
+On the rest of the boundary, we set $\tau(\xx)=0$.
+\Cref{eq:outlet_BC} imposes zero normal traction,
+and is imposed on the end of the spinal canal and on the lateral apertures
+to simulate open boundaries.
+
+For the zebrafish model, cilia is considered the only flow mechanism.
+Also here cilia only populate certain regions of the ventricular walls in
+zebrafish embryos at the developmental stage we consider.
+Similar to previous work~\cite{Herlyng2025AdvectionDiffusion},
+we consider a frictionless ($\alpha=0$) 
+tangential traction on the cilia boundary
+and a free-slip condition elsewhere:
+\begin{alignat}{2}
+    \TT_{\parallel} &= \btau  &&\quad\mathrm{on \ \mathcal{B}_1}, \\
+    \TT_{\parallel} &= \bm{0} &&\quad\mathrm{on \ \mathcal{B}_2}.
+\end{alignat}
+We set $\uu\cdot\nn=0$ on $\mathcal{B}_1\cup\mathcal{B}_2$ to reflect impermeability of
+the walls.
 
 \begin{figure}
     \centering
     \includegraphics[width=\textwidth]{graphics/figure_elastodynamics.png}
-    \caption{Parts of the figure were created with BioRender.}
-    \label{fig:model_sketch}
+    \caption{Human brain ventricles model. Illustration of the brain ventricular system that resides 
+    within the parenchyma. Choroid plexus locations in the lateral, third
+    and fourth ventricles. Computational meshParts of the figure were created with BioRender.}
+    \label{fig:model_sketch_human}
 \end{figure}
-
 
 \subsubsection{Brain ventricles deformation}\label{subsubsec:deformation}
 The main driver of intraventricular CSF flow is cardiac pulsatility.
@@ -399,7 +420,7 @@ We impose the boundary conditions
 \begin{alignat}{2}
     \ww(\xx, t) &= \bm{g}(\xx, t) &&\quad\mathrm{on \ \mathcal{S}_1}, \\
     w_x(\xx, t) = w_y(\xx, t) &= \bm{0} &&\quad\mathrm{on \ \mathcal{S}_2}, \\
-    \bsigma_s\nn &= \bm{0} &&\quad\mathrm{on \ \mathcal{S}_3}, \\
+    \bsigma_s\nn &= \bm{0} &&\quad\mathrm{on \ \mathcal{S}_3}.
 \end{alignat}
 On $\mathcal{S}_1$ we impose deformations $\bm{g}(\xx, t)$ determined from experimental
 data. The boundary $\mathcal{S}_1$ constitutes several parts of the geometry with specific
@@ -417,7 +438,7 @@ greitz1992pulsatile}:
 The last boundary condition has only motion in the $z$ direction (which aligns with the feet-head direction)
 imposed, while all the other boundary conditions are imposed normal to the wall. The magnitudes of the
 displacemnt boundary conditions and the resulting volume changes of the lateral
-and third ventricles, which are the drivers of CSF flow, are given in~\Cref{fig:model_sketch}.
+and third ventricles, which are the drivers of CSF flow, are given in~\Cref{fig:model_sketch_human}.
 
 The boundary $\mathcal{S}_2$ is the perimeter of the spinal canal outlet.
 It is anchored in the $x$ (right-left) and $y$ (anterior-posterior) directions
@@ -450,7 +471,7 @@ as displaced flow volume in the computational work of
 Causemann~\emph{et al.}~\cite{Causemann2022HumanFramework},
 and so we expect the precise choice of $E$ not to
 influence the general trends of the results, but rather
-only the required magnitude of the applied displacements $\gg(\xx, t)$.
+only the required magnitude of the applied displacements $\bm{g}(\xx, t)$.
 
 \subsubsection{Choroid plexus secretion}\label{subsubsec:secretion}
 CSF is mainly produced by the choroid plexus tissue.
@@ -471,10 +492,10 @@ CSF production in a human brain~\cite{Czosnyka2004CerebrospinalDynamics}.
 \subsubsection{Cilia forces}\label{subsubsec:cilia}
 Motile cilia are modeled by imposing forces on the fluid with a
 boundary condition on the tangential traction
-$P_{\nn}(\bsigmahat) = \btau = \tau P_{\nn}(\rr)$.
-Here $\bsigmahat=\bsigma\nn$ is the traction vector and
-$P_{\nn}(\cdot)$ is the projection of a vector onto a plane normal
-to $\nn$. Work by Guirao \emph{et al.} indicates
+$\TT_{\parallel} = P_{\nn}(\TT\nn) = \btau = \tau P_{\nn}(\rr)$.
+Here $P_{\nn}(\rr) = (\mathbf{I} - \nn\outer\nn)\rr$
+is the projection of a vector onto a plane normal
+to $\nn$. Guirao \emph{et al.} reported
 that motile cilia beating direction is oriented by
 CSF production during neural development~\cite{Guirao2010CouplingCilia}.
 This was modeled by Siyahhan \emph{et al.}, who considered
@@ -485,13 +506,14 @@ We follow a similar approach, simulating CSF flow with the
 boundary condition~\eqref{eq:choroid_plexus_BC} on $\Schp$,
 a zero normal traction condition on the spinal canal and lateral apertures,
 and $\uu\cdot\nn=0$ on the rest of the boundary. In the
-tangential direction, the CSF is free to slip. The resulting velocity field,
+tangential direction, we impose the Navier slip condition $\TT_{\parallel}=-\alpha(\uu\cdot\bm{t})$.
+The resulting velocity field,
 $\uu_{\mathrm{prod}}$, is normalized in length to yield the direction of the cilia:
 \begin{equation*}
     \rr = \frac{\uu_{\mathrm{prod}}}{|\uu_{\mathrm{prod}}|}.
 \end{equation*}
 
-The parameter $\tau$ determines the magnitude of $\btau$. In a previous zebrafish modeling work,
+The parameter $\tau$ determines the magnitude of $\btau$. In previous zebrafish modeling work,
 we determined $\tau$ heuristically by comparing simulated CSF velocity fields with in vivo
 flow data~\cite{Olstad2019CiliaryDevelopment, Herlyng2025AdvectionDiffusion}. The resulting
 tangential traction was of similar magnitude as the one determined by
@@ -508,7 +530,6 @@ Arch Histol Jpn 1977; 40: 283–296
 \lyng{Should we do some "upper/lower bound" type of estimate?
 E.g., in the "maximal force" setting, how much do cilia contribute to flow structures?}
 
-
 \subsection{Ventricular geometries and model scenarios}
 We consider two geometries: the ventricular geometry of an embryonic zebrafish at two days
 post-fertilization (2 dpf), and the brain ventricles of an adult (healthy) human. In embryonic zebrafish,
@@ -523,6 +544,22 @@ for the human brain model: (i) all three flow mechanisms (deformation, secretion
 \fixme{Typical mesh edge lengths were X and Y.}
 
 \subsection{Numerical methods}
+\subsubsection{FTLE fields}
+To compute FTLE fields, we initiate a cartesian grid of particles at a
+time $t_0$ and compute the flow map $\phi_{t_0}^{t_0+T}$
+by numerical integration with a fourth-order Runge-Kutta scheme.
+For integration, the timestep size $\Delta t = \fixme{0.001}$
+was chosen based on the CFL condition
+$\Delta t \leq C h_{\mathrm{min}}/u_{\mathrm{max}}$,
+where $C=0.5$, $h_{\mathrm{min}}$ is the minimal edge length
+of the mesh, and $u_{\mathrm{max}}$ is
+the maximum velocity magnitude.
+Computation is parallelized, uses a local element search technique
+to interpolate the velocity field, and only loads velocity data
+at the current timestep to minimize memory load. Further details on the
+method is provided in previous work~\cite{shadden2010computational}.
+
+\subsubsection{Finite element method for the fluid equations}
 We consider an $\bm{H}(\mathrm{div}; \DD)$-conforming discretization of 
 the governing equations of fluid motion (\Crefrange{eq:navier_stokes_eq,eq:continuity_eq,
 eq:time_dependent_stokes_eq,eq:stokes_eq}) using
@@ -560,6 +597,7 @@ The fluid equations are solved for \fixme{two cardiac cycles},
 and the velocity fields of the \fixme{second cycle} are used
 to calculate FTLE fields.
 
+\subsubsection{Finite element method for the solid equations}
 The time-dependent linear elasticity equations (\Cref{eq:strong_linear_elasticity_1})
 are solved using a finite element method with
 \fixme{quadratic} continuous Lagrange elements for the
@@ -583,6 +621,7 @@ to the magnitude data to ensure the system starts from rest with
 the initial conditions
 $\ww(\xx, 0) = \dot{\ww}(\xx, 0) = \ddot{\ww}(\xx, 0) = \bm{0}$.
 
+\subsubsection{Verification}
 The model implementations were verified using the
 Method of Manufactured Solutions~\cite{Roache2001CodeSolutions}.
 Convergence properties of the fluid discretization scheme were assessed with two
@@ -599,19 +638,27 @@ $\bm{H}^1$ semi-norm converged at the optimal rates of three
 and two, respectively. In time, second-order accuracy of the 
 Newmark-$\beta$ method was confirmed.
 
-\section{Results}
-\subsection{Finite element flow simulations}
-We present the CSF flow simulated in the brain ventricles. 
-The pressure gradients and flow rates
-are similar in magnitude to results in previous works~\cite{Causemann2022HumanFramework}.
-Is there a difference between Stokes and Navier-Stokes? Discuss intertial effects.
-Similar to previous findings, the maximum velocities are found in the narrow
-cerebral aqueduct~\cite{Kurtcuoglu2007ComputationalSylvius, howden2008three,
-Causemann2022HumanFramework}, where the maximum velocity observed is \fixme{X} cm/s,
-equivalent to a Reynolds number of \fixme{Y}.
+Mesh and polynomial order refinement was performed.
 
-Pulsatile effects are observed, with multiple flow reversals throughout the cardiac cycle.
-The displaced volume is equal to ...
+\section{Results}
+\subsection{Finite element CSF flow simulations}
+The initial contraction and caudal displacement of the brain ventricles
+during systole leads to a rapid increase in caudal CSF flow through the interventricular
+foramina and cerebral aqueduct. In the aqueduct, the flowrate peaks at
+\fixme{0.25 ml/s}. When the ventricles relax during diastole,
+the CSF flow reverses and flows cephalic to fill the ventricles
+and the aqueduct flowrate bottoms out at \fixme{-0.15 ml/s}.
+The pressure gradient in the cerebral aqueduct varies inversely with
+the flowrate behavior, and ranges between \fixme{-0.04 and 0.04 mmHg/cm}.
+The maximum CSF velocity magnitude \fixme{13 cm/s} is found in the cerebral aqueduct during
+systole, while the minimum \fixme{-X cm/s} occurs in the aqueduct during diastole.
+The stroke volume in the cerebral aqueduct was \fixme{59 \textmu l}. Most of the displaced
+CSF volume is expelled through the lateral apertures, with only 1/6th of the fluid
+exiting through the spinal canal.
+
+Flowrates, pressure gradients and cumulative flow volumes computed with the Navier-Stokes
+and the Stokes equations are very similar. The maximum velocity of \fixme{13 cm/s} in the aqueuduct 
+corresponds to a Reynolds number of \fixme{X}, indicating laminar flow. 
 
 \begin{figure}
     \centering
@@ -671,6 +718,25 @@ Herlyng2025AdvectionDiffusion}.
 
 \section{Discussion}
 
+\subsection{Brain deformation and CSF flow}
+With flowrates and stroke volumes that are within the range
+of clinically reported values~\cite{wagshul2011pulsating,
+eide2021direction, enzmann1993cerebrospinal,
+baledent2004relationship, pan2024using}, the applied deformations are
+small compared to experimental reports~\cite{lee1989variation,
+zhu2006dynamics}.
+The pressure gradient \fixme{is (not) comparable} to the
+literature values~\cite{eide2021direction,
+}.
+
+Compared to previous simulation work, \fixme{the values
+are smaller or larger?}~\cite{Kurtcuoglu2007ComputationalSylvius,
+Causemann2022HumanFramework, Sweetman2011ThreeDimensional, tully2009coupling,
+howden2008three, Siyahhan2014FlowVentricles, linninger}
+
+Apparently, accounting for the local acceleration by including $\rho\pdifft{\uu}$
+in the Stokes equations is a satisfactory approximation to the Navier-Stokes solution.
+
 \subsection{Brain motion}
 Despite using different techniques, all studies agree that
 maximum tissue displacement occurs during systole. Over-
@@ -688,12 +754,12 @@ Another interesting finding was
 the approximately symmetric medial-lateral expansion of the two hemi-
 spheres of the brain, which could be due to the cerebral arterial swelling
 during the cardiac cycle [62].
-One other contributing factor for the ob-
-served localized medial-lateral deformation near the periventricular re-
-gion, could be the enlargement of the 3rd and lateral ventricles during
+One other contributing factor for the observed localized medial-lateral deformation
+near the periventricular region,
+could be the enlargement of the 3rd and lateral ventricles during
 the cardiac cycle [63,64]. 
-More specifically, in addition to the substantial mo-
-tion in the inferior brain structures, DENSE also showed large motion
+More specifically, in addition to the substantial motion in the
+inferior brain structures, DENSE also showed large motion
 in the medial brain structures near the 3rd and lateral ventricles [65].
 
 \subsection{Limitations}
@@ -701,9 +767,9 @@ There is an inherent uncertainty in the material parameters
 of brain tissue~\cite{smillie2005hydroelastic}.
 Biological soft tissues rarely exhibit Hookean material behavior,
 and nonlinear models are presumably most appropriate to
-model deformations over longer timespans.
+model deformations over longer timespans
 \cite{Cheng2010ComputationalModel, Cheng2007UnconfinedCompression,
-smillie2005hydroelastic, tully2009coupling, kaczmarek1997hydromechanics}
+smillie2005hydroelastic, tully2009coupling, kaczmarek1997hydromechanics}.
 We justified our choice of linear elasticity by the fact that
 we consider deformations on the timescale of a cardiac cycle,
 where nonlinear damping effects are negligible.
@@ -712,6 +778,10 @@ seek simply a smooth extension to the rest of the domain
 for the displacement measurement boundary condition $\bm{g}(\xx, t)$.
 A more detailed approach would be to consider linear viscoelasticity,
 which is how brain tissue behaves in reality.
+
+Respiration has its own flow component~\cite{Vinje2019RespiratoryMeasurements}.
+We combined cardiac and respiratory pulsatility and used motion
+driven by cardiac freqeuncy.
 
 \bibliography{references}{}
 \bibliographystyle{unsrturl}
