@@ -84,7 +84,7 @@
 \setcounter{footnote}{1}
 
 % Title
-\title{\textbf{Flow topology and coherent structures in brain ventricles}}
+\title{\textbf{Coherent flow structures in brain ventricles}}
 \author{
     H.~Herlyng, S.~C.~Shadden
 }
@@ -117,11 +117,11 @@
 
 \section{Introduction}
 % I1: What is the problem - from big picture to our precise topic - why is it interesting?
-A human brain is constantly in motion. This motion is related to the cardiac and respiratory
-cycles and body movement~\cite{Enzmann1992BrainImaging},
+Human brains are constantly in motion. This motion is related to the cardiac and respiratory
+cycles and bodily movement~\cite{Enzmann1992BrainImaging},
 and the brain motion is tightly coupled with intracranial
-fluid flow. An important part of this flow system is the brain ventricles,
-hollow structures wherein cerebrospinal fluid (CSF) flows dynamically.
+fluid flow. An important part of this flow system is the brain ventricular system,
+which are hollow structures wherein cerebrospinal fluid (CSF) flows dynamically.
 Because CSF flow is an important contributor to brain homeostasis
 and the regulatory processes of the brain~\cite{fame2020emergence},
 and CSF flow disruptions may result in pathological conditions
@@ -131,15 +131,15 @@ of CSF flow topology in brain ventricles bears interest.
 % I2: What do we know about the problem and the topic?
 The underlying mechanisms of brain ventricular CSF flow
 have been studied extensively in the last decades.
-Although still not fully understood, it is clear that
+Although flow mechanisms are still debated, it is clear that
 CSF flow results from complex interactions
 with blood vessels, intracranial pressures,
 beating of motile cilia, neural activity, posture changes,
-and production of CSF at the choroid plexus
+and production and absorption of CSF
 \cite{Olstad2019CiliaryDevelopment, Faubel2016CiliaVentricles,
 Kurtcuoglu2007ComputationalSylvius, Czosnyka2004CerebrospinalDynamics,
 Vinje2019RespiratoryMeasurements, Liu2024UsingBreathing}.
-With these various physiological processes occuring
+With these physiological processes occuring
 over various time and length scales, the CSF flow
 in brain ventricles also consists of motions on different scales.
 A bulk motion is induced by pulsations related to
@@ -147,30 +147,25 @@ the cardiac and respiratory cycles~\cite{Vinje2019RespiratoryMeasurements}.
 On the smaller scales, simple visualizations of flow trajectories
 in animals have shown that
 ventricular cerebrospinal fluid flow has intricate details,
-with demonstrations of stagnation and separation points
-and vortex-structured flows \cite{gilpin2017flowtrace,
+with demonstrations of stagnation and separation points,
+and vortex-structured flows created by motile cilia
+\cite{gilpin2017flowtrace,
 Faubel2016CiliaVentricles,
 Olstad2019CiliaryDevelopment}.
-Flow structures such as hyperbolic separatrices
+Flow structures such as hyperbolic separatrices and vortices
 are material structures inherent to fluid flows. These
 structures are often referred to as Lagrangian coherent
 structures (LCS), and act as skeletons of the flow that
 provide detailed information on the transport
 of fluid parcels over time
 \cite{shadden2005definition, haller2015lagrangian}.
-Previous studies have studied LCS in a host of applications,
+Previous studies have analyzed LCS in a host of applications,
 including blood flow
 \cite{shadden2008characterization, shadden2010computational},
 atmospheric flow~\cite{Gunther2021LagrangianWinds},
 airway flow~\cite{lukens2010using},
 oceanic flows, ... etc. These studies successfully provided
 valuable understanding of fluid transport.
-A common approach to study LCS is to characterize the
-structures with finite-time Lyapunov exponent (FTLE) fields
-calculated from particle trajectories. Ridges
-of the FTLE field are good approximations of the LCS of the 
-flow~\cite{shadden2005definition}.
-
 
 % I3: What do we not know about the problem and what do we want to
 % know? What are the precise research questions we want to address?
@@ -182,23 +177,28 @@ Many previous studies are based on Eulerian flow analysis,
 looking at instantaneous flow variables such as velocity.
 These instantaneous variables may however deceive
 interpretation of time-dependence~\cite{shadden2005definition}. 
-
 We therefore want to study brain ventricular flow
-from a Lagrangian persepctive. Specifically, we
+from a Lagrangian persepctive using a common approch:
+characterizing the structures with finite-time Lyapunov exponent (FTLE) fields
+calculated from particle trajectories. Ridges
+of the FTLE field are good approximations of the LCS of the 
+flow~\cite{shadden2005definition}.
+Specifically, we want to
 characterize LCS in brain ventricles,
 with the aim of gaining further
 insights on flow and mixing in the ventricles, which impacts
 CSF composition and thus neuromodulatory processes.
 
 
-Volume transmission is a theory that outlines
-the importance of CSF flow in the neuromodulatory processes of the brain. 
+% Volume transmission is a theory that outlines
+% the importance of CSF flow in the neuromodulatory processes of the brain. 
 
 % I4: How do we address the problem and what do we find out?
 In this work, we study intraventricular CSF flow in embryonic zebrafish and adult human brain ventricles.
 The geometries are segmented from medical imaging data. First, we simulate CSF flow using a finite
-element method. The CSF velocity fields are used to analyze flow topology using particle
-trajectories and finite-time Lyapunov exponent fields.
+element method. The CSF velocity fields are used to analyze coherent structures by 
+using approximating the structures with FTLE fields. 
+
 
 \section{Methods}
 \subsection{Finite-time Lyapunov exponent fields}
@@ -334,7 +334,7 @@ are based on three fluid motion-inducing mechanisms, modeled as follows:
     modeled by imposing a displacement velocity $\dot{\ww}(\xx, t)$
     normal to the ventricular walls (see~\Cref{subsubsec:deformation})
     \item Secretion of CSF from the choroid plexus,
-    modeled by imposing a velocity $u_{\mathrm{ChP}}$ normal to the wall
+    modeled by imposing a velocity $u_{\mathrm{prod}}$ normal to the wall
     which reflects a total influx of CSF (see~\Cref{subsubsec:secretion})
     \item Ciliary beating, modeled by a tangential traction $\btau$
     acting on the fluid at the boundary (see~\Cref{subsubsec:cilia})
@@ -343,7 +343,7 @@ Further details on modeling the mechanisms are outlined in the three subsections
 subsequent to the current. The boundary conditions for the human model read
 \begin{alignat}{2}
     \uu\cdot\nn &= \dot{\ww}(\xx, t) &&\quad\mathrm{on \ \mathcal{S}_1}, \\
-    \uu\cdot\nn &= -u_{\mathrm{ChP}} &&\quad\mathrm{on \ \mathcal{S}_2}, \\
+    \uu\cdot\nn &= -u_{\mathrm{prod}} &&\quad\mathrm{on \ \mathcal{S}_2}, \\
     \TT_{\parallel} &= \btau = \tau(\xx) P_{\nn}(\rr) - \alpha(\uu\cdot\bm{t}) &&\quad\mathrm{on \ \mathcal{S}_1\cup\mathcal{S}_2}, \\
     (\mu\nabla\uu - p\mathbf{I})\nn &= \bm{0} &&\quad\mathrm{on \ \mathcal{S}_4}. \label{eq:outlet_BC}
 \end{alignat}
@@ -493,7 +493,7 @@ CSF production in a human brain~\cite{Czosnyka2004CerebrospinalDynamics}.
 Motile cilia are modeled by imposing forces on the fluid with a
 boundary condition on the tangential traction
 $\TT_{\parallel} = P_{\nn}(\TT\nn) = \btau = \tau P_{\nn}(\rr)$.
-Here $P_{\nn}(\rr) = (\mathbf{I} - \nn\outer\nn)\rr$
+Here $P_{\nn}(\rr) = (\mathbf{I} - \nn\otimes\nn)\rr$
 is the projection of a vector onto a plane normal
 to $\nn$. Guirao \emph{et al.} reported
 that motile cilia beating direction is oriented by
@@ -522,6 +522,15 @@ in modeling cilia-driven central canal flow in zebrafish
 embryos~\cite{Thouvenin2020OriginCanal}. We therefore use the value determined by
 Siyahhan~\emph{et al.}~\cite{Siyahhan2014FlowVentricles} to be able to compare
 the impact of motile cilia with their results.
+
+In the human brain model, based on experimental research, 
+we do not consider motile cilia on
+the caudal third of the third ventricle~\cite{scott1972comparative,
+bruni1972scanning, sanchez2024exploring} nor on choroid plexus~\cite{scott1972comparative,
+ho2023choroid, narita2015cilia
+}, as experimental research indicate that these two regions are not ciliated
+\cite{doetsch1997cellular, scott1973scanning, coletti2018characterization,
+worthington1963ependymal}.
 
 Cilia directionality reference: Yamadori T.
 The directions of ciliary beat on the wall of the fourth ventricle in the mouse.
