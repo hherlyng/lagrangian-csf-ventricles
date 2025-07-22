@@ -12,6 +12,7 @@ from basix.ufl import element
 from dolfinx.fem.petsc    import create_matrix, create_vector, assemble_vector, apply_lifting
 from utilities.fem        import assemble_system
 from utilities.mesh       import create_unit_cube_mesh, create_unit_square_mesh
+from utilities.projection import projection_problem_CG_to_BDM
 
 print = PETSc.Sys.Print
 
@@ -54,8 +55,8 @@ print(f"Gamma = {gamma.value}, Beta = {beta.value}")
 # Temporal parameters
 timestep = 1e-3
 dt = dfx.fem.Constant(mesh, dfx.default_scalar_type(timestep)) 
-T = timestep*1000
-period = T
+T = 5
+period = 1
 N = int(T / timestep)
 times = np.linspace(0, T, N+1)
 final_period_start = int(T - period)
@@ -80,9 +81,9 @@ print(f"\nNumber of degrees of freedom: {W.dofmap.index_map.size_global*W.dofmap
 sigma = lambda w: 2.0*eta*eps(w) + lam*ufl.tr(eps(w))*ufl.Identity(dim)
 
 # Damping parameters
-eta_M = dfx.fem.Constant(mesh, 5e-4) # Damping proportional to inertia
-eta_K = dfx.fem.Constant(mesh, 5e-3) # Damping proportional to stiffness
-# eta_K.value = 0.0
+eta_M = dfx.fem.Constant(mesh, 5e-1) # Damping proportional to inertia
+eta_K = dfx.fem.Constant(mesh, 5e-1) # Damping proportional to stiffness
+
 # Test and trial functions
 w, dw = ufl.TrialFunction(W), ufl.TestFunction(W)
 
@@ -120,7 +121,7 @@ t = lambda w: dot(sigma(w), n)
 w_normal = dfx.fem.Constant(mesh, 0.0)
 phi = dfx.fem.Constant(mesh, 200000.0)
 
-tags = (TOP, LEFT)
+tags = (LEFT, RIGHT)
 a += -inner(dot(t(w), n), dot(dw, n))*ds(tags)
 a += -inner(dot(w, n), dot(t(dw),n))*ds(tags) \
     + phi/h*inner(dot(w, n), dot(dw, n))*ds(tags)
@@ -160,7 +161,6 @@ opts["ksp_error_if_not_converged"] = 1 # Throw an error if KSP solver does not c
 solver = PETSc.KSP().create(comm)
 solver.setOperators(A)
 solver.setFromOptions()
-solver.setMonitor(lambda _, its, rnorm: print(f"Iteration: {its}, residual: {rnorm}"))
 
 xdmf = dfx.io.XDMFFile(comm, f"../output/square-mesh/deformation_nitsche/displacement_dt={timestep:.4g}_T={T:.4g}.xdmf", "w")
 print(f"Output dir: ../output/square-mesh/deformation_nitsche/displacement_dt={timestep:.4g}_T={T:.4g}.xdmf")
@@ -190,17 +190,24 @@ a4d.write_meshtags(vh_cpoint_filename, mesh, ft, meshtag_name='ft')
 A, b = assemble_system(A, b, a_cpp, L_cpp, bcs)
 
 from scipy.signal.windows import tukey
-window = tukey(len(times), alpha=0.25)
-right_disp_ = np.copy(window) * np.sin(2*np.pi*times)
+from scipy.fft import fft, ifft, fftfreq
+period_times = np.linspace(0, period, int(period/dt.value)+1)
+window = tukey(len(period_times), alpha=0.25)
+right_disp_ = np.copy(window) * np.sin(2*np.pi*period_times)
 half = int(len(right_disp_)/2)
-right_disp_[:half] = 1e-1*window[:half]*np.sin(2*np.pi*times[:half])
-right_disp_[half:] = 1e-1*np.sin(2*np.pi*times[half:])
-print(right_disp_)
-# right_disp_ = 1e8*times**3
+right_disp_[:half] = window[:half]*np.sin(2*np.pi*period_times[:half])
+right_disp_[half:] = np.sin(2*np.pi*period_times[half:])
+right_disp_second = np.sin(2*np.pi*period_times)
+right_disp_ = 5e-2*np.concatenate((right_disp_,
+                                   right_disp_second[1:],
+                                   right_disp_second[1:],
+                                   right_disp_second[1:],
+                                   right_disp_second[1:]))
+
+displacements = np.zeros((len(wh.x.array), len(period_times)), wh.x.array.dtype)
 
 for i, t in enumerate(times):
     
-    print(f"\nTime t = {t:.5g}")
     tt.value = t
 
     w_normal.value = -right_disp_[i]
@@ -215,7 +222,10 @@ for i, t in enumerate(times):
     # Solve
     solver.solve(b, wh.x.petsc_vec)
     wh.x.scatter_forward() # MPI communication
-    print("Area: ", dfx.fem.assemble_scalar(area_form))
+    if i % 5 == 0:
+        print(f"\nTime t = {t:.5g}")
+        print("Area: ", dfx.fem.assemble_scalar(area_form))
+
     # Update functions
     wh_ddot.interpolate(acc_expr)
     wh_dot.interpolate(vel_expr)
@@ -225,21 +235,59 @@ for i, t in enumerate(times):
 
     # Project velocity if in the final period
     if t >= final_period_start:
+        # Write XDMF output and checkpoint
         wh_out.interpolate(wh)
-        xdmf.write_function(wh_out, t)
-        
-        # Calculate deformation velocity by a backward difference in time
-        dw_dt.x.array[:] = wh_dot.x.array.copy()
-        
-        # Write checkpoints
+        xdmf.write_function(wh_out, write_time)
         a4d.write_function(filename=vh_cpoint_filename, u=wh, time=write_time)
-        a4d.write_function(filename=vh_cpoint_filename, u=dw_dt_bdm, time=write_time)
-        
-        # Interpolate the velocity into CG1 and write XDMF output
-        vh_out.interpolate(dw_dt) 
-        xdmf_vel.write_function(vh_out, t) 
+
+        displacements[:, write_time] = wh.x.array.copy()
 
         write_time += 1
 
+# Calculate the displacement velocity with the Fast Fourier Transform (FFT)
+# Get the frequencies of the signal
+n_steps = displacements.shape[1]
+freqs = fftfreq(n_steps, dt.value)
+
+# Compute the Fast Fourier Transform of the displacement
+wh_fft = fft(displacements, axis=1)
+
+# Differentiate in frequency space by multiplying by (i * omega)
+# where omega = 2*pi*f and i is the imaginary unit
+wh_dot_fft = (1j*2*np.pi*freqs) * wh_fft
+
+# Apply a Gaussian filter to filter out high-frequency noise
+sigma = 10.0 # a.k.a. sigma in a Gaussian
+filter = np.exp(-(freqs**2) / (2 * sigma**2))
+wh_dot_fft = filter*wh_dot_fft
+
+# 4. Compute the Inverse FFT to get the velocity back in the time domain
+# .real is used to discard any tiny imaginary parts from numerical error
+velocity = ifft(wh_dot_fft, axis=1).real
+
+u_dg = dfx.fem.Function(dfx.fem.functionspace(mesh, element("DG", mesh.basix_cell(), k, shape=(mesh.geometry.dim,))))
+dg_vtx = dfx.io.VTXWriter(comm, "../output/square-mesh/deformation_nitsche/dg_vel.bp", [u_dg], "BP5")
+projection_problem = projection_problem_CG_to_BDM(wh_dot, dw_dt_bdm, dx)
+write_time = 0
+for i, t in enumerate(period_times):
+    
+    # Interpolate the velocity into CG1 and write XDMF output
+    wh_dot.x.array[:] = velocity[:, write_time]
+    projection_problem.solve()
+    u_dg.interpolate(dw_dt_bdm)
+    dg_vtx.write(write_time)
+    if i==0:
+        initial_velocity = dw_dt_bdm.x.array.copy()
+    
+    vh_out.interpolate(wh_dot)
+    xdmf_vel.write_function(vh_out, write_time) 
+
+    write_time += 1
+
+print(initial_velocity)
+print(dw_dt_bdm.x.array.copy())
+print(np.allclose(dw_dt_bdm.x.array.copy(), initial_velocity))
+
 xdmf.close()
 xdmf_vel.close()
+dg_vtx.close()

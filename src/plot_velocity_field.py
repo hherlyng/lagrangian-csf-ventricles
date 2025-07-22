@@ -10,11 +10,12 @@ mesh_prefix = "medium"
 T = 3.0 # Final simulation time
 dt = 0.001 # Timestep size
 k = 1 # Element degree 
-model_versions = ["deformation+cilia+production", "deformation+production"]
-filenames = [
-    f"../output/ex3/{mesh_prefix}-mesh/flow/navier-stokes/checkpoints/BDM_{model_version}_velocity_T={T}_dt={dt}" \
-        for model_version in model_versions
-    ]
+model_versions = ["deformation"]#["deformation+cilia+production", "deformation+production"]
+# filenames = [
+#     f"../output/ex3/{mesh_prefix}-mesh/flow/navier-stokes/checkpoints/BDM_{model_version}_velocity_T={T}_dt={dt}" \
+#         for model_version in model_versions
+#     ]
+filenames = ["../output/ex3/mesh_0/BDM_deformation_velocity"]
 
 # Prepare plotting
 # Slice coordinates
@@ -40,13 +41,13 @@ sargs = sargs = {
     'font_family': 'arial'
 }
 
-pl = pyvista.Plotter(shape=(4, 2), window_size=[1000, 1200], border=False)
+pl = pyvista.Plotter(shape=(3, len(model_versions)), window_size=[1000, 1200], border=False)
 
 m = 0 # Column index
 
-view = 'yz'
+view = 'xz'
 
-times = [200, 400, 600, 800]
+times = [250, 500, 750]
 for i, filename in enumerate(filenames):
     # Prepare finite elements and pyvista grid used to plot
     mesh = adios4dolfinx.read_mesh(filename, comm=mpi4py.MPI.COMM_WORLD)
@@ -83,47 +84,39 @@ for i, filename in enumerate(filenames):
         grid.cell_data["u"] = u_vector_avg
         grid.set_active_vectors("u")
 
-        sargs['title'] = f'Time: {time}, v: {model_versions[i]}' # Give each bar a unique title
-        # Plot yz plane
+        sargs['title'] = f'Time: {dt*time}, v: {model_versions[i]}' # Give each bar a unique title
         if view=='yz':
-            pl.subplot(j, m)
+            # Plot yz plane
             sliced_grid = grid.slice(normal=[-1, 0, 0], origin=origin_yz)
-            pl.add_mesh(sliced_grid,
-                        cmap=inferno,
-                        # clim=[0, 0.75] if location=="laterals" else [0, 1.0],
-                        show_scalar_bar=True,
-                        scalar_bar_args=sargs.copy(),
-                        n_colors=n_colors)
-            pl.add_mesh(sliced_grid.glyph(
-                        orient="u",  # Orient by our vectors
-                        factor=0.75,      # Control arrow length
-                        scale="u"    # Color arrows by vector magnitude
-                    ),
+        elif view=='xz':
+            # Plot xz plane
+            sliced_grid = grid.slice(normal=[0, 1, 0], origin=origin_xz)
+        elif view=='xy':
+            # Plot xy plane
+            sliced_grid = grid.slice(normal=[0, 0, 1], origin=origin_xy)
+        
+        pl.subplot(j, m)
+        pl.add_mesh(sliced_grid.glyph(
+                    orient="u",  # Orient by our vectors
+                    factor=0.75,      # Control arrow length
+                    scale="u",    # Color arrows by vector magnitude
+                    tolerance=0.005
+                ),
+                color="white"
+                )
+        pl.add_mesh(sliced_grid,
+                    cmap=inferno,
+                    show_scalar_bar=True,
                     scalar_bar_args=sargs.copy(),
-                    color="white"
-                    )
+                    n_colors=n_colors)
+
+        if view=='yz':
             pl.view_yz(negative=True)
             pl.camera.zoom(zoom_yz)
         elif view=='xz':
-            # Plot xz plane
-            pl.subplot(j, m)
-            pl.add_mesh(grid.slice(normal=[0, 1, 0], origin=origin_xz),
-            #-0.00374 further back
-                            cmap=inferno,
-                            show_scalar_bar=True,
-                            scalar_bar_args=sargs.copy(),
-                        n_colors=n_colors)
             pl.view_xz(negative=True)
             pl.camera.zoom(zoom_xz)
         elif view=='xy':
-            # Plot xy plane
-            pl.subplot(j, m)
-            pl.add_mesh(grid.slice(normal=[0, 0, 1], origin=origin_xy),
-                            cmap=inferno,
-                            # clim=[0, 0.75] if location=="laterals" else [0, 1.0],
-                            show_scalar_bar=True,
-                            scalar_bar_args=sargs.copy(),
-                        n_colors=n_colors)
             pl.view_xy(negative=True)
             pl.camera.zoom(zoom_xy)
 
