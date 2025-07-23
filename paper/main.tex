@@ -394,37 +394,67 @@ imposing a wall displacement velocity as boundary condition when solving the flo
 The displacement velocity is obtained through a smooth extension of experimental
 brain tissue displacement data by solving time-dependent equations of
 linear elasticity. We define the displacement of the brain
-ventricles as $\ww(\xx, t)\in H^2(\DD)$ and the displacement velocity
+ventricles as $\ww(\xx, t)$ and the displacement velocity
 $\dot{\ww}=\partial\ww/\partial t$. The brain ventricles 
 are assumed to be a linear elastic solid, with viscoelastic
 behavior modeled by Rayleigh damping. Displacement boundary
-conditions based on experiments data are imposed on parts of the boundary,
-while the rest is considered traction-free. The dynamic equations are solved to yield
+conditions based on experimental data are imposed on parts of the boundary,
+while the rest of the boundary is considered traction-free.
+The dynamic equations are solved to yield
 $\ww(\xx, t)$ and $\dot{\ww}(\xx, t)$, with the latter imposed
 as a boundary condition in the fluid model.
 
 Assuming that the brain ventricles are a linear elastic material
-with an inherent damping modeled by Rayleigh damping,
-the displacement is governed by
+with damping modeled by Rayleigh damping,
+the displacement $\ww$ is governed by
 \begin{equation}
     \rho\pdiffdifft{\ww} + \zeta\pdifft{\ww} - \nabla\cdot\bsigma_s = \bm{0} \quad\mathrm{in \ \mathcal{D}},
     \label{eq:strong_linear_elasticity_1}
 \end{equation}
-where $\zeta$ is the damping factor and $\bsigma_s = 2\eta\beps(\ww) + \lambda\mathrm{tr}(\beps(\ww))\delta$ is the
+where $\zeta$ is the damping factor and
+$\bsigma_s = 2\eta\beps(\ww) + \lambda\mathrm{tr}(\beps(\ww))\delta$ is the
 solid stress tensor, in which $\eta$ and $\lambda$ are the Lamé parameters of the ventricular walls,
-and $\delta$ is the Kronecker delta. 
+and $\delta$ is the Kronecker delta. The damping factor $\zeta$ is composed of two separate
+damping factors; one related to inertia and one related to stiffness.
+
+The Lamé parameters $\eta$ and $\lambda$ are derived from
+the Poisson's ratio $\nu$ and the Young's modulus
+$E$ Pa of brain tissue that surrounds the ventricles.
+The value $\nu=0.479$ is chosen
+to represent a near incompressibility of the ventricular system,
+while $E=1500$ is set to represent an average of gray and white matter
+brain tissue surrounding the ventricular system
+\cite{Causemann2022HumanFramework, Budday2015Mechanical}.
+We remark that there is uncertainty in these material parameters with various values
+reported in the literature\cite{Budday2015Mechanical, Cheng2010ComputationalModel,
+Cheng2007UnconfinedCompression, Sweetman2011ThreeDimensional}.
+We chose the same values as Causemann~\emph{et al.}~\cite{Causemann2022HumanFramework}
+both to provide a basis of comparison with their work,
+but also due to the facts that
+(i) the ventricular walls are nearly incompressible, which a
+Poisson's ratio of $\nu=0.479$ reflects; (ii) the Young's modulus $E$
+is within the range reported in the literature.
+Additionally, a factor of three change in $E$
+had no impact on clinically relevant flow features such
+as displaced flow volume in the computational work of
+Causemann~\emph{et al.}~\cite{Causemann2022HumanFramework},
+and so we expect the precise choice of $E$ not to
+influence the general trends of the results, but rather
+only the required magnitude of the applied displacements $\bm{g}(\xx, t)$.
 
 We impose the boundary conditions
 \begin{alignat}{2}
     \ww(\xx, t) &= \bm{g}(\xx, t) &&\quad\mathrm{on \ \mathcal{S}_1}, \\
-    w_x(\xx, t) = w_y(\xx, t) &= \bm{0} &&\quad\mathrm{on \ \mathcal{S}_2}, \\
+    \ww(\xx, t) &= \bm{0} &&\quad\mathrm{on \ \mathcal{S}_2}, \\
     \bsigma_s\nn &= \bm{0} &&\quad\mathrm{on \ \mathcal{S}_3}.
 \end{alignat}
 On $\mathcal{S}_1$ we impose deformations $\bm{g}(\xx, t)$ determined from experimental
-data. The boundary $\mathcal{S}_1$ constitutes several parts of the geometry with specific
-boundary data extracted from research literature\cite{Kurtcuoglu2007ComputationalSylvius,
+data\cite{Kurtcuoglu2007ComputationalSylvius,
 Enzmann1992BrainImaging, soellinger20093d, soellinger2007assessment,
-greitz1992pulsatile}:
+greitz1992pulsatile}, by extracting the reported displacement
+curves while adapting the magnitudes
+to achieve physically realistic CSF flow.
+The boundary $\mathcal{S}_1$ and imposed data are:
 \begin{itemize}
     \item The roof of the lateral ventricles, where corpus callosum displacement data is imposed;
     \item The lateral sides of the frontal horns, where caudate nucleus displacement data is imposed;
@@ -438,53 +468,33 @@ imposed, while all the other boundary conditions are imposed normal to the wall.
 displacemnt boundary conditions and the resulting volume changes of the lateral
 and third ventricles, which are the drivers of CSF flow, are given in~\Cref{fig:model_sketch_human}.
 
-The boundary $\mathcal{S}_2$ is the perimeter of the spinal canal outlet.
-It is anchored in the $x$ (right-left) and $y$ (anterior-posterior) directions
-to avoid rigid body motions, while reflecting the fact that surrounding tissue
-is holding it mostly in place in these directions. In the $z$ direction the
-boundary $\mathcal{S}_2$ is considered traction-free.
+The boundary $\mathcal{S}_2$ is anchored for two reasons.
+One, to avoid rigid body motions. Second, because these boundaries are
+considered open boundaries in the fluid model, the displacement velocity
+$\dot{\ww}$ on this boundary must be zero to avoid conflicting boundary conditions.
 
 Finally, the boundary $\mathcal{S}_3$ is traction-free in all directions. These
 parts are the remaining parts of the geometry not mentioned, and certain small
 regions delineating different displacement BC regions, to avoid stress concentrations.
 
-The Lamé parameters are derived from the Poisson's ratio $\nu=0.479$ and Young's modulus
-$E=1500$ Pa of brain tissue that surrounds the ventricles. The Poisson's ratio was chosen
-to represent a near incompressibility of the ventricular system,
-while the Young's modulus represents an average of gray and white matter
-brain tissue surrounding the ventricular system
-\cite{Causemann2022HumanFramework, Budday2015Mechanical}.
-We remark that there is
-uncertainty in these material parameters with various values
-reported in the literature\cite{Budday2015Mechanical, Cheng2010ComputationalModel,
-Cheng2007UnconfinedCompression, Sweetman2011ThreeDimensional}.
-We chose the same values as Causemann~\emph{et al.}~\cite{Causemann2022HumanFramework}
-both to provide a basis of comparison with their work, but also due the facts that
-(i) the brain ventricles walls are nearly incompressible, which a
-Poisson's ratio of $\nu=0.479$ reflects; (ii) the Young's modulus $E$
-is within the range reported in the literature.
-Additionally, a factor of three change in $E$
-had no impact on clinically relevant features such
-as displaced flow volume in the computational work of
-Causemann~\emph{et al.}~\cite{Causemann2022HumanFramework},
-and so we expect the precise choice of $E$ not to
-influence the general trends of the results, but rather
-only the required magnitude of the applied displacements $\bm{g}(\xx, t)$.
-
-\subsubsection{Choroid plexus secretion}\label{subsubsec:secretion}
-We assume that all CSF that enters the brain ventricles
+\subsubsection{Choroid plexus CSF production}\label{subsubsec:secretion}
+CSF production is modeled by imposing a normal flux at the
+choroid plexus boundaries. We assume that all CSF that enters the brain ventricles
 is produced by the choroid plexus, and that the influx is evenly distributed
 over the production sites in the lateral, third and fourth ventricles.
 However, in reality 10--30\% of the CSF production
 may come from interstitial fluid transported through the ependymal cell
 layer of the brain ventricles walls into the ventricles~\cite{Brodal2016TheSystem}.
-The CSF secretion is modeled by imposing a normal flux at the
-boundary $\Schp$ such that the total flux through the choroid plexus boundary is
+We assume a total daily CSF production
+$-\int_{\Schp}(\uu\cdot\nn)\,\mathrm ds = Q = 504$ ml/day~\cite{Czosnyka2004CerebrospinalDynamics},
+where the minus signs is due to $\nn$ facing out of the domain.
+The production $Q$ is imposed through a normal flux at the
+boundary $\Schp$. Since we assume even distribution at the different
+choroid plexuses, we impose 
 \begin{equation}
-    \int_{\Schp}(\uu\cdot\nn)\,\mathrm ds = Q.
+    \uu\cdot\nn = -\frac{Q}{|\Schp|} + \dot{\ww}\cdot\nn,
 \end{equation}
-The total flux $Q=504$ ml/day is the daily total
-CSF production in a human brain~\cite{Czosnyka2004CerebrospinalDynamics}.
+where $|\Schp|$ is the total choroid plexus boundary area.
 
 \subsubsection{Cilia forces}\label{subsubsec:cilia}
 Motile cilia are modeled by imposing forces on the fluid with a
@@ -544,21 +554,23 @@ for the human brain model: (i) all three flow mechanisms (deformation, secretion
 (ii) deformation and cilia, no secretion; (iii) deformation and secretion, no cilia.
 To compare our flow results we compute the following quantities:
 \begin{itemize}
-    \item The CSF flow rate in the cerebral aqueduct.
-    \item The CSF strok volume in the aqueduct, canal, lateral apertures,
-    and interventricular foramina
-    \item The peak-to-peak pressure gradient
+    \item The CSF flow rate in the cerebral aqueduct: $\int_{\Scal_{\mathrm{aq}}}\uu\cdot\nn \,\mathrm dS$
+    \item The CSF stroke volume in the aqueduct, canal, lateral apertures,
+    and interventricular foramina. The stroke volume is the maximum of the
+    cumulative flow volume across a given cross section.
+    \item The peak-to-nadir pressure gradient, measured as the difference in
+    the maximum and minimum value of the pressure gradient over a cardiac cycle. 
     \item Maximum and minimum CSF velocities
 \end{itemize}
 
-\subsection{Finite-time Lyapunov exponent fields}
+\subsection{Finite-time Lyapunov exponent fields and Lagrangian coherent structures}
 Consider the dynamical system
 \begin{equation}
     \dot{\xx}(t; t_0, \xx_0) := \frac{\mathrm d\xx}{\mathrm d t} = \uu(\xx(t; t_0, \xx_0), t),
     \label{eq:dx_dt_equals_u}
 \end{equation}
 where $\xx(t)\in$ are the spatial coordinates of the domain $\mathcal{D}\subset\mathbb{R}^d$,
-$t$ denotes time, $\uu$ is a velocity, and $\xx_0=\xx(t_0; t_0, \xx_0)$ is the initial
+$t$ denotes time, $\uu$ is the CSF velocity, and $\xx_0=\xx(t_0; t_0, \xx_0)$ is the initial
 position at the initial time $t_0$. 
 \Cref{eq:dx_dt_equals_u} can be integrated to yield the position at a time $T$:
 \begin{equation}
@@ -599,6 +611,13 @@ reveal repelling structures (unstable manifolds) of the flow,
 whereas integration backward in time 
 reveal attracting structures (stable manifolds).
 
+We use FTLE fields to characterize Lagrangian coherent structures (LCS).
+These are material structures of the flow that reveal
+how particles advected by the flow are transported
+over time. The ridges of the FTLE field are good approximations to
+LCS~\cite{shadden2005definition}. LCS can therefore be characterized
+by regions of relatively high or low FTLE values.
+
 \subsection{Numerical methods}
 \subsubsection{FTLE fields}
 To compute FTLE fields, we initiate a cartesian grid of particles at a
@@ -617,17 +636,19 @@ method is provided in previous work~\cite{shadden2010computational}.
 
 \subsubsection{Finite element method for the fluid equations}
 We consider an $\bm{H}(\mathrm{div}; \DD)$-conforming discretization of 
-the governing equations of fluid motion (\Crefrange{eq:navier_stokes_eq,eq:continuity_eq,
-eq:time_dependent_stokes_eq,eq:stokes_eq}) using
-Brezzi-Douglas-Marini (BDM) elements for the velocity and discontinuous Galerkin (DG)
+the governing equations of fluid motion
+(\Crefrange{eq:navier_stokes_eq,eq:continuity_eq,eq:time_dependent_stokes_eq,eq:stokes_eq})
+using \fixme{quadratic}
+Brezzi-Douglas-Marini (BDM) elements for the velocity and
+\fixme{linear} discontinuous Galerkin (DG)
 elements for the pressure. The scheme conserves mass exactly pointwise.
 The velocity component normal to facets is continuous
-for the BDM elements. Tangential continuity is achieved by using the stabilization
-outlined in Hong~\emph{et al.}~\cite{Hong2016AEquations}. 
-For the Navier-Stokes equations, the convective term
-is linearized as
-$(\uu^{n+1}\cdot\nabla)\uu^{n+1} \approx (\uu^n\cdot\nabla)\uu^{n+1}$
-where $n$ denotes timestep. Convective fluxes both internal in the
+for the BDM elements. Tangential continuity is achieved
+by adding stabilizing terms to the weak form
+following Hong~\emph{et al.}~\cite{Hong2016AEquations}. 
+When solving the Navier-Stokes equations, the convective term
+is linearized as $(\uu^{n+1}\cdot\nabla)\uu^{n+1} \approx (\uu^n\cdot\nabla)\uu^{n+1}$
+where $n$ denotes timestep. Moreover, the convective fluxes both internal in the
 mesh and on open boundaries are stabilized with
 an upwinding technique~\cite{Schroeder2018Towards}.
 
@@ -647,18 +668,20 @@ When solving the Stokes equations, the fluid is
 initially at rest: $\uu_0(\xx)=\uu(\xx, 0)=\bm{0}$.
 For the Navier-Stokes equations, we solve the Stokes equations
 (with $\uu_0(\xx)=\bm{0}$) and use the solution
-$\uu_{\mathrm{Stk}}(\xx)$ as initial condition;
-$\uu_0(\xx)=\uu_{\mathrm{Stk}}(\xx)$. 
+$\uu_{\mathrm{Stokes}}(\xx)$ as initial condition;
+$\uu_0(\xx)=\uu_{\mathrm{Stokes}}(\xx)$. 
 The fluid equations are solved for \fixme{two cardiac cycles},
-and the velocity fields of the \fixme{second cycle} are used
+and the velocities of the \fixme{second cycle} is used
 to calculate FTLE fields.
 
 \subsubsection{Finite element method for the solid equations}
 The time-dependent linear elasticity equations (\Cref{eq:strong_linear_elasticity_1})
 are solved using a finite element method with
-\fixme{quadratic} continuous Lagrange elements for the
+\fixme{cubic} continuous Lagrange elements for the
 spatial discretization. In time, the
-equations are discretized with the Newmark-$\beta$ method:
+equations are discretized with the Newmark-$\beta$ method,
+for which updates of the displacement $\ww$ and 
+displacement velocity $\dot{\ww}$ are
 \begin{align*}
     \dot{\ww}_{n+1} &= \dot{\ww}_n + (1 - \gamma)\Delta t\ddot{\ww}_n + \gamma\Delta t\ddot{\ww}_{n+1}, \\
     \ww_{n+1} &= \ww_n + \Delta t\dot{\ww}_n + (\frac{1}{2} - \beta)\Delta t^2\ddot{\ww}_n + \beta\Delta t^2\ddot{\ww}_{n+1}.
@@ -667,15 +690,24 @@ Here $n$ denotes timestep. We set
 $\gamma=1/2$ and $\beta=1/4$, which yields
 an unconditionally stable scheme of
 second-order accuracy~\cite{newmark1959method}.
-The equations are solved for three cardiac cycles, and the
-displacement velocity $\dot{\ww}$ computed in the third cycle
-is used as a boundary condition in the fluid equations.
-Over the first two cardiac cycles, a ramp-up of the
-boundary condition magnitudes was performed. Additionally, during 
-the first half of the initial cardiac cycle, a cosine window is applied
-to the magnitude data to ensure the system starts from rest with
-the initial conditions
-$\ww(\xx, 0) = \dot{\ww}(\xx, 0) = \ddot{\ww}(\xx, 0) = \bm{0}$.
+
+The equations are solved for four cardiac cycles, and the
+displacement velocities computed in the fourth cycle
+are used as boundary conditions in the fluid equations.
+Starting the system from rest with initial conditions
+$\ww(\xx, 0) = \dot{\ww}(\xx, 0) = \ddot{\ww}(\xx, 0) = \bm{0}$
+and smoothly transitioning to the full periodic boundary data
+is important to achieve stable results, because
+an impulsive start could introduce non-physical oscillations. % cite
+To ensure this, a cosine window is applied
+to the boundary condition magnitudes during the first half of
+the initial cardiac cycle. Additionally, we perform a ramp-up
+of the magnitudes over the first two cardiac cycles.
+Traction-free conditions were imposed weakly, while feet-head
+displacements were imposed strongly. The normal displacements
+were imposed weakly using Nitsche's method with a penalty parameter
+equal to $\num{2e7}$ \cite{Nitsche1971UberSind}.
+
 
 \subsubsection{Verification}
 The model implementations on the human brain ventricles geometry
