@@ -201,64 +201,47 @@ using approximating the structures with FTLE fields.
 
 
 \section{Methods}
-\subsection{Finite-time Lyapunov exponent fields}
-Consider the dynamical system
-\begin{equation}
-    \dot{\xx}(t; t_0, \xx_0) := \frac{\mathrm d\xx}{\mathrm d t} = \uu(\xx(t; t_0, \xx_0), t),
-    \label{eq:dx_dt_equals_u}
-\end{equation}
-where $\xx(t)\in$ are the spatial coordinates of the domain $\mathcal{D}\subset\mathbb{R}^d$,
-$t$ denotes time, $\uu$ is a velocity, and $\xx_0=\xx(t_0; t_0, \xx_0)$ is the initial
-position at the initial time $t_0$. 
-\Cref{eq:dx_dt_equals_u} can be integrated to yield the position at a time $T$:
-\begin{equation}
-    \xx(T) = \xx(t_0) + \int_{t_0}^T \uu(\xx, t)\,\mathrm d t.
-\end{equation}
-We define this relation as the mapping
-\begin{equation}
-    \bphi_{t_0}^t : \mathcal{D} \rightarrow \mathcal{D} : \xx_0 \mapsto \bphi_{t_0}^t(\xx_0) = \xx(t; t_0, \xx_0),
-\end{equation}
-where $\bphi_{t_0}^t$ is the flow map~\cite{shadden2005definition} and $t = T+t_0$.
-We have thus far emphasized the dependence of 
-the dynamical system and the flow map on the parameters $t_0, \xx_0$, but will in the 
-following omit this notation for brevity. Using the gradient of the flow map,
-we define the (right) Cauchy-Green deformation tensor
-\begin{equation}
-    \mathbf{C} = \left(\nabla\bphi_{t_0}^T\right)^*\nabla\bphi_{t_0}^T
-\end{equation}
-where $\mathbf{A}^*$ denotes the transpose of a tensor $\mathbf{A}$
-and $T$ is the integration time. 
-In the flow field $\uu(\xx, t)$, the maximum stretching that occurs between
-two points $\xx$ and $\yy$ aligns with the eigenvector associated with
-the maximum eigenvalue $\lambda_{\mathrm{max}}$ of $\mathbf{C}$~\cite{shadden2005definition}.
-Related to this eigenvalue is the finite-time Lyapunov exponent (FTLE), defined as
-\begin{equation}
-    \sigma_{t_0}^T(\xx) = \frac{1}{\vert T\vert}\log{\sqrt{\lambda_{\mathrm{max}}}}.
-\end{equation}
-By definition, the FTLE measures the separation of fluid particle trajectories with time:
-\begin{equation}
-    \max||\delta\xx(\xx, t+t_0)|| = \exp\left(\sigma_{t_0}^T(\xx)|T|\right)||\overline{\delta\xx}(\xx, t_0)||,
-\end{equation}
-where $\overline{\delta\xx}(\xx, t_0)$ is the particle position change along
-the eigenvector associated with $\lambda_{\mathrm{max}}$.
-Note the absolute value of the integration time $T$,
-which is employed because FTLE values can be calculated
-both by integration forward ($T>0$) and backward ($T<0$) in time.
-FTLE values associated with integration forward in time
-reveal repelling structures (unstable manifolds) of the flow,
-whereas integration backward in time 
-reveal attracting structures (stable manifolds).
+\subsection{Image-based computational ventricular geometries}
+To study CSF flow and its coherent structures, we consider two brain ventricular geometries
+based on medical imaging data. One is the ventricular geometry of an embryonic zebrafish
+at two days post-fertilization (2 dpf), also used in a previous modeling study of
+zebrafish CSF flow and transport~\cite{Herlyng2025AdvectionDiffusion}. The surface geometry was in previous work
+generated with confocal microscopy~\cite{Olstad2019CiliaryDevelopment}. At 2 dpf, the zebrafish
+brain ventricular system consists of three cavities: the anterior, middle and posterior
+ventricles. The three compartments are connected by interventricular ducts. A volumetric
+mesh constituting 132 134 tetrahedral cells, with a maximal (minimal) edge
+length of 14.9 \textmu m (4.7 \textmu m), was generated with
+the surface geoemtry using fTetWild~\cite{Hu2020FastWild}.
+
+The second geometry is a computational mesh of human brain ventricles, extracted
+from the brain mesh used by Causemann~\emph{et al.}\cite{Causemann2022HumanFramework}.
+They generated the mesh from MRI images. The different parts of the human brain ventricular
+system are denoted in~\Cref{fig:model_sketch}. The standard version of the ventricles mesh
+consists of 408 128 tetrahedral cells with maximal and minimal edge lengths
+of 0.40 cm and 0.023 cm, respectively.
+
+\begin{figure}
+    \centering
+    \includegraphics[width=\textwidth]{graphics/figure_elastodynamics.png}
+    \caption{Human brain ventricles model. Illustration of the brain ventricular system that resides 
+    within the parenchyma. Choroid plexus locations in the lateral, third
+    and fourth ventricles. Computational meshParts of the figure were created with BioRender.}
+    \label{fig:model_sketch}
+\end{figure}
 
 \subsection{The governing equations of brain ventricular cerebrospinal fluid flow}
-We consider flow of an incompressible, Newtonian fluid of density $\rho$ and dynamic viscosity
-$\mu$ in a domain $\DD\subset\mathbb{R}^d$ with boundary $\partial\DD=\Scal$.
-Neglecting graviational force, no body forces are acting on the fluid.
+We consider CSF flow to constitute flow of an incompressible,
+Newtonian fluid of density $\rho=1000 \ \mathrm{kg/m^3}$ and dynamic viscosity
+$\mu=0.7 \ \mathrm{mPa\cdot s}$~\cite{Bloomfield1998EffectsFluid}
+in a domain $\DD\subset\mathbb{R}^d$
+with boundary $\partial\DD=\Scal$.
+Neglecting the graviational force, no body forces are acting on the fluid.
 The flow is governed by the Navier-Stokes equations:
 \begin{alignat}{1}
     \rho\frac{\mathrm D\uu}{\mathrm Dt} 
     = \rho\left(\pdifft{\uu}
     + (\uu\cdot\nabla)\uu\right) &= \nabla\cdot\TT,
-    \label{eq:navier_stokes_eq} \\
+    \label{eq:navier_stokes_mom_eq} \\
     \nabla\cdot\uu &= 0,
     \label{eq:continuity_eq}
 \end{alignat}
@@ -270,31 +253,30 @@ where $\uu(\xx, t)\in\bm{H}^1(\DD)$ and $p(\xx, t)\in L_0^2(\DD)$
 are the fluid velocity and pressure,
 $\mathbf{I}$ is the identity tensor in dimension $d$ and
 $\beps(\uu)=\frac{1}{2}\left(\nabla\uu + (\nabla\uu)^T\right)$ is the
-strain-rate tensor (or symmetric gradient) of $\uu$. 
-\Cref{eq:continuity_eq} is the continuity equation
+strain-rate tensor. \Cref{eq:continuity_eq} is the continuity equation
 of an incompressible fluid, a statement of mass conservation.
 
-The brain ventricles deform over time and thus 
-the domain $\DD$ is deforming and varies over time.
-Therefore, we solve the Navier-Stokes equations with an
-Arbitrary Eulerian Lagrangian (ALE) approach~\cite{Duarte2004ALE}.
-The governing equations are solved in the reference configuration $\chi$,
-using the mapping $\psi : \xx\mapsto\chi$ from the current deformed
-configuration at time $t$ to the reference configuration.
-In this setup, the governing equations are
-\begin{alignat}{1}
-    \rho\left(\pdifft{\uu} + ((\uu - \cc)\cdot\hat{\nabla})\uu\right)
-    &= \hat{\nabla}\cdot\TT \label{eq:ALE_momentum_eq} \\
-    \hat{\nabla}\cdot\uu &= 0 \label{eq:ALE_continuity_eq}
-\end{alignat}
-where $\cc$ is the displacement velocity and
-$\hat{\nabla}$ is the differential operator in the deformed domain.
-In \Cref{eq:ALE_momentum_eq} and \Cref{eq:ALE_continuity_eq},
-all variables are evaluated in the reference configuration.
-In this ALE approach, the differential operators
-and integration measures of the weak formulation
-must be transformed appropriately to account for the
-domain motion~\cite{Scovazzi2007LectureNotes}.
+% The brain ventricles deform over time and thus 
+% the domain $\DD$ is deforming and varies over time.
+% Therefore, we solve the Navier-Stokes equations with an
+% Arbitrary Eulerian Lagrangian (ALE) approach~\cite{Duarte2004ALE}.
+% The governing equations are solved in the reference configuration $\chi$,
+% using the mapping $\psi : \xx\mapsto\chi$ from the current deformed
+% configuration at time $t$ to the reference configuration.
+% In this setup, the governing equations are
+% \begin{alignat}{1}
+%     \rho\left(\pdifft{\uu} + ((\uu - \cc)\cdot\hat{\nabla})\uu\right)
+%     &= \hat{\nabla}\cdot\TT \label{eq:ALE_momentum_eq} \\
+%     \hat{\nabla}\cdot\uu &= 0 \label{eq:ALE_continuity_eq}
+% \end{alignat}
+% where $\cc$ is the displacement velocity and
+% $\hat{\nabla}$ is the differential operator in the deformed domain.
+% In \Cref{eq:ALE_momentum_eq} and \Cref{eq:ALE_continuity_eq},
+% all variables are evaluated in the reference configuration.
+% In this ALE approach, the differential operators
+% and integration measures of the weak formulation
+% must be transformed appropriately to account for the
+% domain motion~\cite{Scovazzi2007LectureNotes}.
 
 For fluid flows where viscous forces dominate inertial 
 forces, the Stokes equations
@@ -302,33 +284,37 @@ forces, the Stokes equations
     - \nabla\cdot\TT = \bm{0}
     \label{eq:stokes_eq}
 \end{equation}
-are often used as an approximation for the momentum equation.
+are often used as an approximation to the momentum equation (\Cref{eq:navier_stokes_mom_eq}).
 Viscous forces dominate in CSF flow in smaller brains
 such as embryonic zebrafish brain ventricles
 \cite{Olstad2019CiliaryDevelopment, Herlyng2025AdvectionDiffusion},
 and we will therefore use \Cref{eq:stokes_eq} to model CSF flow
 in zebrafish. In the human brain, flow measurements and simulations
-indicate non-negligible transient and inertial effects 
+indicate that CSF flow is in a laminar but transitional regime
+with non-negligible transient and inertial effects 
 \cite{Gholampour2018FSI, howden2008three}.
-The flow is in a transitional regime where it is not
-entirely clear whether the Stokes equations might be a fair
-approximation, and previous studies
-\cite{Causemann2022HumanFramework} have modeled 
-CSF flow in human brain ventricles
-by the time-dependent Stokes equations:
+In such a flow regime 
+the time-dependent Stokes equations
 \begin{equation}
-    \rho\pdifft{\uu} - \nabla\cdot\TT = \bm{0}.
+    \rho\pdifft{\uu} - \nabla\cdot\TT = \bm{0}
     \label{eq:time_dependent_stokes_eq}
 \end{equation}
-Here the convective acceleration term
-$(\uu\cdot\nabla)\uu$ in the Navier-Stokes equations 
-is neglected, while the local acceleration $\rho\partial\uu/\partial t$
-is retained to account for transient effects. We will compute
-flow in human brain ventricles with both the Navier-Stokes and the
-time-dependent Stokes equations to compare the two.
+may serve as a fair approximation. Several previous
+computational studies are based on this
+\cite{Causemann2022HumanFramework}.
+In~\Cref{eq:time_dependent_stokes_Eq}, the convective acceleration term
+$(\uu\cdot\nabla)\uu$ is neglected, while the local acceleration
+$\rho\partial\uu/\partial t$ is retained to account for transient effects.
+We will compute flow in human brain ventricles with both the Navier-Stokes
+equations (\Cref{eq:navier_stokes_mom_eq}) and the time-dependent
+Stokes equations (\Cref{eq:time_dependent_stokes_eq}) to assess
+the fairness of approximation.
 
-Boundary conditions that close the fluid equations of motion
-are based on three fluid motion-inducing mechanisms, modeled as follows:
+\subsection{Flow mechanisms and boundary conditions}
+CSF flow in adult human brain ventricles differs from CSF flow in embryonic
+zebrafish brain ventricles. Therefore, we consider different flow mechanisms
+and boundary conditions for the two geometries.
+In the human brain, we consider three flow mechanisms:
 \begin{itemize}
     \item Deformation of the brain ventricles related to cardiac pulsatility,
     modeled by imposing a displacement velocity $\dot{\ww}(\xx, t)$
@@ -339,31 +325,59 @@ are based on three fluid motion-inducing mechanisms, modeled as follows:
     \item Ciliary beating, modeled by a tangential traction $\btau$
     acting on the fluid at the boundary (see~\Cref{subsubsec:cilia})
 \end{itemize}
-Further details on modeling the mechanisms are outlined in the three subsections
-subsequent to the current. The boundary conditions for the human model read
+The main driver of intraventricular CSF flow in humans is
+pulsatility related to the cardiac and respiratory cycles~\cite{wagshul2011pulsating,
+Vinje2019RespiratoryMeasurements}. During systole,
+the blood vessels in the brain expand and followingly also
+the parenchyma, putting pressure on the ventricular system. The inward displacement
+of the brain ventricles leads to antegrade (from cephalic to caudal) CSf flow.
+When the blood vessels relax and contract during diastole, the flow reverses and
+CSF flows back into the system. The respiratory cycle also influences CSF flow pressure % cite Enzmann etc.?
+gradients, but at different frequencies than the cardiac cycle~\cite{Vinje2019RespiratoryMeasurements}.
+In this study, we model deformations of the ventricles with a cardiac cycle frequency.
+
+In addition to pulsatility, we model CSF production and ciliary beating
+that both contribute to CSF flow in the human brain ventricles.
+CSF is mainly produced by the choroid plexus tissue in the lateral,
+third and fourth ventricles (\Cref{fig:model_sketch}). Motile cilia
+are abundant in the human brain~\cite{doetsch1997cellular,
+scott1973scanning, coletti2018characterization, worthington1963ependymal},
+but are not found in the caudal third of the third ventricle~\cite{scott1972comparative,
+bruni1972scanning, sanchez2024exploring} nor on choroid plexus~\cite{scott1972comparative,
+ho2023choroid, narita2015cilia}. Motile cilia are hair-like structures that line
+the ependyma of brain ventricular walls, and the beating motion of cilia propel
+CSF~\cite{Ringers2020Role}.
+
+A similar description of cardiac pulsatility as given above does not exist 
+for embryonic zebrafish brain ventricles~\cite{Herlyng2025AdvectionDiffusion}.
+Moreover, choroid plexus secretion begins at a later developmental stage than 2 dpf % Cite this
+in zebrafish. Therefore, we only consider ciliary beating as a flow mechanism
+in the zebrafish model. The modeled zebrafish ventricular system is thus
+a closed system. 
+
+Further details on modeling the outlined flow mechanisms are provided in the 
+following three sections. The boundary conditions for the human model read
 \begin{alignat}{2}
     \uu\cdot\nn &= \dot{\ww}(\xx, t) &&\quad\mathrm{on \ \mathcal{S}_1}, \\
     \uu\cdot\nn &= -u_{\mathrm{prod}} &&\quad\mathrm{on \ \mathcal{S}_2}, \\
-    \TT_{\parallel} &= \btau = \tau(\xx) P_{\nn}(\rr) - \alpha(\uu\cdot\bm{t}) &&\quad\mathrm{on \ \mathcal{S}_1\cup\mathcal{S}_2}, \\
-    (\mu\nabla\uu - p\mathbf{I})\nn &= \bm{0} &&\quad\mathrm{on \ \mathcal{S}_4}. \label{eq:outlet_BC}
+    \TT_{\parallel} &= \btau = \tau(\xx) P_{\nn}(\rr) - \alpha(\uu\cdot\bm{t})
+    &&\quad\mathrm{on \ \mathcal{S}_1\cup\mathcal{S}_2}, \label{eq:cilia_bc} \\
+    (\mu\nabla\uu - p\mathbf{I})\nn &= \bm{0} &&\quad\mathrm{on \ \mathcal{S}_4}. \label{eq:outlet_bc}
 \end{alignat}
-Here $\TT_{\parallel}=\TT\nn - (\TT\nn\cdot\nn)\nn$ is the tangential traction
-vector and $P_{\nn}(\cdot)$ is the projection of a vector onto a plane normal
+Here $\dot{\ww}(\xx, t)$ is the displacement velocity of the ventricular walls.
+The vector $\TT_{\parallel}=\TT\nn - (\TT\nn\cdot\nn)\nn$ is the tangential traction
+and $P_{\nn}(\cdot)$ is the projection of a vector onto a plane normal
 to $\nn$. The third condition is a Navier slip boundary condition where the
 friction coefficient $\alpha=\mu/L$ is determined by the dynamic viscosity and
 the slip length $L$. For the human brain, we choose $L=10$ \textmu m,
 the typical length of a cilium, resulting in $\alpha=100$.
-The ventricular walls of the third and fourth ventricles
-as well as the cerebral aqueduct are pupulated with motile cilia.
-On the rest of the boundary, we set $\tau(\xx)=0$.
-\Cref{eq:outlet_BC} imposes zero normal traction,
+In regions devoid of motile cilia, we set $\tau(\xx)=0$.
+\Cref{eq:outlet_bc} imposes zero normal traction,
 and is imposed on the end of the spinal canal and on the lateral apertures
 to simulate open boundaries.
 
-For the zebrafish model, cilia is considered the only flow mechanism.
-Also here cilia only populate certain regions of the ventricular walls in
-zebrafish embryos at the developmental stage we consider.
-Similar to previous work~\cite{Herlyng2025AdvectionDiffusion},
+For the zebrafish model, similar to previous work 
+\cite{Herlyng2025AdvectionDiffusion},
 we consider a frictionless ($\alpha=0$) 
 tangential traction on the cilia boundary
 and a free-slip condition elsewhere:
@@ -374,23 +388,7 @@ and a free-slip condition elsewhere:
 We set $\uu\cdot\nn=0$ on $\mathcal{B}_1\cup\mathcal{B}_2$ to reflect impermeability of
 the walls.
 
-\begin{figure}
-    \centering
-    \includegraphics[width=\textwidth]{graphics/figure_elastodynamics.png}
-    \caption{Human brain ventricles model. Illustration of the brain ventricular system that resides 
-    within the parenchyma. Choroid plexus locations in the lateral, third
-    and fourth ventricles. Computational meshParts of the figure were created with BioRender.}
-    \label{fig:model_sketch_human}
-\end{figure}
-
 \subsubsection{Brain ventricles deformation}\label{subsubsec:deformation}
-The main driver of intraventricular CSF flow is cardiac pulsatility.
-During systole, the blood vessels in the brain expand and followingly also
-the parenchyma, putting pressure on the ventricular system. The inward displacement
-of the brain ventricles leads to antegrade (from cephalic to caudal) CSf flow.
-When the blood vessels relax and contract during diastole, the flow reverses and
-CSF flows back into the system.
-
 We model CSF flow driven by ventricular wall deformations by
 imposing a wall displacement velocity as boundary condition when solving the flow equations.
 The displacement velocity is obtained through a smooth extension of experimental
@@ -474,7 +472,6 @@ influence the general trends of the results, but rather
 only the required magnitude of the applied displacements $\bm{g}(\xx, t)$.
 
 \subsubsection{Choroid plexus secretion}\label{subsubsec:secretion}
-CSF is mainly produced by the choroid plexus tissue.
 We assume that all CSF that enters the brain ventricles
 is produced by the choroid plexus, and that the influx is evenly distributed
 over the production sites in the lateral, third and fourth ventricles.
@@ -523,36 +520,84 @@ embryos~\cite{Thouvenin2020OriginCanal}. We therefore use the value determined b
 Siyahhan~\emph{et al.}~\cite{Siyahhan2014FlowVentricles} to be able to compare
 the impact of motile cilia with their results.
 
-In the human brain model, based on experimental research, 
-we do not consider motile cilia on
-the caudal third of the third ventricle~\cite{scott1972comparative,
-bruni1972scanning, sanchez2024exploring} nor on choroid plexus~\cite{scott1972comparative,
-ho2023choroid, narita2015cilia}. Apart from these two boundaries, the ventricular
-walls are modeled as covered by motile cilia~\cite{doetsch1997cellular,
-scott1973scanning, coletti2018characterization, worthington1963ependymal}.
-In the zebrafish model, we consider the dorsal and ventral parts of the 
-middle ventricle, as well as the dorsal part of the anterior ventricle,
-to be ciliated.
+Based on experimental research, we model cilia everywhere in the 
+human brain ventricles, except for in the caudal third of the third
+ventricle and on choroid plexus~\cite{doetsch1997cellular,
+scott1973scanning, coletti2018characterization, worthington1963ependymal,
+scott1972comparative, bruni1972scanning, sanchez2024exploring,
+scott1972comparative, ho2023choroid, narita2015cilia}.
+In the zebrafish model, cilia are modeled on the dorsal and ventral
+parts of the middle ventricle walls, and on the dorsal wall of the anterior
+ventricle~\cite{Olstad2019CiliaryDevelopment}.
 
-Cilia directionality reference: Yamadori T.
-The directions of ciliary beat on the wall of the fourth ventricle in the mouse.
-Arch Histol Jpn 1977; 40: 283–296
 
-\lyng{Should we do some "upper/lower bound" type of estimate?
-E.g., in the "maximal force" setting, how much do cilia contribute to flow structures?}
+% Cilia directionality reference: Yamadori T.
+% The directions of ciliary beat on the wall of the fourth ventricle in the mouse.
+% Arch Histol Jpn 1977; 40: 283–296
 
-\subsection{Ventricular geometries and model scenarios}
-We consider two geometries: the ventricular geometry of an embryonic zebrafish at two days
-post-fertilization (2 dpf), and the brain ventricles of an adult (healthy) human. In embryonic zebrafish,
-choroid plexus secretion begins at a later developmental stage than 2 dpf. Therefore, we only consider
-cilia forces in this flow model, and the domain is closed.
-For the human brain, we impose both deformation, choroid plexus
-secretion and cilia forces, and the lateral apertures and the spinal canal are open boundaries.
+% \lyng{Should we do some "upper/lower bound" type of estimate?
+% E.g., in the "maximal force" setting, how much do cilia contribute to flow structures?}
+
+\subsection{Model scenarios and quantities of interest}
 To assess the role of the different flow mechanisms, we investigate three model scenarios
 for the human brain model: (i) all three flow mechanisms (deformation, secretion, cilia);
 (ii) deformation and cilia, no secretion; (iii) deformation and secretion, no cilia.
+To compare our flow results we compute the following quantities:
+\begin{itemize}
+    \item The CSF flow rate in the cerebral aqueduct.
+    \item The CSF strok volume in the aqueduct, canal, lateral apertures,
+    and interventricular foramina
+    \item The peak-to-peak pressure gradient
+    \item Maximum and minimum CSF velocities
+\end{itemize}
 
-\fixme{Typical mesh edge lengths were X and Y.}
+\subsection{Finite-time Lyapunov exponent fields}
+Consider the dynamical system
+\begin{equation}
+    \dot{\xx}(t; t_0, \xx_0) := \frac{\mathrm d\xx}{\mathrm d t} = \uu(\xx(t; t_0, \xx_0), t),
+    \label{eq:dx_dt_equals_u}
+\end{equation}
+where $\xx(t)\in$ are the spatial coordinates of the domain $\mathcal{D}\subset\mathbb{R}^d$,
+$t$ denotes time, $\uu$ is a velocity, and $\xx_0=\xx(t_0; t_0, \xx_0)$ is the initial
+position at the initial time $t_0$. 
+\Cref{eq:dx_dt_equals_u} can be integrated to yield the position at a time $T$:
+\begin{equation}
+    \xx(T) = \xx(t_0) + \int_{t_0}^T \uu(\xx, t)\,\mathrm d t.
+\end{equation}
+We define this relation as the mapping
+\begin{equation}
+    \bphi_{t_0}^t : \mathcal{D} \rightarrow \mathcal{D} : \xx_0 \mapsto \bphi_{t_0}^t(\xx_0) = \xx(t; t_0, \xx_0),
+\end{equation}
+where $\bphi_{t_0}^t$ is the flow map~\cite{shadden2005definition} and $t = T+t_0$.
+We have thus far emphasized the dependence of 
+the dynamical system and the flow map on the parameters $t_0, \xx_0$, but will in the 
+following omit this notation for brevity. Using the gradient of the flow map,
+we define the (right) Cauchy-Green deformation tensor
+\begin{equation}
+    \mathbf{C} = \left(\nabla\bphi_{t_0}^T\right)^*\nabla\bphi_{t_0}^T
+\end{equation}
+where $\mathbf{A}^*$ denotes the transpose of a tensor $\mathbf{A}$
+and $T$ is the integration time. 
+In the flow field $\uu(\xx, t)$, the maximum stretching that occurs between
+two points $\xx$ and $\yy$ aligns with the eigenvector associated with
+the maximum eigenvalue $\lambda_{\mathrm{max}}$ of $\mathbf{C}$~\cite{shadden2005definition}.
+Related to this eigenvalue is the finite-time Lyapunov exponent (FTLE), defined as
+\begin{equation}
+    \sigma_{t_0}^T(\xx) = \frac{1}{\vert T\vert}\log{\sqrt{\lambda_{\mathrm{max}}}}.
+\end{equation}
+By definition, the FTLE measures the separation of fluid particle trajectories with time:
+\begin{equation}
+    \max||\delta\xx(\xx, t+t_0)|| = \exp\left(\sigma_{t_0}^T(\xx)|T|\right)||\overline{\delta\xx}(\xx, t_0)||,
+\end{equation}
+where $\overline{\delta\xx}(\xx, t_0)$ is the particle position change along
+the eigenvector associated with $\lambda_{\mathrm{max}}$.
+Note the absolute value of the integration time $T$,
+which is employed because FTLE values can be calculated
+both by integration forward ($T>0$) and backward ($T<0$) in time.
+FTLE values associated with integration forward in time
+reveal repelling structures (unstable manifolds) of the flow,
+whereas integration backward in time 
+reveal attracting structures (stable manifolds).
 
 \subsection{Numerical methods}
 \subsubsection{FTLE fields}
@@ -633,8 +678,8 @@ the initial conditions
 $\ww(\xx, 0) = \dot{\ww}(\xx, 0) = \ddot{\ww}(\xx, 0) = \bm{0}$.
 
 \subsubsection{Verification}
-The model implementations were verified using the
-Method of Manufactured Solutions~\cite{Roache2001CodeSolutions}.
+The model implementations on the human brain ventricles geometry
+were verified using the Method of Manufactured Solutions~\cite{Roache2001CodeSolutions}.
 Convergence properties of the fluid discretization scheme were assessed with two
 model problems. To assess spatial convergence, we solved a channel flow
 problem, observing linear convergence in both the velocity error measured
@@ -648,8 +693,13 @@ approximation measured in the $\bm{L}^2$ norm and
 $\bm{H}^1$ semi-norm converged at the optimal rates of three
 and two, respectively. In time, second-order accuracy of the 
 Newmark-$\beta$ method was confirmed.
+Correctness of the zebrafish CSF flow model implementation
+was verified previously~\cite{Herlyng2025AdvectionDiffusion}.
 
 Mesh and polynomial order refinement was performed.
+We consider three versions of the ventricles mesh,
+with a total of 51 016 (maximal 0.73 cm, minimal 0.049 cm), 408 128 (maximal 0.40 cm, minimal 0.023 cm),
+and 3 265 024 (maximal 0.22 cm, minimal 0.010 cm) tetrahedral cells.
 
 \section{Results}
 \subsection{Finite element CSF flow simulations}
