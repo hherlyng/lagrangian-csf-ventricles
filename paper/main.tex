@@ -117,23 +117,32 @@
 
 \section{Introduction}
 % I1: What is the problem - from big picture to our precise topic - why is it interesting?
-Human brains are constantly in motion. This motion is related to the cardiac and respiratory
-cycles and bodily movement~\cite{Enzmann1992BrainImaging},
-and the brain motion is tightly coupled with intracranial
-fluid flow. An important part of this flow system is the brain ventricular system,
-which are hollow structures wherein cerebrospinal fluid (CSF) flows dynamically.
-Because CSF flow is an important contributor to brain homeostasis
-and the regulatory processes of the brain~\cite{fame2020emergence},
-and CSF flow disruptions may result in pathological conditions
-such as hydrocephalus, furthering our understanding
-of CSF flow topology in brain ventricles bears interest.
+Human brains are constantly in motion. The motion is tightly coupled
+to the cardiac and respiratory cycles, bodily movement~\cite{Enzmann1992BrainImaging},
+and cerebrospinal fluid (CSF) flow. CSF is produced in the brain ventricular system,
+from where the fluid flows into the spinal canal and
+cisterna magna, through perivascular spaces before reaching the subarachnoid space.% cite
+CSF flow is an important contributor to brain homeostasis
+and the regulatory processes of the brain~\cite{fame2020emergence}.
+In the ventricles, CSF communicates with surrounding organs
+through specialized cells that line the ventricular walls,
+such as the tanycytes bridging the gap between the third
+ventricle and the hypothalamus. As a consequence of its importance,
+ventricular CSF flow disruptions is related to several pathologies
+afflicting the brain~\cite{linninger2016cerebrospinal}.
+Despite the importance of CSF flow,
+the underlying flow mechanisms are still not
+understood~\cite{kelley2023cerebrospinal}.
+Therefore, furthering our understanding
+of CSF flow in brain ventricles bears interest, as it may improve
+diagnostic techniques or even help prevent diseases.
 
 % I2: What do we know about the problem and the topic?
-The underlying mechanisms of brain ventricular CSF flow
-have been studied extensively in the last decades.
-Although flow mechanisms are still debated, it is clear that
-CSF flow results from complex interactions
-with blood vessels, intracranial pressures,
+The nature of CSF flow has been studied extensively
+in the last decades, both experimentally and computationally.
+Although the underlying flow mechanisms are still debated,
+it is clear that CSF flow results from complex interactions
+between blood vessels, intracranial pressures,
 beating of motile cilia, neural activity, posture changes,
 and production and absorption of CSF
 \cite{Olstad2019CiliaryDevelopment, Faubel2016CiliaVentricles,
@@ -143,7 +152,9 @@ With these physiological processes occuring
 over various time and length scales, the CSF flow
 in brain ventricles also consists of motions on different scales.
 A bulk motion is induced by pulsations related to
-the cardiac and respiratory cycles~\cite{Vinje2019RespiratoryMeasurements}.
+the cardiac and respiratory cycles~\cite{enzmann1991normal,
+wagshul2011pulsating, Liu2024UsingBreathing, baledent2004relationship,
+greitz1992pulsatile, Vinje2019RespiratoryMeasurements}.
 On the smaller scales, simple visualizations of flow trajectories
 in animals have shown that
 ventricular cerebrospinal fluid flow has intricate details,
@@ -151,25 +162,31 @@ with demonstrations of stagnation and separation points,
 and vortex-structured flows created by motile cilia
 \cite{gilpin2017flowtrace,
 Faubel2016CiliaVentricles,
-Olstad2019CiliaryDevelopment}.
+Olstad2019CiliaryDevelopment}, which have also 
+to a lesser extent been studied in humans
+\cite{worthington1963ependymal,
+Yoshida2022EffectVentricles,
+Siyahhan2014FlowVentricles}.
 Flow structures such as hyperbolic separatrices and vortices
-are material structures inherent to fluid flows. These
-structures are often referred to as Lagrangian coherent
-structures (LCS), and act as skeletons of the flow that
-provide detailed information on the transport
+are material structures of fluid flows,
+often referred to as Lagrangian coherent
+structures (LCS), that act as skeletons of the flow,
+providing detailed information on the transport
 of fluid parcels over time
 \cite{shadden2005definition, haller2015lagrangian}.
-Previous studies have analyzed LCS in a host of applications,
+Characterization of LCS has previously provided
+valuable understanding of fluid transport in a host of applications,
 including blood flow
 \cite{shadden2008characterization, shadden2010computational},
 atmospheric flow~\cite{Gunther2021LagrangianWinds},
 airway flow~\cite{lukens2010using},
-oceanic flows, ... etc. These studies successfully provided
-valuable understanding of fluid transport.
+oceanic flows, ... etc. 
 
 % I3: What do we not know about the problem and what do we want to
 % know? What are the precise research questions we want to address?
 % Refer to specific studies and what specifically we do not know.
+Characterization of LCS in CSF flow has however not yet been done.
+
 Flow and mixing mechanisms in the human central nervous system
 and specifically the brain ventricles
 are still not completely understood.
@@ -211,10 +228,10 @@ brain ventricular system consists of three cavities: the anterior, middle and po
 ventricles. The three compartments are connected by interventricular ducts. A volumetric
 mesh constituting 132 134 tetrahedral cells, with a maximal (minimal) edge
 length of 14.9 \textmu m (4.7 \textmu m), was generated with
-the surface geoemtry using fTetWild~\cite{Hu2020FastWild}.
+the surface geometry using fTetWild~\cite{Hu2020FastWild}.
 
-The second geometry is a computational mesh of human brain ventricles, extracted
-from the brain mesh used by Causemann~\emph{et al.}\cite{Causemann2022HumanFramework}.
+The second geometry is a computational mesh of adult human brain ventricles, extracted
+from the brain mesh used by Causemann~\emph{et al.}~\cite{Causemann2022HumanFramework}.
 They generated the mesh from MRI images. The different parts of the human brain ventricular
 system are denoted in~\Cref{fig:model_sketch}. The standard version of the ventricles mesh
 consists of 408 128 tetrahedral cells with maximal and minimal edge lengths
@@ -223,9 +240,10 @@ of 0.40 cm and 0.023 cm, respectively.
 \begin{figure}
     \centering
     \includegraphics[width=\textwidth]{graphics/figure_elastodynamics.png}
-    \caption{Human brain ventricles model. Illustration of the brain ventricular system that resides 
-    within the parenchyma. Choroid plexus locations in the lateral, third
-    and fourth ventricles. Computational meshParts of the figure were created with BioRender.}
+    \caption{Illustration of the brain ventricular system in the (a) adult human
+    and (b) embryonic zebrafish.
+    Choroid plexus locations in the lateral, third
+    and fourth ventricles. Computational mesh. Parts of the figure were created with BioRender.}
     \label{fig:model_sketch}
 \end{figure}
 
@@ -235,7 +253,7 @@ Newtonian fluid of density $\rho=1000 \ \mathrm{kg/m^3}$ and dynamic viscosity
 $\mu=0.7 \ \mathrm{mPa\cdot s}$~\cite{Bloomfield1998EffectsFluid}
 in a domain $\DD\subset\mathbb{R}^d$
 with boundary $\partial\DD=\Scal$.
-Neglecting the graviational force, no body forces are acting on the fluid.
+Neglecting the graviational acceleration, no body forces are acting on the fluid.
 The flow is governed by the Navier-Stokes equations:
 \begin{alignat}{1}
     \rho\frac{\mathrm D\uu}{\mathrm Dt} 
@@ -302,7 +320,7 @@ the time-dependent Stokes equations
 may serve as a fair approximation. Several previous
 computational studies are based on this
 \cite{Causemann2022HumanFramework}.
-In~\Cref{eq:time_dependent_stokes_Eq}, the convective acceleration term
+In~\Cref{eq:time_dependent_stokes_eq}, the convective acceleration term
 $(\uu\cdot\nabla)\uu$ is neglected, while the local acceleration
 $\rho\partial\uu/\partial t$ is retained to account for transient effects.
 We will compute flow in human brain ventricles with both the Navier-Stokes
@@ -815,7 +833,7 @@ Herlyng2025AdvectionDiffusion}.
 With flowrates and stroke volumes that are within the range
 of clinically reported values~\cite{wagshul2011pulsating,
 eide2021direction, enzmann1993cerebrospinal,
-baledent2004relationship, pan2024using}, the applied deformations are
+baledent2004relationship, Liu2024UsingBreathing}, the applied deformations are
 small compared to experimental reports~\cite{lee1989variation,
 zhu2006dynamics}.
 The pressure gradient \fixme{is (not) comparable} to the
