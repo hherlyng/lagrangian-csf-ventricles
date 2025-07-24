@@ -10,6 +10,7 @@ from mpi4py    import MPI
 from petsc4py  import PETSc
 from basix.ufl import element
 from pathlib   import Path
+from scipy.fft import fft, ifft, fftfreq
 from dolfinx.fem.petsc    import create_matrix, create_vector, assemble_vector, apply_lifting
 from utilities.fem        import assemble_system
 from utilities.projection import projection_problem_CG_to_BDM
@@ -23,7 +24,7 @@ from utilities.deformation_data import (DisplacementCorpusCallosumCephalocaudal,
     a finite element method based on continuous Lagrange elements.
     Time-stepping scheme: Newmark beta-method.
 """
-
+pprint = print
 print = PETSc.Sys.Print # Only print from rank 0
 
 # Facet tags
@@ -52,6 +53,7 @@ THIRD_ANTERIOR = 115
 THIRD_POSTERIOR = 116
 THIRD_FLOOR = 117
 LATERAL_FLOOR = 118
+THIRD_NO_CILIA = 119
 ZERO_SOLID_TRACTION = 1000
 CHOROID_PLEXUS_LATERAL_ZERO_TRACTION = 1001
 
@@ -64,9 +66,11 @@ LATERAL_VENTRICLES = 7
 FOURTH_VENTRICLE = 8
 
 write_output = int(sys.argv[1])
+p = int(sys.argv[2]) # CG (displacement) element degree
+k = int(sys.argv[6]) # BDM element degree
 comm = MPI.COMM_WORLD
 mesh_suffix = int(sys.argv[5]) # Refinement degree of mesh
-with dfx.io.XDMFFile(comm, f"../geometries/ventricles_{mesh_suffix}.xdmf", "r") as xdmf:
+with dfx.io.XDMFFile(comm, f"/home/hherlyng/lagrangian-csf-ventricles/geometries/ventricles_{mesh_suffix}.xdmf", "r") as xdmf:
     mesh = xdmf.read_mesh()
     gdim = mesh.geometry.dim
     
@@ -104,11 +108,11 @@ num_periods = int(sys.argv[4])
 T = period*num_periods
 N = int(T / timestep)
 times = np.linspace(0, T, N+1)
+period_times = np.linspace(0, period, int(period/timestep)+1) # One period of timesteps for the output
 final_period_start = int(T - period)
 write_time = 0
 
 # Definte finite element and function space
-p = int(sys.argv[2])
 vec_el  = element("Lagrange", mesh.basix_cell(), p, shape=(mesh.geometry.dim,))
 scal_el = element("Lagrange", mesh.basix_cell(), p)
 W = dfx.fem.functionspace(mesh, vec_el)
@@ -156,9 +160,7 @@ a += gamma/(beta*dt) * (eta_M*rho*inner(w, dw)*dx + eta_K*inner(sigma(w), eps(dw
 v_res = wh_dot_n + dt*wh_ddot_n*(1-gamma) - gamma/(beta*dt)*(wh_n + dt*wh_dot_n) + dt*gamma*wh_ddot_n*(2*beta-1)/(2*beta)
 L -= (eta_M*rho* inner(v_res, dw)*dx + eta_K * inner(sigma(v_res), eps(dw))*dx)
 
-
 # Impose normal displacement weakly with Nitsche
-# h = dfx.cpp.mesh.h(mesh._cpp_object, tdim, np.arange(mesh.topology.index_map(tdim).size_local, dtype=np.int32)).max()
 h = ufl.CellDiameter(mesh)
 ds = ufl.Measure("ds", domain=mesh, subdomain_data=ft)
 t = lambda w: dot(sigma(w), n)
@@ -166,12 +168,14 @@ w_normal_LV_lat = dfx.fem.Constant(mesh, 0.0)
 w_normal_LV_cec = dfx.fem.Function(V)
 w_normal_LV_horns = dfx.fem.Constant(mesh, 0.0)
 w_normal_3V = dfx.fem.Constant(mesh, 0.0)
-phi = dfx.fem.Constant(mesh, 20000000.0) #*(mesh_suffix+1)
+phi = dfx.fem.Constant(mesh, 20000000.0)
 
 lateral_tags_cec = (CORPUS_CALLOSUM)
 lateral_tags_horns = (LATERAL_VENTRICLES_WALL)
 lateral_tags_lat = (LATERAL_LEFT, LATERAL_RIGHT)
-third_tags = (THIRD_LEFT, THIRD_RIGHT, THIRD_ANTERIOR, THIRD_POSTERIOR, CHOROID_PLEXUS_THIRD, THIRD_VENTRICLE_WALL)
+third_tags = (THIRD_LEFT, THIRD_RIGHT, THIRD_ANTERIOR,
+              THIRD_POSTERIOR, CHOROID_PLEXUS_THIRD,
+              THIRD_VENTRICLE_WALL, THIRD_NO_CILIA)
 a += -inner(dot(t(w), n), dot(dw, n))*(ds(lateral_tags_lat) + ds(lateral_tags_cec) + ds(lateral_tags_horns) + ds(third_tags))
 
 a += -inner(dot(w, n), dot(t(dw),n))*(ds(lateral_tags_lat) + ds(lateral_tags_cec) + ds(lateral_tags_horns) + ds(third_tags)) \
@@ -192,10 +196,11 @@ A = create_matrix(a_cpp)
 b = create_vector(L_cpp)
 
 # Set BCs:
-# Corpus callosum (roof of LV): impose z displacement, x and y traction-free
-# Caudate nucleus (lateral sides of LV): impose x displacement, y and z traction-free
-# Lateral walls 3V: impose x displacement, y and z traction-free
-# Perimeter of spinal canal outlet (foramen magnum): anchor x and y, z traction-free
+# Corpus callosum (roof of LV): normal displacement based on data
+# Caudate nucleus (lateral sides of LV): normal displacement based on data
+# Lateral ventricle horns (occipital and inferior): normal displacement inferred from data
+# Lateral walls 3V: normal displacement based on data
+# Spinal canal outlet and lateral apertures outlets: anchor (w_x = w_y = w_z = 0)
 # Rest of the boundary is traction-free
 
 # Get displacement expressions
@@ -215,65 +220,9 @@ dofs_3V_floor = dfx.fem.locate_dofs_topological((W_z, W), facet_dim, ft.find(THI
 bcs.append(dfx.fem.dirichletbc(w_LV_floor, dofs_LV_floor, W_z))
 bcs.append(dfx.fem.dirichletbc(w_3V_floor, dofs_3V_floor, W_z))
 
-# Find vertices on the perimeter of the outlet
-# Start by creating required connectivities 
-edge_dim = facet_dim-1
-vertex_dim = 0
-mesh.topology.create_connectivity(facet_dim, edge_dim)  # Facets (dim-1) to edges (dim-2)
-mesh.topology.create_connectivity(edge_dim, vertex_dim) # Edges (dim-2) to vertices (dim=0)
-f_to_e = mesh.topology.connectivity(facet_dim, edge_dim)
-e_to_v = mesh.topology.connectivity(edge_dim, vertex_dim)
-# First get the facets of the outlet and the canal wall
-outlet_facets = ft.indices[ft.values==CANAL_OUT]
-wall_facets = ft.indices[ft.values==CANAL_WALL]
-
-# Find the outlet and wall edges in a manner that
-# is consistent for parallel communication
-if len(outlet_facets) > 0:
-    local_outlet_edges = np.unique(np.concatenate([f_to_e.links(f) for f in outlet_facets]))
-else:
-    local_outlet_edges = np.array([], dtype=np.int32)
-
-if len(wall_facets) > 0:
-    local_wall_edges = np.unique(np.concatenate([f_to_e.links(f) for f in wall_facets]))
-else:
-    local_wall_edges = np.array([], dtype=np.int32)
-
-# The perimeter edges are the intersection of the two sets of edges.
-# Gather all local edge arrays from all processes and
-# create a single global array of unique edges.
-# Then use the global arrays to compute intersection globally
-all_outlet_edges = comm.allgather(local_outlet_edges) 
-global_outlet_edges = np.unique(np.concatenate(all_outlet_edges)) 
-all_wall_edges = comm.allgather(local_wall_edges)
-global_wall_edges = np.unique(np.concatenate(all_wall_edges))
-outlet_perimeter_edges = np.intersect1d(global_outlet_edges, global_wall_edges)
-
-# Find the vertices that lie on the perimeter edges
-if len(outlet_perimeter_edges)>0:
-    outlet_perimeter_vertices = np.unique(np.concatenate([e_to_v.links(e) for e in outlet_perimeter_edges]))
-else:
-    outlet_perimeter_vertices = np.array([], dtype=np.int32)
-
-# Find which outlet_perimeter_vertices are owned locally on the process
-owned_vertex_range = mesh.topology.index_map(0).local_range # Get the start and end+1 of the owned vertex range on this process
-
-# Create a boolean mask to filter the vertices
-is_owned = (outlet_perimeter_vertices >= owned_vertex_range[0]) & \
-           (outlet_perimeter_vertices  < owned_vertex_range[1])
-
-# Apply the mask to get only the vertices owned by this process
-local_perimeter_vertices = outlet_perimeter_vertices[is_owned]
-
-# Now find the outlet perimeter dofs that are located at the vertices found
-mesh.topology.create_connectivity(0, mesh.topology.dim) # Create connectivity from vertices (dim=0) to cells (dim)
-
-outlet_perimeter_dofs_x = dfx.fem.locate_dofs_topological((W_x, W), 0, local_perimeter_vertices)
-outlet_perimeter_dofs_y = dfx.fem.locate_dofs_topological((W_y, W), 0, local_perimeter_vertices)
-
-# Set the BCs
-bcs.append(dfx.fem.dirichletbc(zero, outlet_perimeter_dofs_x, W_x))
-bcs.append(dfx.fem.dirichletbc(zero, outlet_perimeter_dofs_y, W_y))
+outlet_facets = np.concatenate((ft.find(CANAL_OUT), ft.find(LATERAL_APERTURES)))
+outlet_dofs = dfx.fem.locate_dofs_topological(W, facet_dim, outlet_facets)
+bcs.append(dfx.fem.dirichletbc(zero, outlet_dofs))
 
 # Assemble the system matrix and the RHS vector
 A, b = assemble_system(A, b, a_cpp, L_cpp, bcs)
@@ -305,13 +254,8 @@ CG1_vector_space = dfx.fem.functionspace(mesh,
                                                          shape=(mesh.geometry.dim,)))
 wh_out = dfx.fem.Function(CG1_vector_space)
 vh_out = dfx.fem.Function(CG1_vector_space)
-k = int(sys.argv[6]) # BDM element degree
-bdm_el = element("BDM", mesh.basix_cell(), k)
-BDM = dfx.fem.functionspace(mesh, bdm_el)
-dw_dt_bdm = dfx.fem.Function(BDM)
-dw_dt_bdm.name = "defo_velocity"
 wh.name = "defo_displacement"
-output_dir = f"../output/mesh_{mesh_suffix}/deformation_p={p}_E={E:.0f}_k={k}_T={T:.0f}/"
+output_dir = f"/global/D1/homes/hherlyng/lagrangian-csf-ventricles/output/mesh_{mesh_suffix}/deformation_p={p}_E={E:.0f}_k={k}_T={T:.0f}/"
 data_dir = output_dir+"data/"
 Path(data_dir).mkdir(parents=True, exist_ok=True)
 
@@ -326,10 +270,6 @@ if write_output:
     a4d.write_meshtags(vh_cpoint_filename, mesh, ft, meshtag_name='ft')
     a4d.write_meshtags(vh_cpoint_filename, mesh, ct, meshtag_name='ct')
 
-# Create projection problem to project the Lagrange
-# displacement velocity into a Brezzi-Douglas-Marini
-# finite element space
-projection_problem = projection_problem_CG_to_BDM(wh_dot, dw_dt_bdm, dx)
 # Define some quantities that will be calculated during
 # the solution loop.
 # Energy norms
@@ -341,6 +281,7 @@ E_elastic = dfx.fem.form(1/2 * inner(sigma(wh_n), eps(wh_n)) * dx)
 energy = np.zeros((len(times), 2))
 max_disp = np.zeros((len(times), 4))
 point_disp = np.zeros((len(times), 3))
+point_vel  = np.zeros((len(times), 3))
 
 # Compute cells for point evaluation of the deformation function wh
 cell = []
@@ -359,6 +300,8 @@ applied_bc2 = []
 applied_bc3 = []
 applied_bc4 = []
 applied_bc5 = []
+
+displacements = np.zeros((len(wh.x.array), len(period_times)), wh.x.array.dtype)
 
 for i, t in enumerate(times[1:], 1):
     
@@ -427,75 +370,132 @@ for i, t in enumerate(times[1:], 1):
     applied_bc5.append(horns_expr.amplitude)
 
     if t >= final_period_start and write_output:
-        # Project velocity and write output
-        projection_problem.solve() # Project deformation velocity into BDM 1 space for checkpointing
         
-        # Write checkpoints
+        # Write displacement checkpoint
         a4d.write_function(filename=vh_cpoint_filename, u=wh, time=write_time)
-        a4d.write_function(filename=vh_cpoint_filename, u=dw_dt_bdm, time=write_time)
         
-        # Interpolate P1 functions and write XDMF output
+        # Interpolate P1 displacement function and write XDMF output
         wh_out.interpolate(wh)
-        vh_out.interpolate(wh_dot) 
         xdmf.write_function(wh_out, t)
-        xdmf_vel.write_function(vh_out, t) 
+
+        displacements[:, write_time] = wh.x.array.copy() # Store the displacements to be differentiated with FFT
 
         write_time += 1 # Increment write index
 
+wh_project = dfx.fem.Function(W)
+bdm_el = element("BDM", mesh.basix_cell(), k)
+BDM = dfx.fem.functionspace(mesh, bdm_el)
+dw_dt_bdm = dfx.fem.Function(BDM)
+dw_dt_bdm.name = "defo_velocity"
+
+# Create projection problem to project the Lagrange
+# displacement velocity into a Brezzi-Douglas-Marini
+# finite element space
+projection_problem = projection_problem_CG_to_BDM(wh_project, dw_dt_bdm, dx)
+
 if write_output:
+
+    # Calculate the displacement velocity with the Fast Fourier Transform (FFT)
+    # Get the frequencies of the signal
+    n_steps = displacements.shape[1]
+    freqs = fftfreq(n_steps, dt.value)
+
+    # Compute the Fast Fourier Transform of the displacement
+    wh_fft = fft(displacements, axis=1)
+
+    # Differentiate in frequency space by multiplying by (i * omega)
+    # where omega = 2*pi*f and i is the imaginary unit
+    wh_dot_fft = (1j*2*np.pi*freqs) * wh_fft
+
+    # Apply a Gaussian filter to filter out high-frequency noise
+    sigma = 10.0 # a.k.a. sigma in a Gaussian
+    filter = np.exp(-(freqs**2) / (2 * sigma**2))
+    wh_dot_fft = filter*wh_dot_fft
+
+    # Compute the inverse FFT to get the velocity in the time domain
+    velocity = ifft(wh_dot_fft, axis=1).real # Take only the real part
+
+    # Reset write time and loop over one period
+    for write_time, _ in enumerate(period_times):
+        # Update the finite element function for the velocity
+        # and project the CG velocity into a BDM space
+        wh_project.x.array[:] = velocity[:, write_time]
+        wh_project.x.scatter_forward()
+        projection_problem.solve()
+        a4d.write_function(filename=vh_cpoint_filename, u=dw_dt_bdm, time=write_time)
+        vh_out.interpolate(wh_project)
+        xdmf_vel.write_function(vh_out, write_time) 
+
+        if len(cell)>0:
+            point_vel[write_time, :] = wh_project.eval(x=random_point, cells=cell)
+    
+    # Perform parallell communication
+    point_disp = comm.gather(point_disp, root=0)
+    point_vel  = comm.gather(point_vel , root=0)
+
+    # Close output files
     xdmf.close()
     xdmf_vel.close()
 
-# Perform parallell communication
-point_disp = comm.gather(point_disp, root=0)
+    if comm.rank==0:
+        
+        # Get the point displacements and velocities that were gathered at this rank
+        for array in point_disp:
+            if np.sum(np.abs(array)) > 0.0:
+                point_disp = array
+                break
+        for array in point_vel:
+            if np.sum(np.abs(array)) > 0.0:
+                point_vel = array
+                break
+        
+        # Plot and save data arrays
+        import matplotlib.pyplot as plt
+        fig_dir = f"/global/D1/homes/hherlyng/lagrangian-csf-ventricles/output/illustrations/verification/mesh_{mesh_suffix}/"
+        Path(fig_dir).mkdir(parents=True, exist_ok=True)
+        fig, ax = plt.subplots(figsize=([12, 8]))
+        ax.plot(times[1:], np.array(applied_bc1), 'r', label="Corpus callosum")
+        ax.plot(times[1:], np.array(applied_bc2), 'b', label="3V wall")
+        ax.plot(times[1:], np.array(applied_bc3), 'g', label="Caudate nucleus")
+        ax.plot(times[1:], np.array(applied_bc4), 'm', label="LV/3V floor")
+        ax.plot(times[1:], np.array(applied_bc5), 'k', label="Inf./occ. horns")
+        ax.legend()
+        fig.savefig(fig_dir+f"applied_BCs_deformation_p={p}_E={E:.0f}_k={k}_T={T}_dt={timestep}.png")
+        plt.show()
+        np.save(data_dir+f"applied_bc_corpus_callosum_dt={timestep}.npy", np.array(applied_bc1))
+        np.save(data_dir+f"applied_bc_3V_wall_dt={timestep}.npy", np.array(applied_bc2))
+        np.save(data_dir+f"applied_bc_caudate_nucleus_dt={timestep}.npy", np.array(applied_bc3))
+        np.save(data_dir+f"applied_bc_LV_3V_floor_dt={timestep}.npy", np.array(applied_bc4))
+        np.save(data_dir+f"applied_bc_inf_occ_horns_dt={timestep}.npy", np.array(applied_bc5))
 
-if comm.rank==0:
-    
-    # Get the point displacements that were gathered at this rank
-    for array in point_disp:
-        if np.sum(np.abs(array)) > 0.0:
-            point_disp = array
-            break
-    
-    # Plot and save data arrays
-    import matplotlib.pyplot as plt
-    fig_dir = f"../output/illustrations/verification/mesh_{mesh_suffix}/"
-    Path(fig_dir).mkdir(parents=True, exist_ok=True)
-    fig, ax = plt.subplots(figsize=([12, 8]))
-    ax.plot(times[1:], np.array(applied_bc1), 'r', label="Corpus callosum")
-    ax.plot(times[1:], np.array(applied_bc2), 'b', label="3V wall")
-    ax.plot(times[1:], np.array(applied_bc3), 'g', label="Caudate nucleus")
-    ax.plot(times[1:], np.array(applied_bc4), 'm', label="LV/3V floor")
-    ax.plot(times[1:], np.array(applied_bc5), 'k', label="Inf./occ. horns")
-    ax.legend()
-    fig.savefig(fig_dir+f"applied_BCs_deformation_p={p}_E={E:.0f}_k={k}_T={T}_dt={timestep}.png")
-    plt.show()
-    np.save(data_dir+f"applied_bc_corpus_callosum_dt={timestep}.npy", np.array(applied_bc1))
-    np.save(data_dir+f"applied_bc_3V_wall_dt={timestep}.npy", np.array(applied_bc2))
-    np.save(data_dir+f"applied_bc_caudate_nucleus_dt={timestep}.npy", np.array(applied_bc3))
-    np.save(data_dir+f"applied_bc_LV_3V_floor_dt={timestep}.npy", np.array(applied_bc4))
-    np.save(data_dir+f"applied_bc_inf_occ_horns_dt={timestep}.npy", np.array(applied_bc5))
+        fig2, ax2 = plt.subplots(figsize=([12, 8]))
+        ax2_ = ax2.twinx()
+        ax2.plot(times, energy[:, 0], 'r', label="Kinetic energy")
+        ax2_.plot(times, energy[:, 1], color='b', label="Elastic energy", marker='^', markevery=int(len(times)/25))
+        ax2.legend()
+        ax2_.legend()
+        fig2.savefig(fig_dir+f"MPI={comm.size}_energies_p={p}_E={E:.0f}_k={k}_T={T}_dt={timestep}.png")
+        plt.show()
+        np.save(data_dir+f"energies_dt={timestep}.npy", energy)
 
-    fig2, ax2 = plt.subplots(figsize=([12, 8]))
-    ax2_ = ax2.twinx()
-    ax2.plot(times, energy[:, 0], 'r', label="Kinetic energy")
-    ax2_.plot(times, energy[:, 1], color='b', label="Elastic energy", marker='^', markevery=int(len(times)/25))
-    ax2.legend()
-    ax2_.legend()
-    fig2.savefig(fig_dir+f"MPI={comm.size}_energies_p={p}_E={E:.0f}_k={k}_T={T}_dt={timestep}.png")
-    plt.show()
-    np.save(data_dir+f"energies_dt={timestep}.npy", energy)
+        fig3, ax3 = plt.subplots(figsize=([12, 8]))
+        ax3.plot(times, max_disp[:, 0], 'k', label="Max x disp")
+        ax3.plot(times, max_disp[:, 1], 'r', label="Max y disp")
+        ax3.plot(times, max_disp[:, 2], 'b', label="Max z disp")
+        ax3.plot(times, max_disp[:, 3], color='k', linestyle='-.', label="Max mag.")
+        ax3.plot(times, point_disp[:, 0], 'g', label="Point x disp")
+        ax3.plot(times, point_disp[:, 1], 'c', label="Point y disp")
+        ax3.plot(times, point_disp[:, 2], 'm', label="Point z disp")
+        ax3.legend()
+        fig3.savefig(fig_dir+f"MPI={comm.size}_displacements_p={p}_E={E:.0f}_k={k}_T={T}_dt={timestep}.png")
+        plt.show()
+        np.save(data_dir+f"max_displacements_dt={timestep}.npy", max_disp)
+        np.save(data_dir+f"point_displacements_dt={timestep}.npy", point_disp)
 
-    fig3, ax3 = plt.subplots(figsize=([12, 8]))
-    ax3.plot(times, max_disp[:, 0], 'k', label="Max x disp")
-    ax3.plot(times, max_disp[:, 1], 'r', label="Max y disp")
-    ax3.plot(times, max_disp[:, 2], 'b', label="Max z disp")
-    ax3.plot(times, max_disp[:, 3], color='k', linestyle='-.', label="Max mag.")
-    ax3.plot(times, point_disp[:, 0], 'g', label="Point x disp")
-    ax3.plot(times, point_disp[:, 1], 'c', label="Point y disp")
-    ax3.plot(times, point_disp[:, 2], 'm', label="Point z disp")
-    ax3.legend()
-    fig3.savefig(fig_dir+f"MPI={comm.size}_displacements_p={p}_E={E:.0f}_k={k}_T={T}_dt={timestep}.png")
-    plt.show()
-    np.save(data_dir+f"max_displacements_dt={timestep}.npy", max_disp)
-    np.save(data_dir+f"point_displacements_dt={timestep}.npy", point_disp)
+        fig4, ax4 = plt.subplots(figsize=([12, 8]))
+        ax4.plot(times, point_vel[:, 0], 'g', label="Point x vel")
+        ax4.plot(times, point_vel[:, 1], 'c', label="Point y vel")
+        ax4.plot(times, point_vel[:, 2], 'm', label="Point z vel")
+        ax4.legend()
+        fig4.savefig(fig_dir+f"MPI={comm.size}_velocities_p={p}_E={E:.0f}_k={k}_T={T}_dt={timestep}.png")
+        np.save(data_dir+f"point_velocities_dt={timestep}.npy", point_vel)
