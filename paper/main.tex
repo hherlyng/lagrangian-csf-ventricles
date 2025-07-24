@@ -196,7 +196,6 @@ oceanic flows, ... etc.
 % know? What are the precise research questions we want to address?
 % Refer to specific studies and what specifically we do not know.
 Characterization of LCS in CSF flow has however not yet been done.
-
 Flow and mixing mechanisms in the human central nervous system
 and specifically the brain ventricles
 are still not completely understood.
@@ -221,10 +220,14 @@ CSF composition and thus neuromodulatory processes.
 % the importance of CSF flow in the neuromodulatory processes of the brain. 
 
 % I4: How do we address the problem and what do we find out?
-In this work, we study intraventricular CSF flow in embryonic zebrafish and adult human brain ventricles.
-The geometries are segmented from medical imaging data. First, we simulate CSF flow using a finite
-element method. The CSF velocity fields are used to analyze coherent structures by 
-using approximating the structures with FTLE fields. 
+In this work, we use a computational model to study intraventricular CSF flow.
+Flow is modeled in brain ventricles of both adult human and embryonic zebrafish,
+using geometries segmented from medical imaging data. In the human brain, we model
+flow driven by cardiac pulsations, choroid plexus secretion and motile cilia.
+For the zebrafish, we model flow driven by motile cilia.
+We simulate CSF flow using finite element methods.
+The CSF velocity fields are then used to compute FTLE fields,
+which are used to characterize coherent structures.
 
 
 \section{Methods}
