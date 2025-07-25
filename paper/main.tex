@@ -122,113 +122,113 @@ Human brains are constantly in motion. The motion is tightly coupled
 to the cardiac and respiratory cycles, bodily movement and
 neural activity, and the motion is the main contributor to
 cerebrospinal fluid (CSF) flow~\cite{Enzmann1992BrainImaging}.
-CSF is produced by choroid plexus
-in the brain ventricular system,
+CSF is produced by choroid plexus in the brain ventricles,
 from where the fluid flows into the spinal cord or
 to the subarachnoid space~\cite{rasmussen2018glymphatic}.
 CSF flow is an important contributor to brain homeostasis, delivery of
-nutrients, and the regulatory processes of the brain~\cite{fame2020emergence,
-kelley2023cerebrospinal}.
-In the ventricles, CSF communicates with surrounding organs
-through specialized cells that line the ventricular walls,
-such as the tanycytes bridging the gap between the third
-ventricle and the hypothalamus. As a consequence of its importance,
-ventricular CSF flow disruptions is related to several pathologies
-afflicting the brain~\cite{linninger2016cerebrospinal}.
-Despite the importance of CSF flow,
-the underlying flow mechanisms are still not
-understood~\cite{kelley2023cerebrospinal}.
-Therefore, furthering our understanding
-of CSF flow in brain ventricles bears interest, as it may improve
-diagnostic techniques or even help prevent diseases.
+nutrients, and serves as a cushion for the brain~\cite{fame2020emergence,
+kelley2023cerebrospinal, linninger2016cerebrospinal}.
+Meanwhile, several pathologies afflicting the brain
+are related to disruption of CSF flow,
+such as hydrocephalus, where ventricular enlargement
+results from blockage of CSF flow~\cite{linninger2016cerebrospinal}.
+Although CSF is fundamental to brain functioning,
+the underlying mechanisms of CSF flow are still not
+completely understood~\cite{kelley2023cerebrospinal}.
+% Therefore, furthering our understanding
+% of CSF flow in brain ventricles bears interest, as it may improve
+% diagnostic techniques or help develop preventive treatments.
+% In the brain ventricles, CSF communicates with surrounding organs
+% through specialized cells that line the ventricular walls,
+% such as the tanycytes bridging the gap between the third
+% ventricle and the hypothalamus.
 
 % I2: What do we know about the problem and the topic?
 The nature of CSF flow has been studied extensively
-in the last decades, both experimentally and computationally.
-Although the underlying flow mechanisms are still debated,
-it is clear that CSF flow results from complex interactions
-between blood vessels, intracranial pressures,
-beating of motile cilia, neural activity, posture changes,
-and production and absorption of CSF
+in recent decades, both experimentally and computationally.
+Among the physical processes that affect CSF flow are:
+blood vessel dynamics, displacement of brain tissue,
+production and absorption of CSF,
+beating of motile cilia, neural activity, and posture changes.
 \cite{kelley2023cerebrospinal,
 Olstad2019CiliaryDevelopment, Faubel2016CiliaVentricles,
 Kurtcuoglu2007ComputationalSylvius, Czosnyka2004CerebrospinalDynamics,
 Vinje2019RespiratoryMeasurements, Liu2024UsingBreathing}.
-With these physiological processes occuring
-over various time and length scales, the CSF flow
-in brain ventricles also consists of motions on different
+With these physical processes occuring
+over various time and length scales, CSF flow
+also consists of motions on different
 scales~\cite{kelley2023cerebrospinal}.
-Large-scale bulk motion is induced by pulsations related to
+In the brain ventricles, large-scale bulk motion
+is induced by pulsations related to
 the cardiac and respiratory cycles, both cycles
 dynamically changing the blood volume in the brain
 which deforms surrounding tissue and results in CSF flow~\cite{enzmann1991normal,
 wagshul2011pulsating, Liu2024UsingBreathing, baledent2004relationship,
 greitz1992pulsatile, Vinje2019RespiratoryMeasurements,
 kelley2023cerebrospinal}.
-On the smaller scales, simple visualizations of flow trajectories
-in animals have shown that
-ventricular cerebrospinal fluid flow has intricate details,
-with demonstrations of stagnation and separation points,
+At smaller scales, visualizations of ventricular
+CSF flow trajectories in animals have demonstrated
+intricate features such as stagnation and separation points,
 and vortex-structured flows created by motile cilia
-\cite{gilpin2017flowtrace,
-Faubel2016CiliaVentricles,
-Olstad2019CiliaryDevelopment}, which have also 
-to a lesser extent been studied in humans
-\cite{worthington1963ependymal,
-Yoshida2022EffectVentricles,
-Siyahhan2014FlowVentricles}.
-Flow structures such as hyperbolic separatrices and vortices
-are material structures of fluid flows,
-often referred to as Lagrangian coherent
-structures (LCS), that act as skeletons of the flow,
-providing detailed information on the transport
-of fluid parcels over time
-\cite{shadden2005definition, haller2015lagrangian}.
-Characterization of LCS has previously provided
-valuable understanding of fluid transport in a host of applications,
-including blood flow
+\cite{gilpin2017flowtrace, Faubel2016CiliaVentricles,
+Olstad2019CiliaryDevelopment}.
+Separatrices and vortices are examples of material structures
+in fluid flows, often referred to as Lagrangian coherent
+structures (LCS), that are responsible for stretching and 
+folding in the mixing of passive tracers~\cite{haller2015lagrangian,
+haller2000lagrangian}. As such, LCS provide a time-integrated view
+of fluid transport~\cite{shadden2005definition, haller2015lagrangian,
+haller2000lagrangian}.
+The explanatory power of LCS has previously been demonstrated
+in a host of applications, including blood flow
 \cite{shadden2008characterization, shadden2010computational},
 atmospheric flow~\cite{Gunther2021LagrangianWinds},
-airway flow~\cite{lukens2010using},
-oceanic flows, ... etc. 
+flow in airways~\cite{lukens2010using}
+and oceanic flows~\cite{beron2015dissipative}.
+% Cilia-driven CSF flow has also 
+% to a lesser extent been studied in humans~\cite{worthington1963ependymal,
+% Yoshida2022EffectVentricles, Siyahhan2014FlowVentricles}.
 
 % I3: What do we not know about the problem and what do we want to
 % know? What are the precise research questions we want to address?
 % Refer to specific studies and what specifically we do not know.
-Characterization of LCS in CSF flow has however not yet been done.
-Flow and mixing mechanisms in the human central nervous system
-and specifically the brain ventricles
-are still not completely understood.
-Many previous studies are based on Eulerian flow analysis,
-looking at instantaneous flow variables such as velocity.
+Despite the predictive power of studying flow from a
+Lagrangian persepctive, only a limited amount of previous CSF flow studies
+have considered this perspective~\cite{Yoshida2022EffectVentricles},
+where particle trajectories are tracked over time.
+Most studies are rather based on
+Eulerian flow analysis~\cite{Kurtcuoglu2007ComputationalSylvius,
+Causemann2022HumanFramework, howden2008three, Sweetman2011ThreeDimensional,
+Siyahhan2014FlowVentricles},
+where flow variables such as velocity and volumetric flux
+are measured at a fixed point in space.
 These instantaneous variables may however deceive
-interpretation of time-dependence~\cite{shadden2005definition}. 
-We therefore want to study brain ventricular flow
-from a Lagrangian persepctive using a common approch:
-characterizing the structures with finite-time Lyapunov exponent (FTLE) fields
-calculated from particle trajectories. Ridges
-of the FTLE field are good approximations of the LCS of the 
-flow~\cite{shadden2005definition}.
-Specifically, we want to
-characterize LCS in brain ventricles,
-with the aim of gaining further
-insights on flow and mixing in the ventricles, which impacts
-CSF composition and thus neuromodulatory processes.
-
-
+interpretation of time-dependence in the flow~\cite{shadden2005definition},
+especially in flows that contain motion at multiple scales,
+such as ventricular CSF flow. Knowledge of precise contributions of
+flow mechanisms such as cardiac pulsations, CSF production,
+and beating of motile cilia to mixing and transport of CSF
+could therefore benefit from Lagrangian analysis.
+For example, how are LCS organized in brain ventricular CSF flow?
+How are these LCS affected by flow mechanisms
+such as cardiac pulsations, motile cilia and CSF production?
+% characterizing the structures with finite-time Lyapunov exponent (FTLE) fields
+% calculated from particle trajectories. Ridges
+% of the FTLE field are good approximations of the LCS of the 
+% flow~\cite{shadden2005definition}.
 % Volume transmission is a theory that outlines
 % the importance of CSF flow in the neuromodulatory processes of the brain. 
 
 % I4: How do we address the problem and what do we find out?
-In this work, we use a computational model to study intraventricular CSF flow.
-Flow is modeled in brain ventricles of both adult human and embryonic zebrafish,
-using geometries segmented from medical imaging data. In the human brain, we model
+In this work, we characterize LCS in brain ventricular CSF flow
+using a computational model. We model intraventricular CSF flow
+in brain ventricles of adult human and embryonic zebrafish using geometries
+generated with medical imaging data. Using finite element methods,
+we simulate CSF flow and calculate particle trajectories. These trajectories
+are used to compute finite-time Lyapunov exponent (FTLE) fields, which
+we use to characterize LCS. In the human brain, we model
 flow driven by cardiac pulsations, choroid plexus secretion and motile cilia.
 For the zebrafish, we model flow driven by motile cilia.
-We simulate CSF flow using finite element methods.
-The CSF velocity fields are then used to compute FTLE fields,
-which are used to characterize coherent structures.
-
 
 \section{Methods}
 \subsection{Image-based computational ventricular geometries}
@@ -715,17 +715,21 @@ equations are discretized with the Newmark-$\beta$ method,
 for which updates of the displacement $\ww$ and 
 displacement velocity $\dot{\ww}$ are
 \begin{align*}
-    \dot{\ww}_{n+1} &= \dot{\ww}_n + (1 - \gamma)\Delta t\ddot{\ww}_n + \gamma\Delta t\ddot{\ww}_{n+1}, \\
-    \ww_{n+1} &= \ww_n + \Delta t\dot{\ww}_n + (\frac{1}{2} - \beta)\Delta t^2\ddot{\ww}_n + \beta\Delta t^2\ddot{\ww}_{n+1}.
+    \ww_{n+1} &= \ww_n + \Delta t\dot{\ww}_n + \left(\frac{1}{2} - \beta\right)\Delta t^2\ddot{\ww}_n + \beta\Delta t^2\ddot{\ww}_{n+1}, \\
+    \dot{\ww}_{n+1} &= \dot{\ww}_n + \left(1 - \gamma\right)\Delta t\ddot{\ww}_n + \gamma\Delta t\ddot{\ww}_{n+1},
 \end{align*}
-Here $n$ denotes timestep. We set
-$\gamma=1/2$ and $\beta=1/4$, which yields
-an unconditionally stable scheme of
-second-order accuracy~\cite{newmark1959method}.
+where $n$ denotes timestep and $\Delta t = 0.001$ is the timestep size,
+while $\ddot{\ww}_n$ is the acceleration.
+We set $\gamma=1/2$ and $\beta=1/4$, which yields
+a second-order accurate and unconditionally
+stable scheme~\cite{newmark1959method}.
 
-The equations are solved for four cardiac cycles, and the
-displacement velocities computed in the fourth cycle
+The linear elasticity equations are solved for four cardiac cycles,
+and the displacement velocities computed in the fourth cycle
 are used as boundary conditions in the fluid equations.
+To ensure smoothness of the displacement velocities,
+we calculated the velocities by Fourier transformation
+of the displacement $\ww$ and differentiation in the frequency space.
 Starting the system from rest with initial conditions
 $\ww(\xx, 0) = \dot{\ww}(\xx, 0) = \ddot{\ww}(\xx, 0) = \bm{0}$
 and smoothly transitioning to the full periodic boundary data
@@ -737,9 +741,7 @@ the initial cardiac cycle. Additionally, we perform a ramp-up
 of the magnitudes over the first two cardiac cycles.
 Traction-free conditions were imposed weakly, while feet-head
 displacements were imposed strongly. The normal displacements
-were imposed weakly using Nitsche's method with a penalty parameter
-equal to $\num{2e7}$ \cite{Nitsche1971UberSind}.
-
+were imposed weakly using Nitsche's method~\cite{Nitsche1971UberSind}.
 
 \subsubsection{Verification}
 The model implementations on the human brain ventricles geometry
@@ -908,12 +910,11 @@ Respiration has its own flow component~\cite{Vinje2019RespiratoryMeasurements}.
 We combined cardiac and respiratory pulsatility and used motion
 driven by cardiac freqeuncy.
 
-\begin{acknowledgment}
+\subsection*{Acknowledgments}
 The research presented in this paper has benefited from the
 Experimental Infrastructure for Exploration of Exascale
 Computing (eX3), which is financially supported by the
 Research Council of Norway under contract 270053.
-\end{acknowledgment}
 
 \bibliography{references}{}
 \bibliographystyle{unsrturl}
