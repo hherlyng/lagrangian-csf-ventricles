@@ -1,3 +1,4 @@
+import gc
 import ufl
 import sys
 
@@ -27,6 +28,9 @@ from utilities.deformation_data import (DisplacementCorpusCallosumCephalocaudal,
 pprint = print
 print = PETSc.Sys.Print # Only print from rank 0
 
+# Form compilation optimization options
+jit_options = {"cffi_extra_compile_args": ["-O3", "-march=native"]}
+
 # Facet tags
 CANAL_WALL = 13 
 CANAL_OUT = 23
@@ -53,7 +57,6 @@ THIRD_ANTERIOR = 115
 THIRD_POSTERIOR = 116
 THIRD_FLOOR = 117
 LATERAL_FLOOR = 118
-THIRD_NO_CILIA = 119
 ZERO_SOLID_TRACTION = 1000
 CHOROID_PLEXUS_LATERAL_ZERO_TRACTION = 1001
 
@@ -70,7 +73,7 @@ p = int(sys.argv[2]) # CG (displacement) element degree
 k = int(sys.argv[6]) # BDM element degree
 comm = MPI.COMM_WORLD
 mesh_suffix = int(sys.argv[5]) # Refinement degree of mesh
-with dfx.io.XDMFFile(comm, f"/home/hherlyng/lagrangian-csf-ventricles/geometries/ventricles_{mesh_suffix}.xdmf", "r") as xdmf:
+with dfx.io.XDMFFile(comm, f"../geometries/ventricles_{mesh_suffix}.xdmf", "r") as xdmf:
     mesh = xdmf.read_mesh()
     gdim = mesh.geometry.dim
     
@@ -174,8 +177,8 @@ lateral_tags_cec = (CORPUS_CALLOSUM)
 lateral_tags_horns = (LATERAL_VENTRICLES_WALL)
 lateral_tags_lat = (LATERAL_LEFT, LATERAL_RIGHT)
 third_tags = (THIRD_LEFT, THIRD_RIGHT, THIRD_ANTERIOR,
-              THIRD_POSTERIOR, CHOROID_PLEXUS_THIRD,
-              THIRD_VENTRICLE_WALL, THIRD_NO_CILIA)
+              THIRD_POSTERIOR, CHOROID_PLEXUS_THIRD, THIRD_VENTRICLE_WALL)
+              
 a += -inner(dot(t(w), n), dot(dw, n))*(ds(lateral_tags_lat) + ds(lateral_tags_cec) + ds(lateral_tags_horns) + ds(third_tags))
 
 a += -inner(dot(w, n), dot(t(dw),n))*(ds(lateral_tags_lat) + ds(lateral_tags_cec) + ds(lateral_tags_horns) + ds(third_tags)) \
@@ -191,7 +194,7 @@ L += -inner(w_normal_LV_lat, dot(t(dw), n))*ds(lateral_tags_lat) \
     + phi/h*inner(w_normal_3V, dot(dw, n))*ds(third_tags)
     
 # Create linear system
-a_cpp, L_cpp = dfx.fem.form(a), dfx.fem.form(L)
+a_cpp, L_cpp = dfx.fem.form(a, jit_options=jit_options), dfx.fem.form(L, jit_options=jit_options)
 A = create_matrix(a_cpp)
 b = create_vector(L_cpp)
 
@@ -255,7 +258,7 @@ CG1_vector_space = dfx.fem.functionspace(mesh,
 wh_out = dfx.fem.Function(CG1_vector_space)
 vh_out = dfx.fem.Function(CG1_vector_space)
 wh.name = "defo_displacement"
-output_dir = f"/global/D1/homes/hherlyng/lagrangian-csf-ventricles/output/mesh_{mesh_suffix}/deformation_p={p}_E={E:.0f}_k={k}_T={T:.0f}/"
+output_dir = f"../output/mesh_{mesh_suffix}/deformation_p={p}_E={E:.0f}_k={k}_T={T:.0f}/"
 data_dir = output_dir+"data/"
 Path(data_dir).mkdir(parents=True, exist_ok=True)
 
@@ -273,8 +276,8 @@ if write_output:
 # Define some quantities that will be calculated during
 # the solution loop.
 # Energy norms
-E_kinetic = dfx.fem.form(1/2*rho * inner(wh_n, wh_n) * dx)
-E_elastic = dfx.fem.form(1/2 * inner(sigma(wh_n), eps(wh_n)) * dx)
+E_kinetic = dfx.fem.form(1/2*rho * inner(wh_n, wh_n) * dx, jit_options=jit_options)
+E_elastic = dfx.fem.form(1/2 * inner(sigma(wh_n), eps(wh_n)) * dx, jit_options=jit_options)
 
 # Data arrays for energy norms, max displacement magnitudes
 # and the displacements at a point
@@ -321,8 +324,8 @@ for i, t in enumerate(times[1:], 1):
 
     floor_expr.increment_index(t)
     floor_expr()
-    w_LV_floor.x.array[:] = .5*floor_expr.amplitude
-    w_3V_floor.x.array[:] = .5*floor_expr.amplitude
+    w_LV_floor.x.array[:] = floor_expr.amplitude
+    w_3V_floor.x.array[:] = floor_expr.amplitude
 
     horns_expr.increment_index(t)
     horns_expr()
@@ -382,6 +385,15 @@ for i, t in enumerate(times[1:], 1):
 
         write_time += 1 # Increment write index
 
+# Close displacement xdmf
+xdmf.close()
+
+# Free memory
+del A
+del b
+del solver
+gc.collect()
+
 wh_project = dfx.fem.Function(W)
 bdm_el = element("BDM", mesh.basix_cell(), k)
 BDM = dfx.fem.functionspace(mesh, bdm_el)
@@ -391,7 +403,8 @@ dw_dt_bdm.name = "defo_velocity"
 # Create projection problem to project the Lagrange
 # displacement velocity into a Brezzi-Douglas-Marini
 # finite element space
-projection_problem = projection_problem_CG_to_BDM(wh_project, dw_dt_bdm, dx)
+projection_problem = projection_problem_CG_to_BDM(wh_project, dw_dt_bdm,
+                                                  dx, jit_options=jit_options)
 
 if write_output:
 
@@ -402,7 +415,8 @@ if write_output:
 
     # Compute the Fast Fourier Transform of the displacement
     wh_fft = fft(displacements, axis=1)
-
+    del displacements # Free memory
+    gc.collect()
     # Differentiate in frequency space by multiplying by (i * omega)
     # where omega = 2*pi*f and i is the imaginary unit
     wh_dot_fft = (1j*2*np.pi*freqs) * wh_fft
@@ -429,13 +443,12 @@ if write_output:
         if len(cell)>0:
             point_vel[write_time, :] = wh_project.eval(x=random_point, cells=cell)
     
+    # Close output file
+    xdmf_vel.close()
+
     # Perform parallell communication
     point_disp = comm.gather(point_disp, root=0)
     point_vel  = comm.gather(point_vel , root=0)
-
-    # Close output files
-    xdmf.close()
-    xdmf_vel.close()
 
     if comm.rank==0:
         
@@ -451,7 +464,7 @@ if write_output:
         
         # Plot and save data arrays
         import matplotlib.pyplot as plt
-        fig_dir = f"/global/D1/homes/hherlyng/lagrangian-csf-ventricles/output/illustrations/verification/mesh_{mesh_suffix}/"
+        fig_dir = f"../output/illustrations/verification/mesh_{mesh_suffix}/"
         Path(fig_dir).mkdir(parents=True, exist_ok=True)
         fig, ax = plt.subplots(figsize=([12, 8]))
         ax.plot(times[1:], np.array(applied_bc1), 'r', label="Corpus callosum")
