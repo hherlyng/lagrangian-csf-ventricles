@@ -24,6 +24,7 @@
 \usepackage{graphicx}
 \usepackage{mathtools}
 \usepackage{enumerate}
+\usepackage[superscript,ref]{cite} % Citation
 
 % Bibliography tools
 \usepackage{csquotes}
@@ -120,7 +121,7 @@
 
 \section{Introduction}
 % I1: What is the problem - from big picture to our precise topic - why is it interesting?
-Human brains are constantly in motion. The motion is tightly coupled
+Brains are constantly in motion. The motion is tightly coupled
 to the cardiac and respiratory cycles, bodily movement and
 neural activity, and the motion is the main contributor to
 cerebrospinal fluid (CSF) flow~\cite{Enzmann1992BrainImaging}.
@@ -282,7 +283,7 @@ The flow is governed by the Navier-Stokes equations:
 \end{alignat}
 with the stress tensor $\TT$ defined as
 \begin{equation*}
-    \TT = 2\mu\beps(\uu) - p\mathbf{I},
+    \TT = 2\mu\beps(\uu) - p\mathbb{I},
 \end{equation*}
 where $\uu(\xx, t)$ and $p(\xx, t)$
 are the fluid velocity and pressure,
@@ -468,11 +469,11 @@ The Lamé parameters $\eta$ and $\lambda$ are derived from
 Poisson's ratio $\nu$ and Young's modulus $E$ of brain tissue.
 In reality the brain ventricles are filled with CSF, and only the
 ventricular walls are brain tissue. Since the purpose of the solid model
-to generate a smooth displacement of the ventricular walls,
+is to generate a smooth displacement field for the ventricular wall deformations,
 we expect the precise choice of $\nu$ and $E$ not to
 influence the general trends of the results, but rather
 only the required magnitude of the applied displacements $\bm{g}(\xx, t)$,
-Moreover, there is uncertainty in these material parameters. Escpecially $E$, 
+Moreover, there is uncertainty in these material parameters. Especially $E$, 
 for which values reported in the literature span several orders of magnitude
 \cite{Budday2015Mechanical, Cheng2010ComputationalModel,
 Cheng2007UnconfinedCompression, Sweetman2011ThreeDimensional}.
@@ -512,7 +513,7 @@ Motile cilia are modeled by imposing on the fluid a
 tangential traction $\TT_{\parallel} = P_{\nn}(\TT\nn)
 = \btau(\xx, t) = \tau P_{\nn}(\rr(\xx, t))$
 that represents the collective beating motion of cilia.
-Here $P_{\nn}(\rr) = (\mathbf{I} - \nn\otimes\nn)\rr$
+Here $P_{\nn}(\rr) = (\mathbb{I} - \nn\otimes\nn)\rr$
 is the projection of a vector onto a plane normal
 to the boundary normal vector $\nn\coloneqq\nn(\xx, t)$,
 while $\tau$ is a constant that determines the 
