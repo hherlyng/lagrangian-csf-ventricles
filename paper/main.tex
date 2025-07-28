@@ -252,11 +252,15 @@ of 0.40 cm and 0.023 cm, respectively.
 
 \begin{figure}
     \centering
-    \includegraphics[width=\textwidth]{graphics/figure_elastodynamics.png}
+    \includegraphics[width=\textwidth]{graphics/model_sketch.png}
     \caption{Illustration of the brain ventricular system in the (a) adult human
     and (b) embryonic zebrafish.
     Choroid plexus locations in the lateral, third
-    and fourth ventricles. Computational mesh. Parts of the figure were created with BioRender.}
+    and fourth ventricles. Computational mesh. Parts of the figure were created with BioRender.
+    Zebrafish sketch adapted subject to the Creative Commons Attribution 4.0 International License
+    (\href{https://creativecommons.org/licenses/by/4.0/}{https://creativecommons.org/licenses/by/4.0/})
+    \cite{korzh2018development}.
+    }
     \label{fig:model_sketch}
 \end{figure}
 
@@ -482,7 +486,7 @@ We impose the boundary conditions
 On $\mathcal{S}_1$ we impose deformations $\bm{g}(\xx, t)$ determined from experimental
 data\cite{Kurtcuoglu2007ComputationalSylvius,
 Enzmann1992BrainImaging, soellinger20093d, soellinger2007assessment,
-greitz1992pulsatile}, by extracting the reported displacement
+greitz1992pulsatile, almudayni2023magnetic}, by extracting the reported displacement
 curves while adapting the magnitudes
 to achieve physically realistic CSF flow.
 The boundary $\mathcal{S}_1$ and imposed data are:
@@ -496,8 +500,8 @@ The boundary $\mathcal{S}_1$ and imposed data are:
 \end{itemize}
 The last boundary condition has only motion in the $z$ direction (which aligns with the feet-head direction)
 imposed, while all the other boundary conditions are imposed normal to the wall. The magnitudes of the
-displacemnt boundary conditions and the resulting volume changes of the lateral
-and third ventricles, which are the drivers of CSF flow, are given in~\Cref{fig:model_sketch_human}.
+displacement boundary conditions and the resulting volume changes of the lateral
+and third ventricles, which are the drivers of CSF flow, are given in~\Cref{fig:model_sketch}.
 
 The boundary $\mathcal{S}_2$ is anchored for two reasons.
 One, to avoid rigid body motions. Second, because these boundaries are
@@ -714,22 +718,32 @@ spatial discretization. In time, the
 equations are discretized with the Newmark-$\beta$ method,
 for which updates of the displacement $\ww$ and 
 displacement velocity $\dot{\ww}$ are
-\begin{align*}
-    \ww_{n+1} &= \ww_n + \Delta t\dot{\ww}_n + \left(\frac{1}{2} - \beta\right)\Delta t^2\ddot{\ww}_n + \beta\Delta t^2\ddot{\ww}_{n+1}, \\
-    \dot{\ww}_{n+1} &= \dot{\ww}_n + \left(1 - \gamma\right)\Delta t\ddot{\ww}_n + \gamma\Delta t\ddot{\ww}_{n+1},
-\end{align*}
+\begin{equation}
+    \begin{aligned}
+        \ww_{n+1} &= \ww_n + \Delta t\dot{\ww}_n + \left(\frac{1}{2} - \beta\right)\Delta t^2\ddot{\ww}_n + \beta\Delta t^2\ddot{\ww}_{n+1}, \\
+        \dot{\ww}_{n+1} &= \dot{\ww}_n + \left(1 - \gamma\right)\Delta t\ddot{\ww}_n + \gamma\Delta t\ddot{\ww}_{n+1},
+    \end{aligned}
+    \label{eq:newmark_beta_method}
+\end{equation}
 where $n$ denotes timestep and $\Delta t = 0.001$ is the timestep size,
 while $\ddot{\ww}_n$ is the acceleration.
 We set $\gamma=1/2$ and $\beta=1/4$, which yields
 a second-order accurate and unconditionally
 stable scheme~\cite{newmark1959method}.
+With this choice of $\gamma$ and $\beta$, there is no
+numerical damping in the Newmark-$\beta$ method.
+We observed high-frequency noise in the velocity $\dot{\ww}$ 
+calculated with~\Cref{eq:newmark_beta_method}, which is
+an issue that can arise when solving problems with prescribed displacement
+boundary conditions~\cite{bathe2012insight}. Therefore,
+to ensure smoothness of the displacement velocities before
+applying them as boundary conditions in the fluid model,
+we computed displacement velocities by Fourier transformation
+of the displacement $\ww$ and differentiation in the frequency space.
 
 The linear elasticity equations are solved for four cardiac cycles,
 and the displacement velocities computed in the fourth cycle
 are used as boundary conditions in the fluid equations.
-To ensure smoothness of the displacement velocities,
-we calculated the velocities by Fourier transformation
-of the displacement $\ww$ and differentiation in the frequency space.
 Starting the system from rest with initial conditions
 $\ww(\xx, 0) = \dot{\ww}(\xx, 0) = \ddot{\ww}(\xx, 0) = \bm{0}$
 and smoothly transitioning to the full periodic boundary data
@@ -789,7 +803,7 @@ corresponds to a Reynolds number of \fixme{X}, indicating laminar flow.
 
 \begin{figure}
     \centering
-    \includegraphics[width=\textwidth]{graphics/figure1.png}
+    \includegraphics[width=\textwidth]{graphics/flow_results.png}
     \caption{Caption.}
     \label{fig:fig1}
 \end{figure}
@@ -824,24 +838,6 @@ Herlyng2025AdvectionDiffusion}.
 
 \subsection{FTLE fields in the human brain ventricles}
 
-\begin{figure}
-    \centering
-    \includegraphics[width=\textwidth]{graphics/figure3.png}
-    \caption{Caption.}
-    \label{fig:fig3}
-\end{figure}
-\begin{figure}
-    \centering
-    \includegraphics[width=\textwidth]{graphics/figure4.png}
-    \caption{Caption.}
-    \label{fig:fig4}
-\end{figure}
-\begin{figure}
-    \centering
-    \includegraphics[width=\textwidth]{graphics/figure5.png}
-    \caption{Caption.}
-    \label{fig:fig5}
-\end{figure}
 
 \section{Discussion}
 
