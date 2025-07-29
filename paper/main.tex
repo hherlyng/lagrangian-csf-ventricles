@@ -712,8 +712,10 @@ mesh and on open boundaries are stabilized with
 an upwinding technique~\cite{Schroeder2018Towards}.
 
 The cilia tangential traction boundary condition is imposed weakly,
-while the displacement velocity and choroid plexus flux boundary
-conditions are imposed strongly. A detailed derivation
+while the displacement velocity. The choroid plexus flux boundary
+condition is imposed weakly using Nitsche's method
+\cite{Nitsche1971UberSind, benzaken2024constructing}.
+A detailed derivation
 of the BDM--DG discretization for the time-dependent 
 Stokes equations can be found in
 Herlyng~\emph{et al.}~\cite{Herlyng2025AdvectionDiffusion}.
@@ -778,7 +780,8 @@ the initial cardiac cycle. Additionally, we perform a ramp-up
 of the magnitudes over the first two cardiac cycles.
 Traction-free conditions were imposed weakly, while feet-head
 displacements were imposed strongly. The normal displacements
-were imposed weakly using Nitsche's method~\cite{Nitsche1971UberSind}.
+were imposed weakly using Nitsche's method~\cite{Nitsche1971UberSind,
+benzaken2024constructing}.
 
 \subsubsection{Verification}
 The model implementations on the human brain ventricles geometry
