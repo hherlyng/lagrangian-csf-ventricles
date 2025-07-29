@@ -253,11 +253,13 @@ def create_cilia_meshtags(mesh: dfx.mesh.Mesh, old_ft: dfx.mesh.MeshTags) -> dfx
     fdim = tdim-1
 
     # Copy old facet tags
-    num_facets = mesh.topology.index_map(fdim).size_local + mesh.topology.index_map(fdim).num_ghosts
-    new_facets = np.arange(num_facets, dtype=np.int32)
+    new_facets = np.copy(old_ft.indices)
     new_ft_values = np.copy(old_ft.values)
     mesh.topology.create_connectivity(fdim, tdim)
     mesh.topology.create_connectivity(tdim, fdim)
+
+    # Create a map from the global facet index to its position in the tags arrays
+    facet_to_tag_pos = {facet_idx: pos for pos, facet_idx in enumerate(new_facets)}
 
     third_tags = (14,
                 111,
@@ -285,7 +287,9 @@ def create_cilia_meshtags(mesh: dfx.mesh.Mesh, old_ft: dfx.mesh.MeshTags) -> dfx
     facets_to_mark = np.array(facets_to_mark, dtype=np.int32)
 
     for facet_to_mark in facets_to_mark:
-        new_ft_values[facet_to_mark] = no_cilia_tag
+        if facet_to_mark in facet_to_tag_pos:
+            position_in_tags = facet_to_tag_pos[facet_to_mark]
+            new_ft_values[position_in_tags] = no_cilia_tag
 
     new_ft = dfx.mesh.meshtags(mesh, fdim, new_facets, new_ft_values)
     new_ft.name = "ft"
