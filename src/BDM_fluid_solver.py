@@ -11,7 +11,7 @@ from scifem    import assemble_scalar
 from mpi4py    import MPI
 from petsc4py  import PETSc
 from basix.ufl import element
-from utilities.fem import create_normal_contribution_bc, eps
+from utilities.fem import eps
 from utilities.mesh import create_cilia_meshtags
 from utilities.parsers import CustomParser
 from dolfinx.fem.petsc import assemble_matrix_block, assemble_vector_block, create_matrix_block, create_vector_block
@@ -79,7 +79,12 @@ cilia_tags = (AQUEDUCT_WALL, FORAMINA_34_WALL, LATERAL_VENTRICLES_WALL, FOURTH_V
               LATERAL_LEFT, LATERAL_RIGHT, THIRD_ANTERIOR, THIRD_POSTERIOR, THIRD_FLOOR,
               LATERAL_FLOOR, ZERO_SOLID_TRACTION)
 choroid_plexus_tags = (CHOROID_PLEXUS_LATERAL, CHOROID_PLEXUS_THIRD, CHOROID_PLEXUS_FOURTH,
-                       CHOROID_PLEXUS_LATERAL_ZERO_SOLID_TRACTION)  
+                       CHOROID_PLEXUS_LATERAL_ZERO_SOLID_TRACTION) 
+navier_slip_tags = (AQUEDUCT_WALL, FORAMINA_34_WALL, LATERAL_VENTRICLES_WALL, FOURTH_VENTRICLE_WALL,
+                     CANAL_WALL, THIRD_VENTRICLE_WALL, CHOROID_PLEXUS_LATERAL, CHOROID_PLEXUS_THIRD,
+                     CHOROID_PLEXUS_FOURTH, CORPUS_CALLOSUM, THIRD_LEFT, THIRD_RIGHT, LATERAL_LEFT,
+                     LATERAL_RIGHT, THIRD_ANTERIOR, THIRD_POSTERIOR, THIRD_FLOOR, LATERAL_FLOOR,
+                     ZERO_SOLID_TRACTION, CHOROID_PLEXUS_LATERAL_ZERO_SOLID_TRACTION)
 
 class FluidSolverALE:
     # Solve fluid equations of motion in a moving domain
@@ -93,6 +98,8 @@ class FluidSolverALE:
     period = 1
     output_interval = 5
     mean_ICP = 10*133.3 # Mean intracranial pressure of 10 mmHg
+    
+    wall_deformation_tags = displacement_tags
 
     models = {1 : "deformation",
               2 : "deformation+cilia",
@@ -105,6 +112,9 @@ class FluidSolverALE:
                      3 : ["deformation", "production"],
                      4 : ["deformation", "cilia", "production"],
     }
+
+    # Form compilation optimization options
+    jit_options = {"cffi_extra_compile_args": ["-O3", "-march=native"]} 
 
     def __init__(self, 
                     T: float,
@@ -144,17 +154,17 @@ class FluidSolverALE:
         self.ft   = a4d.read_meshtags(self.defo_input_filename, self.mesh, meshtag_name='ft')
         self.fdim = self.mesh.topology.dim-1
         
-        
         if "cilia" in self.bc_types:
             # Remove lower 1/3 of third ventricle from cilia tags
             # and add the corresponding tag to the displacement boundary
             self.ft = create_cilia_meshtags(self.mesh, self.ft)
-            displacement_tags = displacement_tags + (THIRD_NO_CILIA,)
+            self.wall_deformation_tags = displacement_tags + (THIRD_NO_CILIA,)
             
         if "production" in self.bc_types:
+            # Normal BC will acount for the deformation at choroid plexus
             self.wall_deformation_tags = [tag for tag in displacement_tags if tag not in choroid_plexus_tags]
-        else:
-            self.wall_deformation_tags = displacement_tags
+
+        self.jit_options["cache_dir"] = f"./cache/flow_p={polynomial_degree}_E={stiffness:.0f}_k={element_degree}_dt={timestep:.4g}_T={T:.0f}/"
 
     def setup(self):
 
@@ -163,10 +173,11 @@ class FluidSolverALE:
 
         # Integration measures
         dx = ufl.Measure('dx', domain=mesh, metadata={'quadrature_degree' : self.quadrature_degree}) # Cell integral
-        ds = ufl.Measure('ds', domain=mesh, subdomain_data=self.ft, metadata={'quadrature_degree' : self.quadrature_degree}) # Exterior facet integral
+        self.ds = ds = ufl.Measure('ds', domain=mesh, subdomain_data=self.ft, metadata={'quadrature_degree' : self.quadrature_degree}) # Exterior facet integral
         dS = ufl.Measure('dS', domain=mesh, metadata={'quadrature_degree' : self.quadrature_degree}) # Interior facet integral
 
-        n = self.n = ufl.FacetNormal(mesh) # Facet normal 
+        self.n = n = ufl.FacetNormal(mesh) # Facet normal 
+        h =  2*ufl.Circumradius(mesh)
         hA = ufl.avg(ufl.CellDiameter(mesh)) # Average cell diameter
 
         # Velocity and pressure finite element functions
@@ -186,24 +197,23 @@ class FluidSolverALE:
         rho = dfx.fem.Constant(mesh, dfx.default_scalar_type(1e3)) # Fluid density
         gamma = dfx.fem.Constant(mesh, dfx.default_scalar_type(150)) # BDM penalty parameter
         alpha = dfx.fem.Constant(mesh, dfx.default_scalar_type(100)) # Navier slip friction coefficient
+        beta  = dfx.fem.Constant(mesh, dfx.default_scalar_type(10000)) # Nitsche penalty parameter
 
         dt = dfx.fem.Constant(mesh, dfx.default_scalar_type(self.timestep))
 
+        sigma = lambda u, p: 2*mu*eps(u) - p*ufl.Identity(mesh.geometry.dim)
+
         # Navier-Stokes problem in reference domain accounting for the deformation
         a00  = rho/dt * inner(u, v)*dx # Time derivative
-        a00 += (2*mu*inner(eps(u), eps(v))*dx # Viscous dissipation
-                # - mu*inner(dot(grad(u).T, n), v)*ds(zero_traction_tags) # Parallel flow at inlet/outlet
-                )
+        a00 += 2*mu*inner(eps(u), eps(v))*dx # Viscous dissipation
         a00 += (-inner(Avg(2*mu*eps(u), n), Jump(v))*dS # Stabilization term to ensure
                 -inner(Avg(2*mu*eps(v), n), Jump(u))*dS # tangential continuity
                 +2*mu*(gamma/hA)*inner(Jump(u), Jump(v))*dS
                 )
-        a00 += alpha * inner(Tangent(u, n), Tangent(v, n)) * ds(cilia_tags) # Navier slip term
+        a00 += alpha * inner(Tangent(u, n), Tangent(v, n)) * ds(navier_slip_tags) # Navier slip term
         a01 = inner(p, div(v))*dx
         a10 = inner(q, div(u))*dx
         a11 = dfx.fem.Constant(mesh, dfx.default_scalar_type(0.0))*inner(p, q)*dx
-
-        self.a_stokes = dfx.fem.form([[a00, a01], [a10, a11]])
 
         L0  = rho/dt * inner(self.u_, v)*dx # Time derivative
 
@@ -222,8 +232,29 @@ class FluidSolverALE:
 
         L1 = inner(dfx.fem.Function(Q), q)*dx
 
-        # Compile linear form
-        self.L = dfx.fem.form([L0, L1])
+        if "production" in self.bc_types:
+            # Set choroid plexus inflow velocity BC strongly
+            # Create expressions with positive and negative z-component of the velocity,
+            # and interpolate the expressions into finite element functions.
+            self.chp_prod = 5.833e-9 # Corresponds to 504 ml production per day [Czosnyka et al.]
+            chp_area = assemble_scalar(1*ds(choroid_plexus_tags)) # The area of the choroid plexus boundary
+            Q_tilde = dfx.fem.Constant(mesh, dfx.default_scalar_type(self.chp_prod/chp_area))
+            relative_flux = -Q_tilde + inner(self.u_defo, n)
+
+            # Add Nitsche terms
+            a00 += -inner(dot(2*mu*eps(v), n), n) * inner(u, n) * ds(choroid_plexus_tags) # Consistency
+            a10 += q * inner(u, n) * ds(choroid_plexus_tags) # Consistency
+            a00 += -inner(dot(2*mu*eps(u), n), n) * inner(v, n) * ds(choroid_plexus_tags) # Symmetry
+            a01 += p * inner(v, n) * ds(choroid_plexus_tags) # Symmetry
+            a00 += beta/h * inner(u, n) * inner(v, n) * ds(choroid_plexus_tags) # Penalty
+
+            L0 += -inner(dot(2*mu*eps(v), n), n) * relative_flux * ds(choroid_plexus_tags) # Consistency
+            L1 += q * relative_flux * ds(choroid_plexus_tags) # Consistency
+            L0 += beta/h * relative_flux * inner(v, n) * ds(choroid_plexus_tags) # Penalty
+
+        # Compile Stokes bilinear form and linear form
+        self.a_stokes = dfx.fem.form([[a00, a01], [a10, a11]], jit_options=self.jit_options)
+        self.L = dfx.fem.form([L0, L1], jit_options=self.jit_options)
 
         if self.solver_type=="navier-stokes":
             c_vel = self.u_ # Convection velocity
@@ -238,32 +269,15 @@ class FluidSolverALE:
                     - zeta*rho*1/2*dot(c_vel, n) * dot(u, v) * ds(zero_traction_tags)
             )
 
-            self.a = dfx.fem.form([[a00, a01], [a10, a11]])
+            self.a = dfx.fem.form([[a00, a01], [a10, a11]], jit_options=self.jit_options)
         else:
 
             self.a = self.a_stokes
-
 
         # Set boundary conditions on velocity
         facets_wall_defo = np.concatenate(([self.ft.find(tag) for tag in self.wall_deformation_tags]))
         u_dofs_defo = dfx.fem.locate_dofs_topological(V, self.fdim, facets_wall_defo)
         self.bcs = [dfx.fem.dirichletbc(self.u_defo, u_dofs_defo)]
-        
-        if "production" in self.bc_types:
-            # Set choroid plexus inflow velocity BC strongly
-            # Create expressions with positive and negative z-component of the velocity,
-            # and interpolate the expressions into finite element functions.
-            chp_prod = 5.833e-9 # Corresponds to 504 ml production per day [Czosnyka et al.]
-            chp_area = assemble_scalar(1*ds(choroid_plexus_tags)) # The area of the choroid plexus boundary
-            self.chp_velocity = chp_prod/chp_area
-            self.facets_chp = np.concatenate(([self.ft.find(tag) for tag in choroid_plexus_tags]))
-            self.u_chp = create_normal_contribution_bc(V,
-                            (-self.chp_velocity*n
-                            + dot(self.u_defo, n)*n),
-                            self.facets_chp
-                        )
-            u_dofs_chp_prod = dfx.fem.locate_dofs_topological(V, self.fdim, self.facets_chp)
-            self.bcs.append(dfx.fem.dirichletbc(self.u_chp, u_dofs_chp_prod))
 
         # Calculate offsets
         self.offset_u = V.dofmap.index_map.size_local * V.dofmap.index_map_bs
@@ -276,7 +290,10 @@ class FluidSolverALE:
         self.u_defo_read = dfx.fem.Function(dfx.fem.functionspace(mesh, element("BDM", mesh.basix_cell(), k)))
 
         if self.write_output:
-            velocity_output_filename = self.output_dir+f"{self.solver_type}/BDM_{self.models[self.model_version]}_velocity.bp"
+            if self.calc_cilia_direction_vectors:
+                velocity_output_filename = f"../output/mesh_{self.mesh_suffix}/cilia_direction_vectors_k={k}.bp/"
+            else:
+                velocity_output_filename = self.output_dir+f"{self.solver_type}/BDM_{self.models[self.model_version]}_velocity.bp"
             self.uh_dg_ = dfx.fem.Function(dfx.fem.functionspace(self.mesh, dg_vec_el)); self.uh_dg_.name = "relative_velocity"
             self.velocity_output = dfx.io.VTXWriter(self.comm, velocity_output_filename, [self.uh_dg_], "BP4")
             pressure_output_filename = self.output_dir+f"{self.solver_type}/BDM_{self.models[self.model_version]}_pressure.bp"
@@ -291,8 +308,8 @@ class FluidSolverALE:
             a4d.write_meshtags(self.cpoint_filename, mesh, self.ft)
         
         # Compile forms used to calculate volumes and mean pressures
-        self.vol = dfx.fem.form(dfx.fem.Constant(mesh, dfx.default_real_type(1.0)) * dx)
-        self.mean_pressure_form_ = dfx.fem.form(self.ph_ * dx) # Reference configuration
+        self.vol = dfx.fem.form(dfx.fem.Constant(mesh, dfx.default_real_type(1.0)) * dx, jit_options=self.jit_options)
+        self.mean_pressure_form_ = dfx.fem.form(self.ph_ * dx, jit_options=self.jit_options) # Reference configuration
 
         # Set up Stokes problem linear system
         self.A = create_matrix_block(self.a) # System matrix
@@ -341,25 +358,24 @@ class FluidSolverALE:
 
         # Set name of the output functions
         self.uh_.name = "cilia_direction"
-        self.uh_dg_.name = "cilia_direction"
         
         tic = time.perf_counter()
 
         for t in self.times:
 
             print(f"Time = {t:.5g} sec")
-
-            u_chp_updated = create_normal_contribution_bc(
-                                    self.V, 
-                                    (-self.chp_velocity*self.n_hat),
-                                    self.facets_chp)
-            self.u_chp.interpolate(u_chp_updated)
         
             self.solve_blocked_system() # Solve the fluid equations of motion
 
-            # Check if steady state is reached
-            if np.allclose(self.u_.x.array, self.uh_.x.array, rtol=1e-5):
+            # Check if steady state is reached, break loop if
+            # error is less than 5 percent
+            flux = assemble_scalar(dot(self.uh_, self.n)*self.ds(choroid_plexus_tags))
+            print(flux)
+            relative_error = (np.abs(flux) - (self.chp_prod))/self.chp_prod
+            if np.abs(relative_error) < 0.05:
                 break 
+                
+            self.u_.x.array[:] = self.uh_.x.array.copy()
 
         # Write to checkpoint file
         a4d.write_function_on_input_mesh(filename=self.cpoint_filename, u=self.uh_)
@@ -376,14 +392,6 @@ class FluidSolverALE:
         # Read deformation velocity
         a4d.read_function(filename=self.defo_input_filename, u=self.u_defo_read, name="defo_velocity", time=self.times[0])
         self.u_defo.interpolate(self.u_defo_read)
-
-        if "production" in self.bc_types:
-            u_chp_updated = create_normal_contribution_bc(
-                                    self.V, 
-                                    (-self.chp_velocity*self.n_hat
-                                    + dot(self.u_defo, self.n_hat)*self.n_hat),
-                                    self.facets_chp)
-            self.u_chp.interpolate(u_chp_updated)
         
         # Assemble the Stokes problem
         assemble_matrix_block(self.A, self.a_stokes, bcs=self.bcs)
@@ -397,20 +405,22 @@ class FluidSolverALE:
 
     def solve(self):
 
-        if self.solver_type=="navier-stokes":
-            # Solve the Stokes problem and use it
-            # as initial condition for Navier-Stokes
-            print("Solving Stokes equations for initial condition ...")
-            self.solve_initial_condition()
-            print("Stokes equations solved and initial conditon set.\nNow solving the Navier-Stokes equations ...")
-        
-        tic = time.perf_counter()
 
         if self.calc_cilia_direction_vectors:
             # Calculate the cilia direction vectors and exit
             self.solve_cilia_direction_vectors()
-        
+
         else:
+
+            if self.solver_type=="navier-stokes":
+                # Solve the Stokes problem and use it
+                # as initial condition for Navier-Stokes
+                print("Solving Stokes equations for initial condition ...")
+                self.solve_initial_condition()
+                print("Stokes equations solved and initial conditon set.\nNow solving the Navier-Stokes equations ...")
+            
+            tic = time.perf_counter()
+            
             # Solve the time-dependent fluid equations
 
             for i, t in enumerate(self.times):
@@ -423,14 +433,6 @@ class FluidSolverALE:
                 # Read deformation from file
                 a4d.read_function(filename=self.defo_input_filename, u=self.u_defo_read, name="defo_velocity", time=self.read_time)
                 self.u_defo.interpolate(self.u_defo_read)
-
-                if "production" in self.bc_types:
-                    u_chp_updated = create_normal_contribution_bc(
-                                            self.V, 
-                                            (-self.chp_velocity*self.n
-                                            + dot(self.u_defo, self.n)*self.n),
-                                            self.facets_chp)
-                    self.u_chp.interpolate(u_chp_updated)
             
                 self.solve_blocked_system() # Solve the fluid equations of motion
         
@@ -461,8 +463,8 @@ class FluidSolverALE:
                 self.velocity_output.close()
                 self.pressure_output.close()
 
-        print(f"Solution time elapsed: {time.perf_counter()-tic:.4f} sec")
-        print(f"Output directory: {self.output_dir}")
+            print(f"Solution time elapsed: {time.perf_counter()-tic:.4f} sec")
+            print(f"Output directory: {self.output_dir}")
 
 def main(argv=None):
 
