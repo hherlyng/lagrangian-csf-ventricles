@@ -86,11 +86,16 @@ navier_slip_tags = (AQUEDUCT_WALL, FORAMINA_34_WALL, LATERAL_VENTRICLES_WALL, FO
                      LATERAL_RIGHT, THIRD_ANTERIOR, THIRD_POSTERIOR, THIRD_FLOOR, LATERAL_FLOOR,
                      ZERO_SOLID_TRACTION, CHOROID_PLEXUS_LATERAL_ZERO_SOLID_TRACTION)
 
-class FluidSolverALE:
-    # Solve fluid equations of motion in a moving domain
-    # by an ALE method. Wall motion is 
-    # prescribed in time, given by solutions to the 
-    # time-dependent linear elasticity equations.
+class FluidSolver:
+    # Solve fluid equations of motion. 
+    # Boundary condition types:
+    # 1. Cardiac pulsatility wall motion prescribed in time,
+    #    given by solutions to the 
+    #    time-dependent linear elasticity equations.
+    # 2. Tangential traction representing beating of motile cilia
+    # 3. Influx representing choroid plexus CSF production
+
+    # Class variables
     comm = MPI.COMM_WORLD # MPI communicator
     quadrature_degree = 8
     read_time  = 0
@@ -98,23 +103,18 @@ class FluidSolverALE:
     period = 1
     output_interval = 5
     mean_ICP = 10*133.3 # Mean intracranial pressure of 10 mmHg
-    
     wall_deformation_tags = displacement_tags
-
     models = {1 : "deformation",
               2 : "deformation+cilia",
               3 : "deformation+production",
               4 : "deformation+cilia+production"
     }
-
     bc_types_dict = {1 : ["deformation"],
                      2 : ["deformation", "cilia"],
                      3 : ["deformation", "production"],
                      4 : ["deformation", "cilia", "production"],
     }
-
-    # Form compilation optimization options
-    jit_options = {"cffi_extra_compile_args": ["-O3", "-march=native"]} 
+    jit_options = {"cffi_extra_compile_args": ["-O3", "-march=native"]}  # Form compilation optimization options
 
     def __init__(self, 
                     T: float,
