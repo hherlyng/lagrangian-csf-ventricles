@@ -36,11 +36,11 @@ times = dt*np.arange(0, int(periods / dt)+1)
 k = int(sys.argv[2])
 p = int(sys.argv[3])
 input_dir = f"../output/mesh_{mesh_suffix}/flow_p={p}_E={E}_k={k}_dt={dt:.4g}_T={T:.0f}/{solver_type}/"
-infile_0 = input_dir+f"checkpoints/BDM_{model_version}_velocity"
+infile_name = input_dir+f"checkpoints/BDM_{model_version}_velocity"
 
 # Initial setup of mesh
-mesh = a4d.read_mesh(filename=infile_0, comm=comm)
-ft   = a4d.read_meshtags(filename=infile_0, mesh=mesh, meshtag_name='ft')
+mesh = a4d.read_mesh(filename=infile_name, comm=comm)
+ft   = a4d.read_meshtags(filename=infile_name, mesh=mesh, meshtag_name='ft')
 n = ufl.FacetNormal(mesh)
 ds = ufl.Measure('ds', domain=mesh, subdomain_data=ft) # External facet integral
 dS = ufl.Measure('dS', domain=mesh, subdomain_data=ft) # Internal facet integral
@@ -91,7 +91,6 @@ mean_pressure_bot_form = dfx.fem.form(ufl.avg(ph)*dS(AQUEDUCT_BOT))
 mean_pressure_rfm_form  = dfx.fem.form(x_greater*ufl.avg(ph)*dS(LATERAL_VENTRICLES_FORAMINA))
 mean_pressure_lfm_form  = dfx.fem.form(x_lower*ufl.avg(ph)*dS(LATERAL_VENTRICLES_FORAMINA))
 
-infile_name = input_dir+f"checkpoints/BDM_{model_version}_velocity"
 print(f"\nPost processing results from file:\n{infile_name}\n")
 
 max_velocity = -np.inf
