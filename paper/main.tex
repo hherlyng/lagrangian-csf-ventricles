@@ -689,7 +689,8 @@ When solving the Navier-Stokes equations, the convective term
 is linearized as $(\uu^{n+1}\cdot\nabla)\uu^{n+1} \approx (\uu^n\cdot\nabla)\uu^{n+1}$
 where $n$ denotes timestep. Moreover, the convective fluxes both internal in the
 mesh and on open boundaries are stabilized with
-an upwinding technique~\cite{Schroeder2018Towards}.
+an upwinding technique~\cite{Schroeder2018Towards,
+di2011mathematical}.
 
 The cilia tangential traction boundary condition is imposed weakly,
 while the displacement velocity. The choroid plexus flux boundary
@@ -807,12 +808,12 @@ Flowrates, pressure gradients and cumulative flow volumes computed with the Navi
 and the Stokes equations are very similar. The maximum velocity of \fixme{13 cm/s} in the aqueuduct 
 corresponds to a Reynolds number of \fixme{X}, indicating laminar flow. 
 
-% \begin{figure}
-%     \centering
-%     \includegraphics[width=\textwidth]{graphics/flow_results.png}
-%     \caption{Caption.}
-%     \label{fig:fig1}
-% \end{figure}
+\begin{figure}
+    \centering
+    \includegraphics[width=\textwidth]{graphics/flow_results.png}
+    \caption{Caption.}
+    \label{fig:flow_results}
+\end{figure}
 
 To assess the physiological validity of the flow, we compare some
 quantities of interest with previous works
