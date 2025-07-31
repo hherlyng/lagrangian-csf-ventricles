@@ -33,32 +33,12 @@
 % Partial derivatives
 \newcommand{\pdifft}[1]{\frac{\partial  #1}{\partial t}}
 \newcommand{\pdiffdifft}[1]{\frac{\partial^2 #1}{\partial t^2}}
-\newcommand{\pdiffx}[1]{\frac{\partial #1}{\partial x}}
-\newcommand{\pdiffy}[1]{\frac{\partial #1}{\partial y}}
-\newcommand{\pdiffxi}[1]{\frac{\partial #1}{\partial x_i}}
-\newcommand{\pdiffxj}[1]{\frac{\partial #1}{\partial x_j}}
-\newcommand{\secpdiffx}[1]{\frac{\partial^2 #1}{\partial x^2}}
-\newcommand{\secpdiffxi}[1]{\frac{\partial^2 #1}{\partial x_i \partial x_i}}
-\newcommand{\secpdiffxj}[1]{\frac{\partial^2 #1}{\partial x_j \partial x_j}}
-
-% Boundaries
-\newcommand{\Schp}{\Gamma_{\mathrm{chp}}}
 
 % Norms
 \newcommand{\normltwo}[1]{{ \vert\vert#1\vert\vert}_{L^2}}
 \newcommand{\normlinf}[1]{{\vert\vert#1\vert\vert}_{L^{\infty}}}
 \newcommand{\Hnorm}[1]{\norm{#1}_{H^1}}
 \newcommand{\Lnorm}[1]{\norm{#1}_{L^2}}
-
-% Integrals
-\newcommand{\intD}[1]{\int_{\mathcal{D}}#1 \, \mathrm{d}\bm{x}}
-\newcommand{\intS}[1]{\int_{\mathcal{S}}#1 \, \mathrm{d}s}
-\newcommand{\intE}[1]{\int_{\mathcal{E}}#1 \mathrm{d}S}
-\newcommand{\intSs}[1]{\int_{\Gamma_s}#1 \, \mathrm{d}s}
-
-% Discontinuity operators
-\newcommand{\avg}[1]{\{#1\}}
-\newcommand{\jump}[1]{\llbracket#1\rrbracket}
 
 % Bold faced math characters
 \newcommand{\cc}{\bm{c}}
@@ -506,7 +486,7 @@ choroid plexuses, we impose
     \label{eq:choroid_plexus_BC}
 \end{equation}
 where $\Tilde{Q} = \frac{Q}{|\Scal_2|}$ and
-$|\Schp|$ is the total choroid plexus boundary area.
+$|\Scal_2|$ is the total choroid plexus boundary area.
 
 \subsubsection{Cilia forces}\label{subsubsec:cilia}
 Motile cilia are modeled by imposing on the fluid a
@@ -940,5 +920,24 @@ Research Council of Norway under contract 270053.
 
 \bibliography{references}{}
 \bibliographystyle{unsrturl}
+
+\appendix
+\section{Model verification}
+The model implementations were verified with refinement studies.
+We refine element polynomial degree on a single mesh.
+We also refine mesh with a single element degree.
+\begin{figure}
+    \centering
+    \includegraphics[width=0.8\textwidth]{graphics/verification_deformation_p.png}
+    \caption{Convergence under element degree refinement for the linear elastodynamics model.}
+    \label{fig:verification_deformation_p}
+\end{figure}
+\begin{figure}
+    \centering
+    \includegraphics[width=0.8\textwidth]{graphics/verification_deformation_mesh.png}
+    \caption{Convergence under mesh refinement for the linear elastodynamics model.}
+    \label{fig:verification_deformation_mesh}
+\end{figure}
+
 
 \end{document}
