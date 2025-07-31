@@ -24,17 +24,17 @@ models = {1 : "deformation",
           3 : "deformation+production",
           4 : "deformation+cilia+production"
 }
-mesh_suffix = int(sys.argv[6])
-solver_type = str(sys.argv[5])
-model_version = models[int(sys.argv[4])]
-E = 1500
 T = int(sys.argv[1])
+k = int(sys.argv[2])
+p = int(sys.argv[3])
+model_version = models[int(sys.argv[4])]
+solver_type = str(sys.argv[5])
+mesh_suffix = int(sys.argv[6])
+E = 1500
 dt = 0.001
 N = int(T / dt)
 periods = 1
 times = dt*np.arange(0, int(periods / dt)+1)
-k = int(sys.argv[2])
-p = int(sys.argv[3])
 input_dir = f"../output/mesh_{mesh_suffix}/flow_p={p}_E={E}_k={k}_dt={dt:.4g}_T={T:.0f}/{solver_type}/"
 infile_name = input_dir+f"checkpoints/BDM_{model_version}_velocity"
 
