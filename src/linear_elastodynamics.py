@@ -276,7 +276,7 @@ if write_output:
 # Define some quantities that will be calculated during
 # the solution loop.
 # Energy norms
-E_kinetic = dfx.fem.form(1/2*rho * inner(wh_n, wh_n) * dx, jit_options=jit_options)
+E_kinetic = dfx.fem.form(1/2*rho * inner(wh_dot_n, wh_dot_n) * dx, jit_options=jit_options)
 E_elastic = dfx.fem.form(1/2 * inner(sigma(wh_n), eps(wh_n)) * dx, jit_options=jit_options)
 
 # Data arrays for energy norms, max displacement magnitudes

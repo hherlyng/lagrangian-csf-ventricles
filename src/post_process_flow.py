@@ -32,7 +32,7 @@ T = int(sys.argv[1])
 dt = 0.001
 N = int(T / dt)
 periods = 1
-times = dt*np.arange(0, int(periods / dt)+1)[:3]
+times = dt*np.arange(0, int(periods / dt)+1)
 k = int(sys.argv[2])
 p = int(sys.argv[3])
 input_dir = f"../output/mesh_{mesh_suffix}/flow_p={p}_E={E}_k={k}_dt={dt:.4g}_T={T:.0f}/{solver_type}/"
