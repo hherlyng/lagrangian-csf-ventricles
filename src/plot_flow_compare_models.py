@@ -108,7 +108,7 @@ for i, model in enumerate(model_versions):
     ax3.plot(times, cumulative_sc*1000, color=flowrate_colors[2*i], linestyle=linestyles[i],
             marker='o', markevery=me, label="Canal" if i==0 else None)
     ax3.plot(times, cumulative_rfm*1000, color=flowrate_colors[2*i], linestyle=linestyles[i],
-            marker='o', markevery=me, label=r"Right LV$\rightarrow$3V foramen" if i==0 else None)
+            marker='^', markevery=me, label=r"Right LV$\rightarrow$3V foramen" if i==0 else None)
 
     # Plot pressures
     ax4.plot(times, pressures_top_aq, color=deltap_colors[i], linestyle=linestyles[i],
