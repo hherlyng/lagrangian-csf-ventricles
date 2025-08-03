@@ -10,12 +10,8 @@ mesh_prefix = "medium"
 T = 3.0 # Final simulation time
 dt = 0.001 # Timestep size
 k = 1 # Element degree 
-model_versions = ["deformation"]#["deformation+cilia+production", "deformation+production"]
-# filenames = [
-#     f"../output/ex3/{mesh_prefix}-mesh/flow/navier-stokes/checkpoints/BDM_{model_version}_velocity_T={T}_dt={dt}" \
-#         for model_version in model_versions
-#     ]
-filenames = ["../output/ex3/mesh_0/BDM_deformation_velocity"]
+model_versions = ["deformation+cilia+production"]
+filenames = [f"../output/mesh_0/flow_p=3_E=1500_k=1_dt=0.001_T=5/navier-stokes/checkpoints/BDM_{model_versions[0]}_velocity"]
 
 # Prepare plotting
 # Slice coordinates
@@ -45,7 +41,7 @@ pl = pyvista.Plotter(shape=(3, len(model_versions)), window_size=[1000, 1200], b
 
 m = 0 # Column index
 
-view = 'xz'
+view = 'yz'
 
 times = [250, 500, 750]
 for i, filename in enumerate(filenames):
@@ -124,9 +120,6 @@ for i, filename in enumerate(filenames):
 
 save_figs = 0
 if save_figs:
-    model_string = ""
-    for model_version in model_versions:
-        model_string += model_version + "+"
-    pl.show(screenshot=f"../output/illustrations/velocity-slices-{model_string}.png")
+    pl.show(screenshot=f"../output/illustrations/velocity-slices-models.png")
 else:
     pl.show()
