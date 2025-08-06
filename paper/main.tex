@@ -103,8 +103,9 @@
 % I1: What is the problem - from big picture to our precise topic - why is it interesting?
 Brains are constantly in motion. The motion is tightly coupled
 to the cardiac and respiratory cycles, bodily movement and
-neural activity, and the motion is the main contributor to
-cerebrospinal fluid (CSF) flow~\cite{Enzmann1992BrainImaging}.
+neural activity, and the brain motion is a key contributor to
+cerebrospinal fluid (CSF) flow~\cite{Enzmann1992BrainImaging,
+baledent2001cerebrospinal, sweetman2011cerebrospinal}.
 CSF is produced by choroid plexus in the brain ventricles,
 from where the fluid flows into the spinal cord or
 to the subarachnoid space~\cite{rasmussen2018glymphatic}.
@@ -139,10 +140,11 @@ Among the physical processes that affect CSF flow are:
 blood vessel dynamics, displacement of brain tissue,
 production and absorption of CSF,
 beating of motile cilia, neural activity, and posture changes.
-\cite{kelley2023cerebrospinal,
+\cite{kelley2023cerebrospinal, sweetman2011cerebrospinal,
 Olstad2019CiliaryDevelopment, Faubel2016CiliaVentricles,
 Kurtcuoglu2007ComputationalSylvius, Czosnyka2004CerebrospinalDynamics,
-Vinje2019RespiratoryMeasurements, Liu2024UsingBreathing}.
+Vinje2019RespiratoryMeasurements, Liu2024UsingBreathing,
+baledent2001cerebrospinal}.
 With these physical processes occuring
 over various time and length scales, CSF flow
 also consists of motions on different
@@ -155,6 +157,8 @@ which deforms surrounding tissue and results in CSF flow~\cite{enzmann1991normal
 wagshul2011pulsating, Liu2024UsingBreathing, baledent2004relationship,
 greitz1992pulsatile, Vinje2019RespiratoryMeasurements,
 kelley2023cerebrospinal, greitz1993pulsatile}.
+Back-and-forth motion with vortical flow features
+has been visualized in human brains~\cite{stadlbauer2010insight}.
 At smaller scales, visualizations of ventricular
 CSF flow trajectories in animals have demonstrated
 intricate features such as stagnation and separation points,
@@ -347,12 +351,13 @@ In the human brain, we consider three flow mechanisms:
 \end{itemize}
 The main driver of intraventricular CSF flow in humans is
 pulsatility related to the cardiac and respiratory cycles~\cite{wagshul2011pulsating,
-Vinje2019RespiratoryMeasurements}. During systole,
-the blood vessels in the brain expand and followingly also
+Vinje2019RespiratoryMeasurements, sweetman2011cerebrospinal, baledent2001cerebrospinal}. 
+During systole, the blood vessels in the brain expand and followingly also
 the parenchyma, putting pressure on the ventricular system. The inward displacement
 of the brain ventricles leads to antegrade (from cephalic to caudal) CSf flow.
 When the blood vessels relax and contract during diastole, the flow reverses and
-CSF flows back into the system. The respiratory cycle also influences CSF flow pressure % cite Enzmann etc.?
+CSF flows back into the system~\cite{sweetman2011cerebrospinal, greitz1992pulsatile}.
+The respiratory cycle also influences CSF flow pressure 
 gradients, but at different frequencies than the cardiac cycle~\cite{Vinje2019RespiratoryMeasurements}.
 In this study, we model deformations of the ventricles with a cardiac cycle frequency.
 
@@ -434,14 +439,14 @@ $z$ direction (which aligns with the feet-head direction) is imposed.
 The function $\bm{g}(\xx, t)$ was set determined with experimental
 data~\cite{Kurtcuoglu2007ComputationalSylvius,
 Enzmann1992BrainImaging, soellinger20093d, soellinger2007assessment,
-greitz1992pulsatile, almudayni2023magnetic}. Directly adopting the experimental
-data produced unphysically large CSF flow. Therefore, we reduced the magnitudes
-of the displacements, while retaining the qualitative behavior
+greitz1992pulsatile, almudayni2023magnetic, pahlavian2018regional}. Directly adopting 
+some of the experimental data produced unphysically large CSF flow.
+Therefore, we reduced the magnitudes of some of the displacements,
+while retaining the qualitative behavior
 of a downward and contractile motion during systole and an upward
 and dilated motion during diastole. Reduction of the magnitudes was 
 calibrated by comparing the CSF flow results with experimental values
-of cumulative flow volume and pressure gradients
-\cite{eide2021direction, wagshul2011pulsating}. % Limitations? Discussion?
+of aqueductal cumulative flow volume\cite{eide2021direction, wagshul2011pulsating}. % Limitations? Discussion?
 
 The boundary $\Bcal_2$ consists of the spinal canal outlet
 and the lateral apertures. These boundaries are anchored for two reasons:
@@ -569,9 +574,12 @@ $P_{\nn}(\cdot)$ is the projection of a vector onto a plane normal
 to the outward-facing normal vector $\nn$. Both \Cref{eq:cilia_bc} and
 \Cref{eq:navier_bc} are Navier slip boundary conditions, where the
 friction coefficient $\alpha=\mu/L$ is determined by the dynamic viscosity and
-the slip length $L$. We choose $L=10$ \textmu m,
-the typical length of a cilium in human brain ventricles
-\cite{Afzelius2004CiliaRelatedDiseases}, resulting in $\alpha=100$.
+the slip length $L$. We model the cilia layer lining the ventricular walls
+as a slip layer, such that the velocity slips at the cilia, but becomes
+noslip at the underlying wall. We therefore choose $L=15$ \textmu m
+which is a typical length of a cilium in human brain ventricles
+\cite{Siyahhan2014FlowVentricles,Afzelius2004CiliaRelatedDiseases}
+as the slip length, resulting in $\alpha=47 \ \mathrm{Pa\cdot s/m}$.
 The boundary $\mathcal{S}_4\subset\mathcal{S}_1$ is the lower third of
 the third ventricle, where we do not impose cilia. 
 \Cref{eq:outlet_bc} imposes zero traction,
@@ -623,9 +631,9 @@ The ridges of the FTLE field are good approximations to
 LCS~\cite{shadden2005definition}. LCS can therefore be characterized
 by regions of relatively high or low FTLE values.
 
-To compute FTLE fields, we model the trajectory 
-$\xx(t)\in\mathcal{D}\subset\mathbb{R}^d$ of fluid particles with
-the dynamical system
+To compute FTLE fields, we assume that fluid particle trajectories
+$\xx(t)\in\mathcal{D}\subset\mathbb{R}^d$ can be described by the
+dynamical system
 \begin{equation}
     \dot{\xx}(t; t_0, \xx_0) := \frac{\mathrm d\xx}{\mathrm d t} = \uu(\xx(t; t_0, \xx_0), t),
     \label{eq:dx_dt_equals_u}
@@ -672,7 +680,7 @@ whereas integration backward in time
 reveal attracting structures (stable manifolds).
 
 \subsection{Numerical methods and software implementation}
-\subsubsection{FTLE fields}
+\subsubsection{FTLE field computation}
 To compute FTLE fields, we initiate a cartesian grid of particles at a
 time $t_0$ and compute the flow map $\phi_{t_0}^{t_0+T}$
 by numerical integration with a fourth-order Runge-Kutta scheme.
@@ -843,21 +851,24 @@ and Stokes equations are indiscernible.
 \subsection{FTLE fields demonstrate ventricular flow compartmentalization in zebrafish embryos}
 The repelling and attracting structures in the anterior-middle interventricular
 duct in the zebrafish brain ventricles combine to create a separating
-structure. This structure compartmentalizes flow and confines
-the CSF, resulting in little interventricular flow. 
-These results align well with
-previous studies that have demonstrated flow
-compartmentalization in embryonic zebrafish
-brain ventricles~\cite{Olstad2019CiliaryDevelopment,
-Herlyng2025AdvectionDiffusion}.
+structure. This structure indicates compartmentalization of flow and confines
+the CSF to the respective ventricles, obstructing interventricular flow. 
+
 \begin{figure}
     \centering
-    \includegraphics[width=\textwidth]{graphics/figure2.png}
-    \caption{Caption.}
-    \label{fig:fig2}
+    \includegraphics[width=\textwidth]{graphics/FTLE_zfish.png}
+    \caption{FTLE fields for integration times $T=\{34, 68, 101\}$ seconds
+    in the zebrafish brain ventricles that
+    demonstrate compartmentalization of CSF flow. The FTLE fields
+    were computed in a cubic section of the interventricular duct
+    connecting the anterior and middle ventricles, and displayed
+    in horizontal, sagittal and coronal slices clipped at the 
+    center of the cube.}
+    \label{fig:FTLE_zfish}
 \end{figure}
 
 \subsection{FTLE fields in the human brain ventricles}
+
 There are clearly visible jets in both the aqueduct and the
 interventricular foramina, the narrowest sections where flow
 is strongest. In the bulk of the lateral and third ventricles,
@@ -866,10 +877,14 @@ flow is apparently quite stagnant.
 \section{Discussion}
 
 \subsection{Clearly defined Lagrangian structures are present in the ventricular system}
-Both in the zebrafish and the human model, we find Lagrangian coherent structures.
-Computing such structures with velocity fields obtained from a more holistic
-brain model would be interesting, as X points out that full CNS models are
-important.
+Both in the zebrafish and the human model, we find ridges in the FTLE field
+that indicate presence of Lagrangian coherent structures.
+In the zebrafish ventricles, there exists structures in the interventricular ducts
+that confines flow to separate parts of the ventricular system. This aligns well with
+previous studies that have demonstrated flow
+compartmentalization in embryonic zebrafish
+brain ventricles~\cite{Olstad2019CiliaryDevelopment,
+Herlyng2025AdvectionDiffusion}.
 
 \subsection{Motile cilia}
 Our finding that cilia do not affect the bulk flow in the human brain ventricles
@@ -906,7 +921,7 @@ and also other studies that report velocities on the scale of centimeters per se
 however that several previous studies, both in experiment and computational studies,
 report millimeter per second velocities~\cite{enzmann1993cerebrospinal, enzmann1991normal,
 Causemann2022HumanFramework, Sweetman2011ThreeDimensional, howden2008three, wagshul2011pulsating,
-greitz1993pulsatile}. \fixme{Something we can comment on the magnitude discrepancies?}
+greitz1993pulsatile, sweetman2011cerebrospinal}. \fixme{Something we can comment on the magnitude discrepancies?}
 
 The flow rates are in the range of clinically reported values~\cite{Liu2024UsingBreathing, wagshul2011pulsating,
 }.
@@ -931,24 +946,16 @@ reported that the periventricular deformations could be related to
 deformations in the third and lateral ventricles~\cite{abderezaei2021development}
 
 
-
 Since there was virtually no difference in the CSF velocity approximations
 calculated with the Navier-Stokes and the Stokes equations, 
 the time-dependent Stokes equations seem a satisfactory approximation
 to the Navier-Stokes equations for brain ventricular flow, although Reynolds
 numbers are in the higher hundreds.
 
-The velocity vector fields match very well the reconstructions
-presented in~\cite{stadlbauer2010insight}. The jets in the
-interventricular foramina and 3V->aqueduct are visible there
+The velocity vector fields match to some extent with previous reports. %cite
+The jets in the interventricular foramina and 3V entry towards
+the aqueduct are visible there
 as well, with small velocities elsewhere.
-
-A question is the amount of slip. Our value choice of 100 for the
-friction coefficient $\alpha$ in the Navier slip boundary condition is comparable to the value of
-around 1000 used by Causemann\emph{et al.}~\cite{Causemann2022HumanFramework}.
-These values are both very close to imposing noslip. In this case,
-the choice of $\alpha$ does not have significant influence on
-the results~\cite{gjerde2025resolution}.
 
 
 % Despite using different techniques, all studies agree that
@@ -1004,8 +1011,41 @@ Also, in reality 10--30\% of the CSF production
 may come from interstitial fluid transported through the ependymal cell
 layer of the brain ventricles walls into the ventricles~\cite{Brodal2016TheSystem}.
 
+Computing LCS with velocity fields obtained from a more holistic
+brain model would be interesting, as X points out that full CNS models are
+important.
+
+
+There is uncertainty around our choice of Navier slip boundary condition.
+First, the force per surface area parameter $\tau$ is based on the value used by
+Siyahhan~\emph{et al.}~\cite{Siyahhan2014FlowVentricles}, which they obtained by
+calibrating CSF flow simulations with rodent CSF velocity data. Because motile cilia
+in the human brain in general are ciliated to a higher degree, they might be stronger
+than those in the rodent brain. Second, the friction coefficient $\alpha=47 \ \mathrm{Pa\cdot s/m}$
+is estimated by assuming a slip length equal to the depth of the cilia layer lining
+the wall. This was chosen partly by comparing the cilia-generated velocities for
+different values of $\alpha$. Setting $\alpha=0$ like in the zebrafish model,
+the velocities exceeded 1 cm/s, which we considered large compared to measured
+values and our current understanding of ventricular flow.
+On the other hand, setting the higher value $\alpha=1000 \ \mathrm{Pa\cdot s/m}$, which is
+the value that Causemann~\emph{et al.}~\cite{Causemann2022HumanFramework}
+employed for their Beavers-Joseph-Saffman slip condition at the ventricular
+walls, modeling the walls as porous with transport into the neighboring
+parenchyma, the cilia-generated velocities were almost absent. This is because
+$\alpha=1000 \ \mathrm{Pa\cdot s/m}$ is approaching a noslip regime,
+where our cilia tangential traction would break. The resulting
+particle paths generated by our model would then not compare well with
+\emph{in vivo} data~\cite{stadlbauer2010insight}. We therefore
+chose the value of $\alpha=47 \ \mathrm{Pa\cdot s/m}$ as a 
+compromise between these two cases. An experiment looking into
+fair values of both $\tau$ and $\alpha$ is required for further
+insights on this.
+
 
 \subsection*{Acknowledgments}
+Grateful thanks are given to Miroslav Kuchta for model and
+finite element discussions, and to Nathalie Jurisch-Yaksi for
+insightful discussions about the ventricular system.
 The research presented in this paper has benefited from the
 Experimental Infrastructure for Exploration of Exascale
 Computing (eX3), which is financially supported by the
@@ -1030,7 +1070,7 @@ We look at convergence in the maximum displacement magnitude, the
 displacement in a point on the traction-free boundary, and
 the kinetic and elastic eneries.
 
-Cardiac cycle independecy was also assessed. We simulated flow for
+Cardiac cycle independecy was assessed. We simulated flow for
 2 cardiac cycles and deformation for 4 cardiac cycles. Simulating flow for 4
 instead of 2 cardiac cycles showed made virtually no change to most of the computed flow
 quantities, with the biggest discrepancy being a 1.5\% change in the max-to-min pressure
