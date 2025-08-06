@@ -1,0 +1,33 @@
+import sys
+import matplotlib
+import matplotlib.pyplot as plt
+import colormaps
+
+# Set matplotlib properties
+plt.rcParams.update({
+    "font.family" : "Serif",
+    "text.usetex" : True,
+    "axes.spines.top" : False,
+    "axes.spines.right" : False
+})
+
+if __name__=='__main__':
+    # Create and plot a colorbar with the selected colormap
+    
+    orientation = sys.argv[1]
+    cmap_name = sys.argv[2]
+
+    if orientation=="horizontal":
+        fig = plt.figure(figsize=(8, 1.75))
+        ax = fig.add_axes([0.1, 0.35, 0.8, 0.2])
+        cmap = getattr(colormaps, cmap_name)
+        cb = matplotlib.colorbar.ColorbarBase(ax, cmap=cmap, orientation='horizontal')
+        cb.set_ticks([0, 0.025/0.10, 0.050/0.10, 0.075/0.10,  1.0])
+        cb.set_ticklabels([0, 0.025, 0.050, 0.075,  0.10])
+        ax.tick_params(axis='x', labelsize=35)
+        ax.set_title(r"Backward FTLE value", fontsize=46, pad=20.0)
+        fig_name = f"../output/illustrations/colorbars/{orientation}_colorbar_{cmap_name}.png"
+
+    fig.tight_layout(pad=0)
+    fig.savefig(fig_name, bbox_inches=[])
+    plt.show()
