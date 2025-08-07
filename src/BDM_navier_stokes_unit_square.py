@@ -10,11 +10,17 @@ from scipy.fft import fft, ifft, fftfreq
 from mpi4py    import MPI
 from petsc4py  import PETSc
 from basix.ufl import element
-from utilities.fem import calculate_mean
-from dolfinx.fem.petsc import LinearProblem, assemble_matrix_block, assemble_vector_block, create_matrix_block, create_vector_block
+from utilities.fem import calculate_mean, create_normal_contribution_bc
+from dolfinx.fem.petsc import (LinearProblem,
+                                assemble_matrix_block, 
+                                assemble_vector_block, 
+                                create_matrix_block, 
+                                create_vector_block,
+                                create_matrix,
+                                assemble_matrix)
 
 print = PETSc.Sys.Print
-
+PETSc.Options().getAll()
 # Solve stationary Stokes in moving domain by ALE method. Wall motion is 
 # prescribed in time.
 comm = MPI.COMM_WORLD
@@ -174,7 +180,7 @@ F = grad(chi) # Deformation gradient
 J = det(F) # Jacobian 
 n_hat = ufl.FacetNormal(mesh)
 
-k = 1 # element degree
+k = 2 # element degree
 bdm_el = element("BDM", mesh.basix_cell(), k)
 dg_el  = element("DG", mesh.basix_cell(), k-1)
 dg_vec_el = element("DG", mesh.basix_cell(), k, shape=(mesh.geometry.dim,))
@@ -193,7 +199,7 @@ Eps = lambda arg: ufl.sym(Grad(arg))
 
 mu = dfx.fem.Constant(mesh, dfx.default_scalar_type(1))
 rho = dfx.fem.Constant(mesh, dfx.default_scalar_type(1))
-penalty = dfx.fem.Constant(mesh, dfx.default_scalar_type(25.0))
+penalty = dfx.fem.Constant(mesh, dfx.default_scalar_type(25.0 * k))
 dS_hat = ufl.Measure('dS', domain=mesh) # Interior facet integral measure
 u_ = dfx.fem.Function(V)
 timestep = 0.01
@@ -205,6 +211,8 @@ hA = ufl.avg(ufl.CellDiameter(mesh)) # Facet normal vector and average cell diam
 
 uh_ = dfx.fem.Function(V)
 ph_ = dfx.fem.Function(Q)
+u_rel = dfx.fem.Function(V)
+u_mesh = dfx.fem.Function(V)
 
 def stabilization(u: ufl.TrialFunction, v: ufl.TestFunction, consistent: bool=True):
     """ Displacement/Flux Stabilization term from Krauss et al paper. 
@@ -239,7 +247,7 @@ def stabilization(u: ufl.TrialFunction, v: ufl.TestFunction, consistent: bool=Tr
     # For preconditioning
     return 2*mu*(penalty/hA)*inner(Jump(Tangent(u, n)), Jump(Tangent(v, n)))*dS_hat
 
-c_vel = u_ - dw_dt
+c_vel = u_ - u_mesh
 # Navier-Stokes problem in reference domain accounting for the deformation
 a00 = (rho/dt * inner(u, v)*J*dx # Time derivative
       + 2*mu*inner(Eps(u), Eps(v))*J*dx # Viscous dissipation
@@ -253,6 +261,21 @@ a11 = dfx.fem.Constant(mesh, dfx.default_scalar_type(0.0))*inner(p, q)*J*dx
 a_stokes = dfx.fem.form([[a00, a01], [a10, a11]])
 
 L0 = rho/dt * inner(u_, v)*J*dx
+
+# Traction BC with Navier slip friction
+alpha = dfx.fem.Constant(mesh, dfx.default_scalar_type(1)) # Navier slip friction coefficient
+a00 += alpha * inner(Tangent(u, n), Tangent(v, n)) * ds # Navier slip term
+
+# Weakly impose tangential traction to represent cilia
+tau_val = 0#7.89e-0 # Tangential traction force density [Pa]
+tau_mag = dfx.fem.Constant(mesh, dfx.default_scalar_type(tau_val))
+tau_vec = dfx.fem.Function(V)
+vel = lambda x: np.ones((2, x.shape[1]))
+tau_vec.interpolate(vel)
+tau = tau_mag * tau_vec / ufl.sqrt(inner(tau_vec, tau_vec))
+
+L0 += inner(tau, Tangent(v, n))*ds(BOT)
+
 L1 = inner(dfx.fem.Function(Q), q)*J*dx
 
 # Navier-Stokes problem
@@ -262,7 +285,7 @@ a00 += rho*inner(dot(c_vel, Nabla_Grad(u)), v)*J*dx # Convective term
 zeta = ufl.conditional(ufl.lt(dot(c_vel, n), 0), 1, 0) # Upwind velocity operator (equals 1 on inflow boundary, 0 on outflow boundary)
 a00 += (- rho*1/2*dot(jump(c_vel), n('+')) * avg(dot(u, v))*dS_hat 
         - rho*dot(avg(c_vel), n('+')) * dot(jump(u), avg(v))*dS_hat
-        - zeta*rho*1/2*dot(c_vel, n) * dot(u, v)*(ds)
+        - zeta*rho*1/2*dot(c_vel, n) * dot(u, v)*(ds(TOP) + ds(LEFT) + ds(RIGHT))
 )
 
 a = dfx.fem.form([[a00, a01], [a10, a11]])
@@ -284,18 +307,20 @@ v_bdry_left_expr = LeftBoundaryVelocity()
 v_bdry_right_expr = RightBoundaryVelocity()
 v_dofs_left = dfx.fem.locate_dofs_topological(V, facet_dim, ft.find(LEFT))
 v_dofs_right = dfx.fem.locate_dofs_topological(V, facet_dim, ft.find(RIGHT))
-bcs_stokes.append(dfx.fem.dirichletbc(v_bdry_left, v_dofs_left))
-bcs_stokes.append(dfx.fem.dirichletbc(v_bdry_right, v_dofs_right))
+# bcs_stokes.append(dfx.fem.dirichletbc(v_bdry_left, v_dofs_left))
+# bcs_stokes.append(dfx.fem.dirichletbc(v_bdry_right, v_dofs_right))
 
 # Production flux
-tot_prod = 1.0e-3
+tot_prod = 5.0e-3
 normal_bc = dfx.fem.Function(V)
-prod_func = dfx.fem.Function(V)
-prod_func.x.array[:] = tot_prod/1.0
-normal_bc_expr = dfx.fem.Expression(-prod_func + v_bdry_right, V.element.interpolation_points())
-normal_bc.interpolate(normal_bc_expr)
+prod_func = create_normal_contribution_bc(V, -n_hat*tot_prod + dot(u_mesh, n_hat)*n_hat, ft.find(RIGHT))
+normal_bc.interpolate(prod_func)
+# prod_func.x.array[:] = tot_prod/1.0
+# facet_midpoint = np.array([[0.5]], dtype=np.float64)
+# normal_bc_expr = dfx.fem.Expression(n_hat*tot_prod, facet_midpoint)
+# normal_bc.interpolate(normal_bc_expr)
 v_dofs_right = dfx.fem.locate_dofs_topological(V, facet_dim, ft.find(RIGHT))
-# bcs_stokes.append(dfx.fem.dirichletbc(normal_bc, v_dofs_right))
+bcs_stokes.append(dfx.fem.dirichletbc(normal_bc, v_dofs_right))
 
 # Define deforming mesh and reference coordinates (coordinates of mesh at t=0)
 out_mesh = dfx.mesh.create_unit_square(comm, nx, ny)
@@ -347,8 +372,11 @@ xh = A.createVecRight() # Solution vector
 b = create_vector_block(L) # RHS vector
 
 # Calculate offsets
-offset_u = V.dofmap.index_map.size_local * V.dofmap.index_map_bs
-offset_p = offset_u + Q.dofmap.index_map.size_local*Q.dofmap.index_map_bs
+
+V_map = V.dofmap.index_map
+Q_map = Q.dofmap.index_map
+offset_u = V_map.size_local * V.dofmap.index_map_bs
+offset_p = offset_u + Q_map.size_local*Q.dofmap.index_map_bs
 
 def solve_blocked_system(ksp):
         
@@ -373,10 +401,17 @@ def solve_blocked_system(ksp):
 def create_preconditioner(Q, a, bcs):
     p, q = ufl.TrialFunction(Q), ufl.TestFunction(Q)
     a_p11 = dfx.fem.form(inner(p, q) * dx)
-    a_p = dfx.fem.form([[a[0][0], None], [None, a_p11]])
+    a_p00 = (rho/dt * inner(u, v)*J*dx # Time derivative
+            + 2*mu*inner(Eps(u), Eps(v))*J*dx # Viscous dissipation
+            + rho*inner(dot(c_vel, Nabla_Grad(u)), v)*J*dx
+            + 2*mu*(penalty/hA)*inner(Jump(Tangent(u, n)), Jump(Tangent(v, n)))*dS_hat
+            # - rho*1/2*dot(jump(c_vel), n('+')) * avg(dot(u, v))*dS_hat 
+            # - rho*dot(avg(c_vel), n('+')) * dot(jump(u), avg(v))*dS_hat
+    )
+    a_p = dfx.fem.form([[a_p00, None], [None, a_p11]])
     P = assemble_matrix_block(a_p, bcs)
     P.assemble()
-
+    
     return P
 
 def create_block_solver_direct(A):
@@ -395,30 +430,89 @@ def create_block_solver_direct(A):
     ksp.setFromOptions()
 
     return ksp
-
+def build_monitor(prefix):
+    """Creates a simple monitor function that prints residual info."""
+    def monitor(ksp, it, rnorm):
+        print(f"    {prefix} Iteration: {it}, Residual norm: {rnorm:.3e}")
+    return monitor
 def create_block_solver_iterative(A, P):
+    # Create a MINRES Krylov solver and a block-diagonal preconditioner
+    # using PETSc's additive fieldsplit preconditioner
     ksp = PETSc.KSP().create(comm)
     ksp.setOperators(A, P)
     ksp.setType("minres")
-    ksp.setTolerances(rtol=1e-9)
+    ksp.setMonitor(build_monitor("Main")) # Equivalent to -main_ksp_monitor
+    ksp.setTolerances(rtol=1e-7)
     ksp.getPC().setType("fieldsplit")
     ksp.getPC().setFieldSplitType(PETSc.PC.CompositeType.ADDITIVE)
+    # ksp.getPC().setFieldSplitType(PETSc.PC.CompositeType.SCHUR) # Use SCHUR instead of ADDITIVE
+    # ksp.getPC().setFieldSplitSchurFactType(PETSc.PC.SchurFactType.LOWER) # Common factorization type
 
-    nested_IS = P.getNestISs()
-    ksp.getPC().setFieldSplitIS(("u", nested_IS[0][0]), ("p", nested_IS[0][1]))
+    ksp.setOptionsPrefix("main_")
 
-    # Set the preconditioners for each block
-    ksp_u, ksp_p = ksp.getPC().getFieldSplitSubKSP()
+    # Build PETSc index sets for each field (global dof indices for each
+    # field)
+    is_offset_u = V_map.local_range[0] * V.dofmap.index_map_bs + Q_map.local_range[0]
+    is_offset_p = is_offset_u + V_map.size_local * V.dofmap.index_map_bs
+    print(offset_u)
+    print(offset_p)
+    is_u = PETSc.IS().createStride(
+        V_map.size_local * V.dofmap.index_map_bs, is_offset_u, 1, comm=comm
+    )
+    is_p = PETSc.IS().createStride(Q_map.size_local, is_offset_p, 1, comm=comm)
+
+    ksp.getPC().setFieldSplitIS(("u", is_u), ("p", is_p))
+
+    # Configure velocity and pressure sub-solvers
+    # ksp.setUp() # This builds the internal structures, including sub-KSPs
+    ksp_u, ksp_p = ksp.getPC().getFieldSplitSubKSP()   
+    ksp_u.setOptionsPrefix("u_")
+    ksp_p.setOptionsPrefix("p_")
+
     ksp_u.setType("preonly")
     ksp_u.getPC().setType("gamg")
+    ksp_u.getPC().setGAMGType("classical") # Equivalent to -u_pc_gamg_type classical
+    ksp_p.setType("gmres")
+    ksp_p.setTolerances(rtol=1e-10) # Inner solve can be less precise
+    ksp_p.setGMRESRestart(50)
     ksp_p.setType("preonly")
     ksp_p.getPC().setType("jacobi")
+    ksp_p.setMonitor(build_monitor("  Pressure")) # Monitor the inner pressure solve
+    # ksp_p.getPC().setType("hypre") # Use HYPRE's AMG
+    # ksp_p.getPC().setHYPREType("boomeramg") # Equivalent to -p_pc_hypre_type boomeramg
+
+    # p, q = ufl.TrialFunction(Q), ufl.TestFunction(Q)
+    # mu = dfx.fem.Constant(mesh, 1e-2) # Example viscosity
+
+    # # The UFL form for our custom pressure preconditioner P_p
+    # a_p = (1 / dt) * inner(p, q) * dx + mu * inner(ufl.grad(p), ufl.grad(q)) * dx
+    # P_p_form = dfx.fem.form(a_p)
+
+    # # Assemble the operator into a PETSc matrix
+    # P_p_mat = create_matrix(P_p_form)
+    # assemble_matrix(P_p_mat, P_p_form)
+    # P_p_mat.assemble()
+
+    # # --- Step 5: Assign the custom operator to the pressure preconditioner ---
+    # # Instead of a weak 'jacobi', we use our custom P_p_mat matrix.
+    # # We'll use a direct solver (LU) to "invert" this preconditioner matrix.
+    # # This is efficient because P_p_mat is much smaller and better-conditioned.
+    # # ksp_p.getPC().setType("lu") # The PC action is just applying the operator P_p_mat
+    # # ksp_p.getPC().setOperators(P_p_mat)
+    # # Optional: If P_p_mat is large, you could use an AMG solver instead of preonly+LU
+    # ksp_p.getPC().setType("gamg")
+    # ksp_p.getPC().setOperators(P_p_mat)
 
     # Monitor the convergence of the KSP
-    ksp.setFromOptions()
+    ksp.setMonitor(lambda _, its, rnorm: print(f"Iteration: {its}, residual: {rnorm}"))
+    
+    # Set a non-zero initial guess; use previous timestep's solution
+    # as initial guess for the next step
+    ksp.setInitialGuessNonzero(True)
+
     return ksp
 
-iterative = False
+iterative = True
 
 if iterative:
     P = create_preconditioner(Q, a, bcs_stokes)
@@ -430,12 +524,12 @@ times = np.linspace(0, final_time, N+1)
 displacements = np.zeros((len(wh.x.array), len(times)), wh.x.array.dtype)
 for i, time in enumerate(times):
     # Update time variable of boundary conditions
-    u_bdry_left_expr.t = time
+    # u_bdry_left_expr.t = time
     u_bdry_right_expr.t = time
     u_bdry_top_expr.t = time
 
     # Interpolate BC expressions into BC functions
-    u_bdry_left.interpolate(u_bdry_left_expr)
+    # u_bdry_left.interpolate(u_bdry_left_expr)
     u_bdry_right.interpolate(u_bdry_right_expr)
     u_bdry_top.interpolate(u_bdry_top_expr)
     
@@ -471,7 +565,6 @@ velocity = ifft(wh_dot_fft, axis=1).real # Take only the real part
 
 # Solve stokes for initial condition
 v_bdry_top.interpolate(v_bdry_top_expr)
-v_bdry_left.interpolate(v_bdry_left_expr)
 v_bdry_right.interpolate(v_bdry_right_expr)
 assemble_matrix_block(A, a_stokes, bcs=bcs_stokes)
 A.assemble()
@@ -482,19 +575,23 @@ ksp.solve(b, xh)
 u_.x.array[:offset_u] = xh.array[:offset_u]
 u_.x.scatter_forward()
 
+area_right_form = dfx.fem.form(1/(ufl.sqrt(dot(n, n)))*ds(RIGHT))
+import time as time_module
+tic = time_module.perf_counter()
 for i, time in enumerate(times):
     
     dw_dt.x.array[:] = velocity[:, i] # Update mesh velocity
+    u_mesh.interpolate(dw_dt)
 
     v_bdry_top_expr.t = time
     v_bdry_top.interpolate(v_bdry_top_expr)
 
-    v_bdry_left_expr.t = time
-    v_bdry_left.interpolate(v_bdry_left_expr)
-
     v_bdry_right_expr.t = time
     v_bdry_right.interpolate(v_bdry_right_expr)
-    normal_bc.interpolate(normal_bc_expr)
+    
+    area_right = dfx.fem.assemble_scalar(area_right_form)
+    prod_func = create_normal_contribution_bc(V, -n_hat*tot_prod + dot(u_mesh, n_hat)*n_hat, ft.find(RIGHT))
+    normal_bc.interpolate(prod_func)
 
     wh.x.array[:] = displacements[:, i]
 
@@ -503,16 +600,13 @@ for i, time in enumerate(times):
     # Update output mesh
     out_mesh.geometry.x[:, :out_mesh.geometry.dim] = x_reference[:, :out_mesh.geometry.dim] + wh_x_reference
 
-    if iterative:
-        uh_, ph_ = 1, 2 #solve_stokes(P) # Solve the Stokes equations
-    else:
-        uh_, ph_ = solve_blocked_system(ksp) # Solve the Stokes equations
+    uh_, ph_ = solve_blocked_system(ksp) # Solve the Stokes equations
 
+    u_rel.x.array[:] = uh_.x.array.copy() - u_mesh.x.array.copy()
     # Update output functions
-    uh.interpolate(uh_)
+    uh.interpolate(u_rel)
     ph.interpolate(ph_)
     u_.x.array[:] = uh_.x.array.copy()
-
 
     # Make pressure mean = 0
     ph.x.array[:] -= calculate_mean(out_mesh, ph, ufl.dx(out_mesh))
@@ -528,11 +622,12 @@ for i, time in enumerate(times):
     print("Mean pressure: ", 1/vol*assemble_scalar(ph*ufl.dx(out_mesh)))
 
     # Calculate boundary flux at production site
-    print("Flux: ", assemble_scalar(dot(uh_ - v_bdry_right, n_hat)*ds(RIGHT)))
+    print("Flux: ", assemble_scalar(dot(u_rel, n_hat)*ds(RIGHT)))
 
     e_div_u = assemble_scalar(inner(Div(uh_), Div(uh_))*J*dx)
     print(f"e_div_u = {e_div_u}")
-
+    if i==3: break
+print("Time elapsed = ", time_module.perf_counter() - tic)
 # Close output files
 velocity_output.close()
 pressure_output.close()
