@@ -9,7 +9,7 @@ from ufl       import inner, grad, sym, div
 from mpi4py    import MPI
 from petsc4py  import PETSc
 from basix.ufl import element
-from dolfinx.fem.petsc    import create_matrix, create_vector, assemble_vector, apply_lifting
+from dolfinx.fem.petsc    import create_matrix, create_vector, assemble_vector, apply_lifting, assemble_matrix
 from utilities.fem        import assemble_system
 from utilities.mesh       import create_unit_cube_mesh, create_unit_square_mesh
 
@@ -54,9 +54,9 @@ beta  = dfx.fem.Constant(mesh, dfx.default_scalar_type(1/4*(gamma.value + 0.5)**
 print(f"Gamma = {gamma.value}, Beta = {beta.value}")
 
 # Temporal parameters
-timestep = 1e-2
+timestep = 1e-5
 dt = dfx.fem.Constant(mesh, dfx.default_scalar_type(timestep)) 
-T = timestep*10
+T = timestep*100
 period = T
 N = int(T / timestep)
 times = np.linspace(0, T, N+1)
@@ -126,7 +126,6 @@ vel_expr = dfx.fem.Expression(vel, W.element.interpolation_points())
 ##################
 
 # The weak form
-# The weak form
 a = rho/(beta*dt**2)*inner(w, dw)*dx + inner(sigma(w), eps(dw)) * dx
 L = rho*inner(wh_n/(beta*dt**2) + wh_dot_n/(beta*dt) + (1-2*beta)/(2*beta)*wh_ddot_n, dw) * dx 
 
@@ -145,22 +144,38 @@ a_cpp, L_cpp = dfx.fem.form(a), dfx.fem.form(L)
 A = create_matrix(a_cpp)
 b = create_vector(L_cpp)
 
-# # Configure linear solver based on
-# # conjugate gradient with algebraic multigrid preconditioning
-opts = PETSc.Options()
-opts["ksp_type"] = "preonly"
-opts["pc_type"] = "lu"
-opts["pc_factor_mat_solver_type"] = "mumps"
-opts["mat_mumps_icntl_14"] = 80  # Increase MUMPS working memory
-opts["mat_mumps_icntl_24"] = 1  # Option to support solving a singular matrix (pressure nullspace)
-opts["mat_mumps_icntl_25"] = 0  # Option to support solving a singular matrix (pressure nullspace)
-opts["ksp_error_if_not_converged"] = 1 # Throw an error if KSP solver does not converge
 
-# Create the solver object, set options and enable convergence monitoring
+# Configure linear solver
 solver = PETSc.KSP().create(comm)
-solver.setOperators(A)
-solver.setFromOptions()
+opts = PETSc.Options()
+
+iterative_solver = True
+if iterative_solver:
+    # Configure iterative solver using conjugate gradient
+    # with hypre boomeramg algebraic multigrid preconditioning
+    opts["ksp_type"] = "cg"
+    opts["pc_type"] = "hypre"
+    opts["ksp_rtol"] = 1e-10
+    opts["ksp_initial_guess_nonzero"] = True
+    a_p = dfx.fem.form(rho/(beta*dt**2)*inner(w, dw)*dx + inner(sigma(w), eps(dw)) * dx)
+    P = assemble_matrix(a_p, bcs=bcs)
+    P.assemble()
+    # solver.setOperators(A, P)
+    solver.setOperators(A)
+else:
+    # Configure direct solver MUMPS with exact preconditioner LU
+    opts["ksp_type"] = "preonly"
+    opts["pc_type"] = "lu"
+    opts["pc_factor_mat_solver_type"] = "mumps"
+    opts["mat_mumps_icntl_14"] = 80  # Increase MUMPS working memory
+    opts["mat_mumps_icntl_24"] = 1  # Option to support solving a singular matrix (pressure nullspace)
+    opts["mat_mumps_icntl_25"] = 0  # Option to support solving a singular matrix (pressure nullspace)
+    opts["ksp_error_if_not_converged"] = 1 # Throw an error if KSP solver does not converge
+    solver.setOperators(A)
+
+# Enable convergence monitoring and set options
 solver.setMonitor(lambda _, its, rnorm: print(f"Iteration: {its}, residual: {rnorm}"))
+solver.setFromOptions()
 
 xdmf = dfx.io.XDMFFile(comm, f"../output/square-mesh/deformation/displacement_dt={timestep:.4g}_T={T:.4g}.xdmf", "w")
 print(f"../output/square-mesh/deformation/displacement_dt={timestep:.4g}_T={T:.4g}.xdmf")
@@ -194,6 +209,8 @@ H1_error_form = dfx.fem.form(inner(grad(wh - u_exact), grad(wh - u_exact))*dx)
 
 A, b = assemble_system(A, b, a_cpp, L_cpp, bcs)
 
+import time
+tic = time.perf_counter()
 for t in times:
     
     print(f"\nTime t = {t:.5g}")
@@ -243,6 +260,6 @@ for t in times:
     H1_error = np.sqrt(comm.allreduce(dfx.fem.assemble_scalar(H1_error_form), op=MPI.SUM))
     print(f"L2 error: {L2_error:.2e}")
     print(f"H1 error: {H1_error:.2e}")
-
+print("Time elapsed: ", time.perf_counter() - tic)
 xdmf.close()
 xdmf_vel.close()

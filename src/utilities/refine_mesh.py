@@ -16,7 +16,10 @@ with dfx.io.XDMFFile(MPI.COMM_WORLD, f"../../geometries/ventricles_{input_mesh_s
     ft = xdmf.read_meshtags(mesh, "ft")
     ct = xdmf.read_meshtags(mesh, "ct")
 
-mesh_refined, parent_cells, parent_facets = dfx.mesh.refine(mesh, option=dfx.mesh.RefinementOption.parent_cell_and_facet)
+marker = lambda x: np.logical_and(x[0] < 0.02, x[0] > -0.02)
+edges = dfx.mesh.locate_entities(mesh, tdim-2, marker)
+
+mesh_refined, parent_cells, parent_facets = dfx.mesh.refine(mesh, edges=edges, option=dfx.mesh.RefinementOption.parent_cell_and_facet)
 mesh_refined.topology.create_connectivity(fdim, tdim)
 
 child_vertices = dfx.mesh.entities_to_geometry(mesh_refined, tdim, np.arange(len(parent_cells), dtype=np.int32))
