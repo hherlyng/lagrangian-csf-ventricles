@@ -144,7 +144,6 @@ a_cpp, L_cpp = dfx.fem.form(a), dfx.fem.form(L)
 A = create_matrix(a_cpp)
 b = create_vector(L_cpp)
 
-
 # Configure linear solver
 solver = PETSc.KSP().create(comm)
 opts = PETSc.Options()
