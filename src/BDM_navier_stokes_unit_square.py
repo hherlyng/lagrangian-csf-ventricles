@@ -584,7 +584,8 @@ nn_form = dfx.fem.form(dot(n_hat, n)*ds(RIGHT))
 wn_form = dfx.fem.form(dot(u_mesh, n)*ds(RIGHT))
 tangent_correction_form = dfx.fem.form(dot(Tangent(uh_, n_hat), n_hat)*ds(RIGHT))
 
-area_form = dfx.fem.form(ufl.sqrt(dot(n, n))*ds(RIGHT))
+
+area_form = dfx.fem.form(dot(n, n)*ds(RIGHT))
 import time as time_module
 tic = time_module.perf_counter()
 vel = lambda x: np.vstack((x[0], np.zeros(x.shape[1])))
@@ -604,18 +605,11 @@ for i, time in enumerate(times):
     
     # Update output mesh
     out_mesh.geometry.x[:, :out_mesh.geometry.dim] = x_reference[:, :out_mesh.geometry.dim] + wh_x_reference
-    
-    nn_term = dfx.fem.assemble_scalar(nn_form)
-    wn_term = dfx.fem.assemble_scalar(wn_form)
-    tangent_correction = dfx.fem.assemble_scalar(tangent_correction_form)
+
     area = dfx.fem.assemble_scalar(area_form)
-    nn = dfx.fem.assemble_scalar(nn_form)
-    wn = dfx.fem.assemble_scalar(wn_form)
-    print(f"{wn=}")
-    print(f"{area=}\t{nn=}\t{nn_term}")
-    prod_func = create_normal_contribution_bc(V, (-tot_prod/dot(n_hat, n) + dot(u_mesh, n)/dot(n_hat, n))*n_hat, ft.find(RIGHT)) #(-tot_prod + wn_term)/nn_term*n_hat
+    print(f"{area=}")
+    prod_func = create_normal_contribution_bc(V, (-tot_prod/area)*n + dot(u_mesh, n_hat)*n, ft.find(RIGHT)) #(-tot_prod + wn_term)/nn_term*n_hat
     normal_bc.interpolate(prod_func) 
-    # normal_bc.x.array[:] += u_mesh.x.array.copy()
 
     uh_, ph_ = solve_blocked_system(ksp) # Solve the Stokes equations
 
@@ -633,10 +627,6 @@ for i, time in enumerate(times):
     velocity_output.write_function(uh, time)
     pressure_output.write_mesh(out_mesh, time)
     pressure_output.write_function(ph, time)
-
-    # Calculate mean pressure
-    vol = assemble_scalar(1*ufl.dx(out_mesh))
-    print("Mean pressure: ", 1/vol*assemble_scalar(ph*ufl.dx(out_mesh)))
 
     # Calculate boundary flux at production site
     print("Flux: ", assemble_scalar(dot(u_rel, n)*ds(RIGHT)))
