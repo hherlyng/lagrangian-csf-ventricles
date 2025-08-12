@@ -282,7 +282,7 @@ L0 += inner(tau, Tangent(v, n))*ds(BOT)
 L1 = inner(dfx.fem.Function(Q), q)*J*dx
 
 # Navier-Stokes problem
-navier_stokes = False
+navier_stokes = True
 if navier_stokes:
     a00 += rho*inner(dot(c_vel, Nabla_Grad(u)), v)*J*dx # Convective term
 
@@ -318,7 +318,7 @@ v_dofs_right = dfx.fem.locate_dofs_topological(V, facet_dim, ft.find(RIGHT))
 # bcs_stokes.append(dfx.fem.dirichletbc(v_bdry_right, v_dofs_right))
 
 # Production flux
-tot_prod = 5.0e-3
+Q_value = 5.0e-3
 normal_bc = dfx.fem.Function(V)
 # prod_func.x.array[:] = tot_prod/1.0
 # facet_midpoint = np.array([[0.5]], dtype=np.float64)
@@ -591,6 +591,8 @@ tic = time_module.perf_counter()
 vel = lambda x: np.vstack((x[0], np.zeros(x.shape[1])))
 for i, time in enumerate(times):
     
+    # if i==0:
+    #     dw_dt.x.array[dofs_right*W.dofmap.index_map_bs] = 0.1/timestep
     dw_dt.x.array[:] = velocity[:, i] # Update mesh velocity
     u_mesh.interpolate(dw_dt)
 
@@ -600,6 +602,9 @@ for i, time in enumerate(times):
     v_bdry_right_expr.t = time
     v_bdry_right.interpolate(v_bdry_right_expr)
     
+    # if i==0:
+    #     wh.x.array[dofs_right*W.dofmap.index_map_bs] += 0.1
+    
     wh.x.array[:] = displacements[:, i]
     wh_x_reference = wh.eval(x=x_reference, cells=cells) # Evaluate the deformed coordinates at the reference coordinates
     
@@ -608,7 +613,7 @@ for i, time in enumerate(times):
 
     area = dfx.fem.assemble_scalar(area_form)
     print(f"{area=}")
-    prod_func = create_normal_contribution_bc(V, (-tot_prod/area)*n + dot(u_mesh, n_hat)*n, ft.find(RIGHT)) #(-tot_prod + wn_term)/nn_term*n_hat
+    prod_func = create_normal_contribution_bc(V, -Q_value*n_hat + u_mesh, ft.find(RIGHT)) #(-tot_prod + wn_term)/nn_term*n_hat
     normal_bc.interpolate(prod_func) 
 
     uh_, ph_ = solve_blocked_system(ksp) # Solve the Stokes equations
@@ -629,11 +634,12 @@ for i, time in enumerate(times):
     pressure_output.write_function(ph, time)
 
     # Calculate boundary flux at production site
-    print("Flux: ", assemble_scalar(dot(u_rel, n)*ds(RIGHT)))
+    n_out = ufl.FacetNormal(out_mesh)
+    print("Flux: ", assemble_scalar(dot(u_rel, n_hat)*ds(RIGHT)))
 
     e_div_u = assemble_scalar(inner(Div(uh_), Div(uh_))*J*dx)
     print(f"e_div_u = {e_div_u}")
-    if i==50: break
+
 print("Time elapsed = ", time_module.perf_counter() - tic)
 # Close output files
 velocity_output.close()
