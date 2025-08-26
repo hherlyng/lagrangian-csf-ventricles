@@ -302,6 +302,43 @@ strain-rate tensor.
 % must be transformed appropriately to account for the
 % domain motion~\cite{Scovazzi2007LectureNotes}.
 
+% The ventricular domain $\Omega_t = \Omega(t)$ is then deforming in time,
+% and we solve the fluid equations with an Arbitrary Lagrangian Eulerian (ALE) method.
+% The governing equations in the physical, material reference frame $\Omega_t$ are
+% recast in Eulerian coordinates by mapping the variables from the deformed configuration $\Omega_t$
+% to the reference configuration $\hat{\Omega} = \Omega_0$. 
+% We denote this mapping $\psi : f(\XX, t) \mapsto f(\xx, t)$ where
+% $\xx = \psi(\XX, t) \in \Omega_0$ are the Eulerian coordinates
+% and $\XX\in\Omega_0$ are the (Lagrangian) material coordinates. The Navier-Stokes
+% equations \Cref{eq:navier_stokes_cont_eq,eq:navier_stokes_mom_eq} hold in the physical, material reference frame 
+% for the variables $\uu(\XX, t)$ and $p(\XX, t)$.
+% The equations are recast in Eulerian coordinates as
+% \begin{alignat}{2}
+%     \hat{\nabla}\cdot\uu = 0 \quad\text{in }\Omega_0, \label{eq:ALE_cont_eq} \\
+%     \rho\left(\pdifft{\uu}\bigg|_{\xx} + (\bm{c}\cdot\hat{\nabla})\uu\right) = \hat{\nabla}\cdot\TT \quad\text{in }\Omega_0, \label{eq:ALE_mom_eq} \\
+% \end{alignat}
+% where the del-operator $\hat{\nabla} = \nabla_{\xx} = \mathbf{F}^{-T}\nabla_{\XX}$ is transformed
+% using the deformation gradient $\mathbf{F} = \nabla_{\XX}\xx$ and $\bm{c} = \uu(\xx, t) - \dot{\ww}(\xx, t)$
+% is the convective velocity in which $\dot{\ww}(\xx, t)$ is the velocity of the domain $\Omega_t$.
+
+% Denoting the domain boundary 
+% $\partial\Omega = \Gamma = \Gamma_1\cup\Gamma_2\cup\Gamma_3$, the three boundary condition types in
+% the material reference frame read
+% \begin{alignat}{2}
+%     \uu(\XX, t)\cdot\nn(\XX, t) &= 0 \quad &\text{on }\Gamma_t^1, \label{eq:material_impermeability_BC}\\
+%     \TT_{\parallel} &= \btau(\XX, t) - \alpha\uu_{\parallel}(\XX, t) \quad &\text{on }\Gamma_t^2, \label{eq:material_tangential_traction_BC}\\
+%     \uu(\XX, t)\cdot\nn(\XX, t) &= q \quad &\text{on }\Gamma_t^3.
+%     \label{eq:material_production_BC}
+% \end{alignat}
+% Mapped to the reference configuration where the boundary is denoted
+% $\partial\Omega_0 = \Gamma_0 = \Gamma^1\cup\Gamma^2\cup\Gamma^3$, these boundary conditions become
+% \begin{alignat}{2}
+%     \uu(\xx, t)\cdot\hat{\nn} &= \dot{\ww}(\xx, t)\cdot\hat{\nn} \quad &\text{on }\Gamma_1, \label{eq:reference_impermeability_BC}\\
+%     \TT_{\parallel} &= \btau(\xx, t) - \alpha\uu_{\parallel}(\xx, t) \quad &\text{on }\Gamma_2, \label{eq:reference_tangential_traction_BC}\\
+%     \uu\cdot\hat{\nn} &= \hat{q} + \dot{\ww}(\xx, t)\cdot\hat{\nn} \quad &\text{on }\Gamma_3.
+%     \label{eq:reference_production_BC}
+% \end{alignat}
+
 For fluid flows where viscous forces dominate inertial 
 forces, the Stokes equations
 \begin{equation}
