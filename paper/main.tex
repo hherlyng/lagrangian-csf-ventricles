@@ -241,12 +241,10 @@ which was originally generated from MRI images. The different parts of the human
 system are denoted in~\Cref{fig:model_sketch}. The standard version of the ventricles mesh
 consists of 408 128 tetrahedral cells with maximal and minimal edge lengths
 of 0.40 cm and 0.023 cm, respectively.
-
 \begin{figure}
     \centering
     \includegraphics[width=\textwidth]{graphics/model_sketch.png}
-    \caption{
-        \textbf{a.} Illustration of the brain ventricular system
+    \caption{\textbf{a.} Illustration of the brain ventricular system
         in the adult human brain, with indication of the
         choroid plexus locations in the lateral, third
         and fourth ventricles. 
@@ -255,7 +253,6 @@ of 0.40 cm and 0.023 cm, respectively.
         of the anterior, middle and posterior ventricles.
         \textbf{c.} Computational mesh of human brain ventricles.
         \textbf{d.} Computational mesh of embryonic zebrafish brain ventricles.
-        
         Parts of this figure were created with BioRender.
         The sketch of the zebrafish brain has been adapted subject
         to the Creative Commons Attribution 4.0 International License
@@ -428,7 +425,7 @@ a closed system.
 
 The following three subsections detail our modeling approach for the three
 types of flow mechanisms outlined above. For a complete specification of
-the resulting boundary conditions, see~\Cref{sec:boundary_conditions}
+the resulting boundary conditions, see~\Cref{sec:boundary_conditions}.
 
 \subsubsection{Brain ventricles deformation}\label{subsubsec:deformation}
 We model CSF flow driven by ventricular wall deformations associated with
@@ -725,7 +722,7 @@ reveal repelling structures (unstable manifolds) of the flow,
 whereas integration backward in time 
 reveal attracting structures (stable manifolds).
 
-\subsection{Numerical methods and software implementation}
+\subsection{Numerical methods}
 \subsubsection{FTLE field computation}
 To compute FTLE fields, we initiate a cartesian grid of particles at a
 time $t_0$ and compute the flow map $\phi_{t_0}^{t_0+T}$
@@ -770,8 +767,8 @@ Herlyng~\emph{et al.}~\cite{Herlyng2025AdvectionDiffusion}.
 
 In time, the fluid equations are discretized with the first-order, implicit
 backward Euler scheme using a timestep $\Delta t = 0.001$ s.
-Since we use an implicit time discretization,
-an initial condition is only needed
+Since we use an implicit time discretization and solve the fluid euquations
+directly, an initial condition is only needed
 for the velocity field, and not the pressure.
 When solving the Stokes equations, the fluid is 
 initially at rest: $\uu_0(\xx)=\uu(\xx, 0)=\bm{0}$.
@@ -780,7 +777,7 @@ For the Navier-Stokes equations, we solve the Stokes equations
 $\uu_{\mathrm{Stokes}}(\xx)$ as initial condition;
 $\uu_0(\xx)=\uu_{\mathrm{Stokes}}(\xx)$. 
 The fluid equations are solved for two cardiac cycles,
-and the velocities of the second cycle is used
+and the velocities $\uu(\xx, t)$ of the second cycle are used
 to calculate FTLE fields.
 
 \subsubsection{Finite element method for the solid equations}
@@ -831,41 +828,44 @@ displacements were imposed strongly. The normal displacements
 were imposed weakly using Nitsche's method~\cite{Nitsche1971UberSind,
 benzaken2024constructing}.
 
-\subsubsection{Model implementation}
+\subsubsection{Software implementation}
 The FTLE field computations are performed with a 
-framework implemented in C in previous work~\cite{shadden}.
+framework implemented in C.
 The finite element methods for the fluid and solid equations
 are implemented and solved with Dolfinx, the Python interface
-of FEniCSx. A direct solver MUMPS is used to solve the linear
-equation systems, with PETSc as backend.
+of FEniCSx. A direct solver MUMPS is used to solve the fluid equations.
+We solve the solid equations iteratively with a Conjugate Gradient method
+with Algebraic Multigrid preconditioning.
 
 \section{Results}
 \subsection{Finite element CSF flow simulations}
 The initial contraction and caudal displacement of the brain ventricles
 during systole leads to a rapid increase in caudal CSF flow through the interventricular
 foramina and cerebral aqueduct (\Cref{fig:flow_results}). In the aqueduct, the flowrate peaks at
-\fixme{0.21 ml/s} after 29\% of the cardiac cycle, a little earlier than the peak
-volume displacement of the ventricles, which totals around $-0.15\%$ and occurs
-40\% throughout the cardiac cycle. When the ventricles relax during diastole,
+0.225 ml/s after 25.6\% of the cardiac cycle. This is a little earlier than the peak
+volume displacement of the ventricles, a volume displacement that totals around $-0.15\%$
+and occurs 40\% throughout the cardiac cycle. When the ventricles relax during diastole,
 the CSF flow reverses and flows cephalic to fill the ventricles
 and the aqueduct flowrate goes through a local minimum, increases slightly,
-then decreases again and bottoms out at \fixme{$-0.17$ ml/s} around
-94\% through the cycle. Finally, flow reverses when transitioning 
+then decreases again and bottoms out at $-0.173$ ml/s around
+93.6\% through the cycle. Finally, flow reverses when transitioning 
 into the next cardiac cycle.
 The pressure gradient in the cerebral aqueduct varies inversely with
-the flowrate behavior, with a peak-to-through range of 0.064 mmHg/cm.
-The maximum CSF velocity magnitude of caudally directed flow is \fixme{10.5 cm/s},
-which is located in the cerebral aqueduct during systole. For cephalic flow,
-the minimum velocity is $-8.4$ cm/s in the aqueduct during diastole.
-The maximum velocity magnitude corresponds to
-a Reynolds number of 495, indicating laminar flow.
-The stroke volume in the cerebral aqueduct was \fixme{43.1 \textmu l}. Most of the displaced
-CSF volume is expelled through the lateral apertures (\fixme{44.1 \textmu l}),
-with only 1/6th of the fluid exiting through the spinal canal (\fixme{6.5 \textmu l}).
+the flowrate behavior, with a peak-to-through range of 0.058 mmHg/cm.
+The maximum CSF velocity magnitude of caudally directed flow is 8.95 cm/s,
+which is located in the cerebral aqueduct during systole at 27\% of the cardiac cycle.
+For cephalic flow, the minimum velocity is $-6.4$ cm/s in the aqueduct at the end of diastole
+after 95.2\% of the cardiac cycle. The maximum velocity magnitude corresponds to
+a Reynolds number of 424, indicating laminar flow.
+The stroke volume in the cerebral aqueduct was 47.1 \textmu l. Most of the displaced
+CSF volume crossing the domain boundary is through the lateral apertures
+(cumulative flow volume 45.1 \textmu l),
+with less fluid flowing in and out of the spinal canal (cumulative flow volume 8.8 \textmu l).
 The flow volumes through the interventricular foramina between the lateral and third 
 ventricles are evenly distributed.
-Flowrates, pressure gradients and cumulative flow volumes computed with the Navier-Stokes
-and the Stokes equations are very similar. 
+
+\fixme{Are flowrates, pressure gradients and cumulative flow volumes computed with the Navier-Stokes
+and the Stokes equations similar?}
 
 \begin{figure}
     \centering
