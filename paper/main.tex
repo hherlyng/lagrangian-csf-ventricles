@@ -194,8 +194,8 @@ Eulerian flow analysis~\cite{Kurtcuoglu2007ComputationalSylvius,
 Causemann2022HumanFramework, howden2008three, Sweetman2011ThreeDimensional,
 Siyahhan2014FlowVentricles},
 where flow variables such as velocity and volumetric flux
-are measured at a fixed point in space.
-These instantaneous variables may however deceive
+are measured at a fixed point in space and time.
+These instantaneous flow variables may however deceive
 interpretation of time-dependence in the flow~\cite{shadden2005definition},
 especially in flows that contain motion at multiple scales,
 such as ventricular CSF flow. Knowledge of precise contributions of
@@ -217,11 +217,15 @@ In this work, we characterize LCS in brain ventricular CSF flow
 using a computational model. We model intraventricular CSF flow
 in brain ventricles of adult human and embryonic zebrafish using geometries
 generated with medical imaging data. Using finite element methods,
-we simulate CSF flow and calculate particle trajectories. These trajectories
-are used to compute finite-time Lyapunov exponent (FTLE) fields, which
+we simulate CSF flow. The CSF velocity fields are used to calculate particle trajectories.
+These trajectories are used to compute finite-time Lyapunov exponent (FTLE) fields, which
 we use to characterize LCS. In the human brain, we model
-flow driven by cardiac pulsations, choroid plexus secretion and motile cilia.
-For the zebrafish, we model flow driven by motile cilia.
+flow driven by cardiac pulsations, choroid plexus secretion and motile cilia,
+and study the impact of each mechanism on flow patterns and advective transport.
+For the zebrafish brain, we model flow driven by motile cilia, and demonstrate
+that FTLE fields can be used to characterize experimentally observed 
+flow trajectories. Altogether, our work demonstrates the usefulness of
+Lagrangian analysis in furthering our understanding of CSF flow.
 
 \section{Methods}
 \subsection{Image-based computational ventricular geometries}
@@ -286,27 +290,28 @@ are the fluid velocity and pressure,
 $\mathbb{I}$ is the identity tensor in dimension $d$ and
 $\beps(\uu)=\frac{1}{2}\left(\nabla\uu + (\nabla\uu)^T\right)$ is the
 strain-rate tensor.
-% The brain ventricles deform over time and thus 
-% the domain $\DD$ is deforming and varies over time.
-% Therefore, we solve the Navier-Stokes equations with an
-% Arbitrary Eulerian Lagrangian (ALE) approach~\cite{Duarte2004ALE}.
-% The governing equations are solved in the reference configuration $\chi$,
-% using the mapping $\psi : \xx\mapsto\chi$ from the current deformed
-% configuration at time $t$ to the reference configuration.
-% In this setup, the governing equations are
-% \begin{alignat}{1}
-%     \rho\left(\pdifft{\uu} + ((\uu - \cc)\cdot\hat{\nabla})\uu\right)
-%     &= \hat{\nabla}\cdot\TT \label{eq:ALE_momentum_eq} \\
-%     \hat{\nabla}\cdot\uu &= 0 \label{eq:ALE_continuity_eq}
-% \end{alignat}
-% where $\cc$ is the displacement velocity and
-% $\hat{\nabla}$ is the differential operator in the deformed domain.
-% In \Cref{eq:ALE_momentum_eq} and \Cref{eq:ALE_continuity_eq},
-% all variables are evaluated in the reference configuration.
-% In this ALE approach, the differential operators
-% and integration measures of the weak formulation
-% must be transformed appropriately to account for the
-% domain motion~\cite{Scovazzi2007LectureNotes}.
+
+The brain ventricles deform over time and thus 
+the domain $\DD$ is deforming and varies over time.
+Therefore, we solve the Navier-Stokes equations with an
+Arbitrary Lagrangian Eulerian (ALE) approach~\cite{Duarte2004ALE}.
+The governing equations are solved in the reference configuration $\chi$,
+using the mapping $\psi : \xx\mapsto\chi$ from the current deformed
+configuration at time $t$ to the reference configuration.
+In this setup, the governing equations are
+\begin{alignat}{1}
+    \rho\left(\pdifft{\uu} + ((\uu - \cc)\cdot\hat{\nabla})\uu\right)
+    &= \hat{\nabla}\cdot\TT \label{eq:ALE_momentum_eq} \\
+    \hat{\nabla}\cdot\uu &= 0 \label{eq:ALE_continuity_eq}
+\end{alignat}
+where $\cc$ is the displacement velocity and
+$\hat{\nabla}$ is the transformed differential operator accounting
+for the mapping $\psi$.
+In \Cref{eq:ALE_momentum_eq} and \Cref{eq:ALE_continuity_eq},
+all variables are evaluated in the reference configuration.
+Like for the differential operator $\nabla$, integrals of the weak formulation
+must be transformed appropriately to account for the
+domain motion~\cite{Scovazzi2007LectureNotes}.
 
 % The ventricular domain $\Omega_t = \Omega(t)$ is then deforming in time,
 % and we solve the fluid equations with an Arbitrary Lagrangian Eulerian (ALE) method.
@@ -869,10 +874,10 @@ ventricles are evenly distributed.
 Solving the fluid equations with the Stokes equations (\Cref{eq:time_dependent_stokes_eq})
 yields a similar aqueductal stroke volume (47.9 \textmu l), but the displaced flow volumes
 through the lateral apertures (47 \textmu l) and the spinal canal (4.9 \textmu l) differ
-from the Navier-Stokes results, especially the spinal canal stroke volume which is 37\%
-lower for the Stokes equations. The predicted maximum and minimum flowrates and
+from the Navier-Stokes results, especially the spinal canal stroke volume, which is 37\%
+lower for the Stokes approximation. Although predicted maximum and minimum flowrates and
 velocities occur at virtually the same time instants,
-but the Stokes equations predict lower maximum and minimum velocity magnitudes
+the Stokes equations predict lower maximum and minimum velocity magnitudes
 (8.14 and $-6.2$ cm/s, respectively). The approximately 9\% lower maximum velocity
 magnitude leads to a lower maximum Reynolds number of 385.
 The peak-to-nadir pressure gradient equals 0.0588 mmHg/cm, similar to that predicted
@@ -1000,7 +1005,7 @@ squeezing of the ventricular system, which evidently is symmetric
 in the horizontal plane (that characterizes medial-lateral motion)
 \cite{soellinger20093d, abderezaei2021development}. It has been
 reported that the periventricular deformations could be related to
-deformations in the third and lateral ventricles~\cite{abderezaei2021development}
+deformations in the third and lateral ventricles~\cite{abderezaei2021development}.
 
 
 Since there was virtually no difference in the CSF velocity approximations
@@ -1050,19 +1055,17 @@ and nonlinear models are presumably most appropriate to
 model deformations over longer timespans
 \cite{Cheng2010ComputationalModel, Cheng2007UnconfinedCompression,
 smillie2005hydroelastic, tully2009coupling, kaczmarek1997hydromechanics}.
-We justified our choice of linear elasticity by the fact that
+We justify our choice of linear elasticity with linear damping by the fact that
 we consider deformations on the timescale of a cardiac cycle,
 where nonlinear damping effects are negligible.
-Moreover, the ventricles are in reality fluid-filled, we
+Moreover, the ventricles are in reality fluid-filled, and we
 seek simply a smooth extension to the rest of the domain
 for the displacement measurement boundary condition $\bm{g}(\xx, t)$.
-A more detailed approach would be to consider linear viscoelasticity,
-which is how brain tissue behaves in reality.
 
 Respiration has its own flow component~\cite{Vinje2019RespiratoryMeasurements}.
 We only modeled pulsatile deformations driven by a cardiac freqeuncy.
 
-CSF production is in reality probably not constant nor evenly
+CSF production might in reality neither be constant nor evenly
 distributed across the choroid plexuses of the ventricles~\cite{}.
 Also, in reality 10--30\% of the CSF production
 may come from interstitial fluid transported through the ependymal cell
@@ -1076,9 +1079,12 @@ important.
 There is uncertainty around our choice of Navier slip boundary condition.
 First, the force per surface area parameter $\tau$ is based on the value used by
 Siyahhan~\emph{et al.}~\cite{Siyahhan2014FlowVentricles}, which they obtained by
-calibrating CSF flow simulations with rodent CSF velocity data. Because motile cilia
-in the human brain in general are ciliated to a higher degree, they might be stronger
-than those in the rodent brain. Second, the friction coefficient $\alpha=47 \ \mathrm{Pa\cdot s/m}$
+calibrating CSF flow simulations with rodent CSF velocity data. Because the
+ependymal cells lining the human brain ventricular walls
+in general are ciliated to a higher degree than in the rodent brain~\cite{spassky2017development},
+the ciliary beating might be stronger in human brain ventricles
+than the beating in the rodent brain. Second,
+the friction coefficient $\alpha=47 \ \mathrm{Pa\cdot s/m}$
 is estimated by assuming a slip length equal to the depth of the cilia layer lining
 the wall. This was chosen partly by comparing the cilia-generated velocities for
 different values of $\alpha$. Setting $\alpha=0$ like in the zebrafish model,
