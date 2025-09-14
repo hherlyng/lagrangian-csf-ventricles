@@ -67,7 +67,7 @@
 \setcounter{footnote}{1}
 
 % Title
-\title{\textbf{Coherent flow structures in brain ventricles}}
+\title{\textbf{Coherent flow structures and fluid inertia in brain ventricles}}
 \author{
     H.~Herlyng, S.~C.~Shadden
 }
@@ -86,7 +86,22 @@
 \maketitle
 
 \begin{abstract}
-    This paper ...
+    The dynamic flow of cerebrospinal fluid in brain ventricles 
+    exhibits flow features on several scales, both spatially and temporally.
+    Understanding such complex time-dependent flow through instantaneous flow
+    variables can deceive understanding of the flow. Here, we analyze brain ventricular
+    cerebrosinal fluid flow from the Lagrangian perspective -- a time-integrated view
+    of the flow. With realistic geometries generated from medical imaging data,
+    we model cerebrospinal fluid flow in human and embroynic zebrafish brain ventricles. 
+    Flow is governed by cardiac pulsations, cerebrospinal fluid secretion and motile cilia 
+    in the human brain, while in the zebrafish brain we consider flow driven solely by motile cilia.
+    The models are implemented and solved with finite element methods. We use the resulting velocity fields to
+    compute finite-time Lyapunov exponent fields and use them to characterize Lagrangian coherent structures.
+    These coherent structures demonstrate prominent flow features in the brain ventricles that resonate
+    well with experimental research. In the human brain ventricles, we asses the role of inertia
+    by considering flow governed by both the Navier-Stokes and the Stokes equations.
+    Comparisons show that solutions to the Stokes equations
+    display less intricate flow features than solutions to the Navier-Stokes equations.
 \end{abstract}
 
 % Notes:
@@ -784,7 +799,7 @@ to calculate FTLE fields.
 \subsubsection{Finite element method for the solid equations}
 The time-dependent linear elasticity equations (\Cref{eq:strong_linear_elasticity_1})
 are solved using a finite element method with
-cubic continuous Lagrange elements for the
+quartic continuous Lagrange elements for the
 spatial discretization. In time, the
 equations are discretized with the Newmark-$\beta$ method,
 for which updates of the displacement $\ww$ and 

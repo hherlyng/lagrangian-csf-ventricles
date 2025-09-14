@@ -73,7 +73,7 @@ params = {
     "lines.linewidth" : 3,
     "lines.markersize" : 12,
     "legend.fontsize" : 42,
-    "axes.labelsize" :  60,
+    "axes.labelsize" :  56,
     "xtick.labelsize" : 50,
     "ytick.labelsize" : 50,
     "font.family" : "serif",
@@ -93,7 +93,7 @@ fig4, ax4 = plt.subplots(figsize=figsize)
 # Plot flowrate and pressure gradient in the aqueduct
 ax.plot(times, flowrates_aq, color=flowrate_colors[0], linestyle=linestyles[ls_idx], label="Flowrate ")
 ax_.plot(times, pressure_gradients_aq, color=deltap_colors[2], linestyle=linestyles[ls_idx+1],
-         marker='^', markevery=me, label=r"$\Delta P$ "+label_end)
+         marker='^', markevery=me, label=r"$\Delta \overline{p}$ "+label_end)
 
 # Plot flowrates
 ax2.plot(times, flowrates_aq, color=flowrate_colors[0], linestyle=linestyles[ls_idx],
@@ -130,14 +130,14 @@ ax4.plot(times, pressures_lfm, color=deltap_colors[2], linestyle=linestyles[ls_i
 # Configure plots
 ax.legend(loc='upper left', frameon=True, fancybox=False, edgecolor='k')
 ax_.legend(loc='upper right', frameon=True, fancybox=False, edgecolor='k')
-ax.set_ylabel('ml/s', labelpad=0)
-ax_.set_ylabel('mmHg/cm', color=deltap_colors[2], labelpad=0)
+ax.set_ylabel('Flowrate [ml/s]', labelpad=0)
+ax_.set_ylabel('Pressure gradient [mmHg/cm]', color=deltap_colors[2], labelpad=0)
 ax_.tick_params(axis='y', colors=deltap_colors[2])
-ax2.set_ylabel('ml/s')
+ax2.set_ylabel('Flowrate [ml/s]')
 ax2.legend(loc='upper right', frameon=True, fancybox=False, edgecolor='k')
-ax3.set_ylabel('microliters')
+ax3.set_ylabel(r'Cumulative flow volume [$\mu$l]')
 ax3.legend(loc='upper right', frameon=True, fancybox=False, edgecolor='k')
-ax4.set_ylabel('mmHg')
+ax4.set_ylabel('Mean pressure [mmHg]')
 ax4.legend(loc='upper right', frameon=True, fancybox=False, edgecolor='k')
 [axes.set_xlabel('Time [s]') for axes in [ax, ax2, ax3, ax4]]
 
