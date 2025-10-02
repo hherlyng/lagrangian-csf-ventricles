@@ -862,27 +862,27 @@ caudal displacement of the brain ventricles during systole (\Cref{fig:flow_resul
 This contraction and caudal displacement leads to a rapid increase in caudal CSF flow through the interventricular
 foramina and cerebral aqueduct, when solving the Navier-Stokes equations (\Cref{eq:navier_stokes_eq}).
 In the aqueduct, the flowrate peaks at
-0.229 ml/s after 25.7\% of the cardiac cycle. This is a little earlier than the peak
+0.22 ml/s after 25.7\% of the cardiac cycle. This is a little earlier than the peak
 volume displacement of the ventricles, a volume displacement that totals around \fixme{$-0.15\%$}
 and occurs \fixme{40\%} throughout the cardiac cycle. The maximum point displacement peaks
 at \fixme{X} mm at time \fixme{Y}, located in \fixme{Z}.
 When the ventricles relax during diastole,
 the CSF flow reverses and flows cephalic to fill the ventricles
 and the aqueduct flowrate goes through a local minimum, increases slightly,
-then decreases again and bottoms out at $-0.177$ ml/s around
+then decreases again and bottoms out at $-0.171$ ml/s around
 93.6\% through the cycle. Finally, flow reverses when transitioning 
 into the next cardiac cycle.
 The pressure gradient in the cerebral aqueduct varies inversely with
-the flowrate behavior, with a peak-to-through range of 0.0577 mmHg/cm.
-The maximum CSF velocity magnitude of caudally directed flow is 8.88 cm/s,
-which is located in the cerebral aqueduct during systole at 27\% of the cardiac cycle.
-For cephalic flow, the minimum velocity is $-6.33$ cm/s in the aqueduct at the end of diastole
-after 95.2\% of the cardiac cycle. The maximum velocity magnitude corresponds to
-a Reynolds number of 420, indicating laminar flow.
-The stroke volume in the cerebral aqueduct was 48 \textmu l. Most of the displaced
+the flowrate behavior, with a peak-to-through range of 0.0529 mmHg/cm.
+The maximum CSF velocity magnitude of caudally directed flow is 6.75 cm/s,
+which is located in the cerebral aqueduct during systole at 26\% of the cardiac cycle.
+For cephalic flow, the minimum velocity is $-4.44$ cm/s in the aqueduct at the end of diastole
+after 93.6\% of the cardiac cycle. The maximum velocity magnitude corresponds to
+a Reynolds number of 319, indicating laminar flow.
+The stroke volume in the cerebral aqueduct was 46.1 \textmu l. Most of the displaced
 CSF volume crossing the domain boundary is through the lateral apertures
-(cumulative flow volume 45.2 \textmu l),
-with less fluid flowing in and out of the spinal canal (cumulative flow volume 7.8 \textmu l).
+(cumulative flow volume 45 \textmu l),
+with less fluid flowing in and out of the spinal canal (cumulative flow volume 8.6 \textmu l).
 The flow volumes through the interventricular foramina between the lateral and third 
 ventricles are evenly distributed.
 \begin{figure}
@@ -1030,6 +1030,15 @@ In our setup, with the only free boundaries of the geometry located
 in the caudal end of the geometry, the production velocity and thus
 the ciliary beating is generally caudally directed. The impact of
 this assumption could be interesting to assess.
+
+\subsection{Fluid inertia effects}
+The results we present indicate that when simulating CSF flow
+in human ventricles, accounting for intertial effects through
+solving the full Navier-Stokes equations is important for
+analysis of local flow features. Computing macroscopic quantities like stroke volumes
+is not as affected, meaning the more low-cost Stokes equations can
+be utilized for fast predictions in simulation frameworks where integrated
+quantities are needed.
 
 \subsection{Model validation, brain deformation and CSF flow}
 To assess the physiological validity of the flow, we computed several
