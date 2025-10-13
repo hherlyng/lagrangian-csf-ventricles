@@ -23,11 +23,11 @@ params = {
 plt.rcParams.update(params)
 
 m_to_mm = 1e3 # Meter to millimeter
-mesh_suffix = 0
+mesh_suffix = 1
 E = 1500
 T = 4
-k = 1
-p = 3
+k = 2
+p = 4
 linestyles = ["-", "--", "-.", ":"]
 markers = ["x", "o", "^", "s"]
 bc_colors = cm.haline.discrete(6).colors
@@ -56,6 +56,21 @@ volumes_tot = (volumes['volumes_tot']-1.0)*100
 volumes_3V  = (volumes['volumes_3V']-1.0)*100
 volumes_LV  = (volumes['volumes_LV']-1.0)*100
 
+# Print information
+print(f"Max total volume displacement [%]: {np.max(volumes_tot):.2f}")
+print(f"Time of max total volume displacement [s]: {np.argmax(volumes_tot)*timestep:.3f}")
+print(f"Min total volume displacement [%]: {np.min(volumes_tot):.2f}")
+print(f"Time of min total volume displacement [s]: {np.argmin(volumes_tot)*timestep:.3f}")
+print(f"Max 3V volume displacement [%]: {np.max(volumes_3V):.2f}")
+print(f"Time of max 3V volume displacement [s]: {np.argmax(volumes_3V)*timestep:.3f}")
+print(f"Min 3V volume displacement [%]: {np.min(volumes_3V):.2f}")
+print(f"Time of min 3V volume displacement [s]: {np.argmin(volumes_3V)*timestep:.3f}")
+print(f"Max LV volume displacement [%]: {np.max(volumes_LV):.2f}")
+print(f"Time of max LV volume displacement [s]: {np.argmax(volumes_LV)*timestep:.3f}")
+print(f"Min LV volume displacement [%]: {np.min(volumes_LV):.2f}")
+print(f"Time of min LV volume displacement [s]: {np.argmin(volumes_LV)*timestep:.3f}")
+
+# Plot
 times = np.arange(bc_cc.shape[0])*timestep
 me = int(len(times)/25) # Marker interval
 ax_bcs.plot(times, m_to_mm*bc_cc, color=bc_colors[0], label="Corpus callosum")

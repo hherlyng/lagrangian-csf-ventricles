@@ -67,7 +67,7 @@
 \setcounter{footnote}{1}
 
 % Title
-\title{\textbf{Coherent flow structures and fluid inertia in brain ventricles}}
+\title{\textbf{Coherent flow structures in brain ventricles}}
 \author{
     H.~Herlyng, S.~C.~Shadden
 }
@@ -710,7 +710,7 @@ We define this relation as the mapping
 \end{equation}
 where $\bphi_{t_0}^t$ is the flow map~\cite{shadden2005definition}.
 We have thus far emphasized the dependence of 
-the dynamical system and the flow map on the parameters $t_0, \xx_0$, but will in the 
+the dynamical system and the flow map on the initial configuration $\xx_0$, but will in the 
 following omit this notation for brevity. Using the gradient of the flow map,
 we define the (right) Cauchy-Green deformation tensor
 \begin{equation}
@@ -767,8 +767,8 @@ for the BDM elements, while tangential continuity is achieved
 by a stabilization technique~\cite{Hong2016AEquations}. 
 When solving the Navier-Stokes equations, the convective term
 is linearized as $(\uu^{n+1}\cdot\nabla)\uu^{n+1} \approx (\uu^n\cdot\nabla)\uu^{n+1}$
-where $n$ denotes timestep. Moreover, the convective fluxes both internal in the
-mesh and on open boundaries are stabilized with
+where $n$ denotes timestep. Moreover, the convective fluxes both on facets
+internal to the mesh and on open boundaries are stabilized with
 an upwinding technique~\cite{Schroeder2018Towards,
 di2011mathematical}.
 
@@ -862,9 +862,9 @@ caudal displacement of the brain ventricles during systole (\Cref{fig:flow_resul
 This contraction and caudal displacement leads to a rapid increase in caudal CSF flow through the interventricular
 foramina and cerebral aqueduct, when solving the Navier-Stokes equations (\Cref{eq:navier_stokes_eq}).
 In the aqueduct, the flowrate peaks at
-0.22 ml/s after 25.7\% of the cardiac cycle. This is a little earlier than the peak
-volume displacement of the ventricles, a volume displacement that totals around \fixme{$-0.15\%$}
-and occurs \fixme{40\%} throughout the cardiac cycle. The maximum point displacement peaks
+0.22 ml/s after 25.7\% of the cardiac cycle. This is a little earlier than the largest
+volume displacement of the ventricle; a volume displacement of $-0.16\%$
+that occurs 40\% throughout the cardiac cycle. The maximum point displacement peaks
 at \fixme{X} mm at time \fixme{Y}, located in \fixme{Z}.
 When the ventricles relax during diastole,
 the CSF flow reverses and flows cephalic to fill the ventricles
@@ -904,16 +904,16 @@ ventricles are evenly distributed.
 
 % Comparison of quantities of interest with Stokes approximation
 Solving the fluid equations with the Stokes equations (\Cref{eq:time_dependent_stokes_eq})
-results in qualitatively similar CSF flow as described above. The Stokes approximation
-exhibits a similar aqueductal stroke volume (47.9 \textmu l), but the displaced flow volumes
-through the lateral apertures (47 \textmu l) and the spinal canal (4.9 \textmu l) differ
-from the Navier-Stokes solution, especially the spinal canal stroke volume, which is 37\%
+results in qualitatively similar CSF flow as described above in terms of the systole and
+diastole trends. The Stokes approximation has the same aqueductal stroke volume (46.1 \textmu l),
+but the displaced flow volumes through the lateral apertures (47 \textmu l) and the spinal canal (4.9 \textmu l) differ
+from the Navier-Stokes solution, especially the spinal canal stroke volume, which is 43\%
 lower for the Stokes approximation. Although predicted maximum and minimum flowrates and
 velocities occur at virtually the same time instants,
 the Stokes equations predict lower maximum and minimum velocity magnitudes
-(8.14 and $-6.2$ cm/s, respectively). The approximately 9\% lower maximum velocity
-magnitude leads to a lower maximum Reynolds number of 385.
-The peak-to-nadir pressure gradient equals 0.0588 mmHg/cm, similar to that predicted
+(5.96 and $-4.57$ cm/s, respectively). The 11.7\% lower maximum velocity
+magnitude leads to a lower maximum Reynolds number of 282.
+The peak-to-nadir pressure gradient equals 0.054 mmHg/cm, slightly higher than that predicted
 by the Navier-Stokes equations.
 
 % Eulerian flow features and comparison
