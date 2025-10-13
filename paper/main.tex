@@ -972,7 +972,8 @@ traction being constant and the geometry being closed, this flow field is a stea
 The maximum velocity magnitude is \fixme{X} \textmu m/s.
 
 \subsection{Finite-time Lyapunov exponent fields in the human brain ventricles}
-Finite-time Lyapunov exponent (FTLE) fields with varying integration times show the emergence of
+Finite-time Lyapunov exponent (FTLE) fields computed using the solution to Navier-Stokes
+equations (\Cref{eq:navier_stokes_eq}) with varying integration times show the emergence of
 a jet at the top of the aqueduct. The attracting and repelling
 structures indicate Lagrangian coherent structures (LCS) forming.
 There are also clearly visible structures in the
@@ -987,6 +988,40 @@ smeared out.
 For an integration time of one cardiac cycle ($T=1.0$ s), FTLE fields computed
 with varying initial particle position $\xx_0$ shows the evolution of the
 structures observed near the aqueduct and the interventricular foramina.
+
+\begin{figure}
+    \centering
+    \includegraphics[width=\textwidth]{graphics/FTLE_human1.png}
+    \caption{FTLE fields in the human brain ventricles 
+    computed with an integration time $T = 1.0$ s
+    (one cardiac cycle). The FTLE fields
+    were computed in two boxed sections: (i) the posterior end of the third
+    ventricle, including the superior most part of the aqueduct, and
+    (ii) the anterior part of the lateral ventricles, including
+    the interventricular foramina. The FTLE fields are displayed
+    in sagittal and coronal slices. Common legends for all repelling and all attracting
+    fields.}
+    \label{fig:FTLE_human1}
+\end{figure}
+
+Computing FTLE fields with the time-dependent Stokes equations (\Cref{eq:time_dependent_stokes_eq}),
+the jet structure observed in the Navier-Stokes solution is absent; the lobes that form
+and over time are elevated from the aqueduct entrance in the Navier-Stokes solution are not 
+present in the Stokes solution's FTLE fields.
+
+\begin{figure}
+    \centering
+    \includegraphics[width=\textwidth]{graphics/FTLE_human2.png}
+    \caption{FTLE fields for integration times $T = 0.5, 1.0, 1.5, 2.0$ s
+    in the human brain ventricles. The FTLE fields
+    were computed in two boxed sections: (i) the posterior end of the third
+    ventricle, including the superior most part of the aqueduct, and
+    (ii) the anterior part of the lateral ventricles, including
+    the interventricular foramina. The FTLE fields are displayed
+    in sagittal and coronal slices. Common legends for all repelling and all attracting
+    fields.}
+    \label{fig:FTLE_human2}
+\end{figure}
 
 \subsection{FTLE fields demonstrate ventricular flow compartmentalization in zebrafish embryos}
 The repelling and attracting structures in the anterior-middle interventricular
