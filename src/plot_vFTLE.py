@@ -18,10 +18,11 @@ model_versions = {1 : "deformation",
                   4 : "deformation+cilia+production"
 }
 model_version = model_versions[int(sys.argv[4])]
-prefix = f"~/flowVC/output/brain/{mesh_prefix}-mesh/{solver_type}/p={p}_k={k}/{model_version}/FTLE-vtk"
+prefix = f"~/flowVC/output/brain/{mesh_prefix}-mesh/{solver_type}/p={p}_k={k}/{model_version}/vFTLE-vtk"
 vtk_suffix = ".vtk"
 fig_output_dir = "../output/illustrations/FTLE/"
-T = 1 # Integration time
+T = 2
+freq = 4
 
 sargs = dict(
     italic=False,
@@ -30,20 +31,26 @@ sargs = dict(
     position_y=0.80
 )
 
+forward_cmap = colormaps.cet_l_blue
 forward_cmap = colormaps.viola
+backward_cmap = colormaps.cet_l_kry
 backward_cmap = colormaps.curl
 n_colors = 16
-times = [0, 1, 2, 3, 4]
+times = [125, 250, 375, 500]
 directions = ["forward", "backward"]
+if location=="third":
+    pl2_shape = [400, 900]
+else:
+    pl2_shape = [500, 1250]
 pl  = pyvista.Plotter(shape=(len(times), len(directions)), window_size=[750, 2000], border=False, off_screen=True, image_scale=2) # yz plane
-pl2 = pyvista.Plotter(shape=(len(directions), len(times)), window_size=[2000, 750], border=False, off_screen=True, image_scale=2) # xz plane
+pl2 = pyvista.Plotter(shape=(len(times), len(directions)), window_size=pl2_shape, border=False, off_screen=True, image_scale=2) # xz plane
 pl3 = pyvista.Plotter(shape=(len(times), len(directions)), window_size=[750, 2500], border=False, off_screen=True, image_scale=2) # xy plane
 
 for j, direction in enumerate(directions):
     sargs["title"] = direction
     for i, time in enumerate(times):
         print(f"Time = {time}")
-        data_filename = f"{prefix}/FTLE-{direction}-{location}-T={T}.{time}" 
+        data_filename = f"{prefix}/vFTLE-{direction}-{location}-T={T}-freq={freq}.{time}" #/{direction}-{location}
         data = pyvista.read(data_filename+vtk_suffix)
         data = data.threshold(0.0) # Remove all points with values below zero
 
@@ -67,7 +74,7 @@ for j, direction in enumerate(directions):
             origin_xy = [0.0, 0.01435, 0.02084]
 
             zoom_yz = 1.35
-            zoom_xz = 4.0
+            zoom_xz = 3.5
             zoom_xy = 1.25
         
             clims = [[0, 1.0], # yz
@@ -102,12 +109,12 @@ for j, direction in enumerate(directions):
         pl.camera.zoom(zoom_yz)
 
         # Plot xz plane
-        pl2.subplot(j, i)
+        pl2.subplot(i, j)
         pl2.add_mesh(data.slice(normal=[0, 1, 0], origin=origin_xz),
-                        cmap=forward_cmap if direction=="forward" else backward_cmap,
-                        clim=clims[1],
-                        show_scalar_bar=False,
-                        n_colors=n_colors)
+                     cmap=forward_cmap if direction=="forward" else backward_cmap,
+                     clim=clims[1],
+                     show_scalar_bar=False,
+                     n_colors=n_colors)
         pl2.view_xz(negative=True)
         if location=="laterals":
             pos = pl2.camera.position
@@ -117,18 +124,18 @@ for j, direction in enumerate(directions):
             pl2.camera.position = (pos[0], pos[1], pos[2] + dz)
             pl2.camera.focal_point = (foc[0], foc[1], foc[2] + dz)
         pl2.camera.zoom(zoom_xz)
-
+        
         # Plot xy plane
         pl3.subplot(i, j)
         pl3.add_mesh(data.slice(normal=[0, 0, 1], origin=origin_xy),
-                        cmap=forward_cmap if direction=="forward" else backward_cmap,
-                        clim=clims[2],
-                        show_scalar_bar=False,
-                        n_colors=n_colors)
+                     cmap=forward_cmap if direction=="forward" else backward_cmap,
+                     clim=clims[2],
+                     show_scalar_bar=False,
+                     n_colors=n_colors)
         pl3.view_xy(negative=True)
         pl3.camera.roll = 90
         pl3.camera.zoom(zoom_xy)
         
-pl.screenshot(fig_output_dir+f"FTLE-mesh_{mesh_suffixes[mesh_prefix]}-slices-human-{location}-{solver_type}-model-{model_version}-yz.png")
-pl2.screenshot(fig_output_dir+f"FTLE-mesh_{mesh_suffixes[mesh_prefix]}-slices-human-{location}-{solver_type}-model-{model_version}-xz.png")
-pl3.screenshot(fig_output_dir+f"FTLE-mesh_{mesh_suffixes[mesh_prefix]}-slices-human-{location}-{solver_type}-model-{model_version}-xy.png")
+pl.screenshot(fig_output_dir+f"vFTLE-mesh_{mesh_suffixes[mesh_prefix]}-slices-human-{location}-{solver_type}-model-{model_version}-yz.png", scale=2)
+pl2.screenshot(fig_output_dir+f"vFTLE-mesh_{mesh_suffixes[mesh_prefix]}-slices-human-{location}-{solver_type}-model-{model_version}-xz.png")
+pl3.screenshot(fig_output_dir+f"vFTLE-mesh_{mesh_suffixes[mesh_prefix]}-slices-human-{location}-{solver_type}-model-{model_version}-xy.png")
