@@ -744,8 +744,8 @@ reveal attracting structures (stable manifolds).
 To compute FTLE fields, we initiate a cartesian grid of particles at a
 time $t_0$ and compute the flow map $\phi_{t_0}^{t_0+T}$
 by numerical integration with a fourth-order Runge-Kutta scheme.
-For integration, the timestep size $\Delta t = \fixme{0.001}$
-was chosen based on the CFL condition
+For integration, the timestep size $\Delta t = 0.001$
+was chosen to satisfy the CFL condition
 $\Delta t \leq C h_{\mathrm{min}}/u_{\mathrm{max}}$,
 where $C=0.5$, $h_{\mathrm{min}}$ is the minimal edge length
 of the mesh, and $u_{\mathrm{max}}$ is
@@ -865,22 +865,22 @@ caudal displacement of the brain ventricles during systole (\Cref{fig:flow_resul
 This contraction and caudal displacement leads to a rapid increase in caudal CSF flow through the interventricular
 foramina and cerebral aqueduct, when solving the Navier-Stokes equations (\Cref{eq:navier_stokes_eq}).
 In the aqueduct, the flowrate peaks at
-0.22 ml/s after 25.7\% of the cardiac cycle. This is a little earlier than the largest
+0.22 ml/s after 26\% of the cardiac cycle. This is a little earlier than the largest
 volume displacement of the ventricle; a volume displacement of $-0.16\%$
 that occurs 40\% throughout the cardiac cycle. The maximum point displacement peaks
 at \fixme{X} mm at time \fixme{Y}, located in \fixme{Z}.
 When the ventricles relax during diastole,
 the CSF flow reverses and flows cephalic to fill the ventricles
 and the aqueduct flowrate goes through a local minimum, increases slightly,
-then decreases again and bottoms out at $-0.171$ ml/s around
-93.6\% through the cycle. Finally, flow reverses when transitioning 
+then decreases again and bottoms out at $-0.17$ ml/s around
+94\% through the cycle. Finally, flow reverses when transitioning 
 into the next cardiac cycle.
 The pressure gradient in the cerebral aqueduct varies inversely with
-the flowrate behavior, with a peak-to-through range of 0.0529 mmHg/cm.
-The maximum CSF velocity magnitude of caudally directed flow is 6.75 cm/s,
+the flowrate behavior, with a peak-to-through range of 0.053 mmHg/cm.
+The maximum CSF velocity magnitude of caudally directed flow is 6.8 cm/s,
 which is located in the cerebral aqueduct during systole at 26\% of the cardiac cycle.
-For cephalic flow, the minimum velocity is $-4.44$ cm/s in the aqueduct at the end of diastole
-after 93.6\% of the cardiac cycle. The maximum velocity magnitude corresponds to
+For cephalic flow, the minimum velocity is $-4.4$ cm/s in the aqueduct at the end of diastole
+after 94\% of the cardiac cycle. The maximum velocity magnitude corresponds to
 a Reynolds number of 319, indicating laminar flow.
 The stroke volume in the cerebral aqueduct was 46.1 \textmu l. Most of the displaced
 CSF volume crossing the domain boundary is through the lateral apertures
@@ -914,7 +914,7 @@ from the Navier-Stokes solution, especially the spinal canal stroke volume, whic
 lower for the Stokes approximation. Although predicted maximum and minimum flowrates and
 velocities occur at virtually the same time instants,
 the Stokes equations predict lower maximum and minimum velocity magnitudes
-(5.96 and $-4.57$ cm/s, respectively). The 11.7\% lower maximum velocity
+(6.0 and $-4.6$ cm/s, respectively). The 12\% lower maximum velocity
 magnitude leads to a lower maximum Reynolds number of 282.
 The peak-to-nadir pressure gradient equals 0.054 mmHg/cm, slightly higher than that predicted
 by the Navier-Stokes equations.
@@ -1066,7 +1066,7 @@ order of magnitude larger than the $T$ values used for the human ventricles.
 
 \section{Discussion}
 
-\subsection{Clearly defined Lagrangian structures are present in the ventricular system}
+\subsection{Lagrangian structures are present in the ventricular system}
 Both in the zebrafish and the human model, we find ridges in the FTLE field
 that indicate presence of Lagrangian coherent structures. The jet observed in 
 the third ventricle resonates well with previous computational
@@ -1106,7 +1106,7 @@ This finding compares well with the computational study by Siyahhan~\emph{et al.
 whose results showed only a minor effect of cilia on near-wall flow.
 On the other hand, in the model of Yoshida~\emph{et al.}~\cite{Yoshida2022EffectVentricles} 
 cilia had a significant effect on mixing. We observed that the cilia model parameters
-strongly influenced the effect of cilia on the flow (see \Cref{subsec:limnitations}),
+strongly influenced the effect of cilia on the flow (see \Cref{subsec:limitations}),
 and we are of the opinion that any definite conclusions on the effect of cilia in
 brain ventricular flow and transport should be postponed until more experimental data
 on cilia parameters in the human brain ventricles are available.
@@ -1275,11 +1275,20 @@ Here, we disregarded these (and other possible mechanisms) to focus
 on the impact of cilia and CSF production on the ventricular flow and transport.
 
 \section{Conclusions and outlook}
-We hope our work inspires further Lagrangian analysis of
-CSF flow.
+We have presented a computational framework for using finite-time Lyapunov exponent (FTLE)
+fields to characterize Lagrangian coherent structures in brain ventricles.
+The FTLE fields are computed from velocity fields generated with finite element simulations
+of cerebrospinal fluid (CSF) flow. We demonstrated that accounting for inertial effects
+has little importance when computing integrated flow quantities, but that the inertial
+effects are crucial for capturing Lagrangian coherent structures and thus crucial when
+modeling transport and mixing in the (human) brain ventricles. Through comparison with previous
+Eulerian-based flow analysis of CSF flow in embryonic zebrafish brain ventricles, our results further
+demonstrate how FTLE fields can be used to characterize prominent flow structures in brain ventricles.
+There are still several unresolved model parameters and assumptions, but hopefully this work inspires
+future work on Lagrangian analysis of brain ventricular flow and transport.
 
 \subsection*{Acknowledgments}
-Grateful thanks are given to Miroslav Kuchta, Marie E. Rognes
+Grateful thanks to Miroslav Kuchta, Marie E. Rognes
 and Marius Causemann for model discussions,
 and to Nathalie Jurisch-Yaksi for
 insightful discussions about the ventricular system.
