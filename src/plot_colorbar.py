@@ -36,7 +36,7 @@ if __name__=='__main__':
         #                    f"{cb_max:.2g}"])
         cb.set_ticklabels(["Low", " ", " ", " ", "High"])
         ax.tick_params(axis='x', labelsize=35)
-        ax.set_title(r"Repelling FTLE value", fontsize=46, pad=20.0)
+        ax.set_title(r"Attracting FTLE value", fontsize=46, pad=20.0)
         fig_name = f"../output/illustrations/colorbars/{orientation}_colorbar_{cmap_name}_low_high.png"
 
     fig.tight_layout(pad=0)

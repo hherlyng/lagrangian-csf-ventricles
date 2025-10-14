@@ -968,28 +968,22 @@ traction being constant and the geometry being closed, this flow field is a stea
 The maximum velocity magnitude is 26.4 \textmu m/s.
 
 \subsection{Finite-time Lyapunov exponent fields in the human brain ventricles}
-Finite-time Lyapunov exponent (FTLE) fields computed using the solution to Navier-Stokes
-equations (\Cref{eq:navier_stokes_eq}) with varying integration times show the emergence of
-a jet at the top of the aqueduct. The attracting and repelling
-structures indicate Lagrangian coherent structures (LCS) forming.
-There are also clearly visible structures in the
+Finite-time Lyapunov exponent (FTLE) fields computed using the solution to the Navier-Stokes
+equations (\Cref{eq:navier_stokes_eq}) with varying integration time $T$ show the emergence of
+a jet at the cephalic entrance to the aqueduct (\Cref{fig:FTLE_human1}). 
+There are also clearly visible ridge-like structures in the FTLE fields in the
 interventricular foramina. Both the aqueduct and the interventricular foramina
 are the narrowest sections of the ventricular system where flow
 is strongest. In the bulk of the lateral and third ventricles,
 there are no clear structures in the FTLE fields.
 We observe clearer structures as the integration time increases through
-several cardiac cycles. For higher integration times, the structures become
-smeared out. 
-
-For an integration time of one cardiac cycle ($T=1.0$ s), FTLE fields computed
-with varying initial particle position $\xx_0$ shows the evolution of the
-structures observed near the aqueduct and the interventricular foramina.
-
+a couple of cardiac cycles. For higher integration times, the structures become
+smeared out with diminishing FTLE values. 
 \begin{figure}
     \centering
     \includegraphics[width=\textwidth]{graphics/FTLE_human1.png}
-    \caption{FTLE fields computed with initial particle positions
-    $\xx_0 = \xx(t_0)$ and integration times $T = 0.5, 1.0, 1.5, 2.0$ s
+    \caption{FTLE fields computed with initial particle position
+    $\xx_0 = \xx(t_0)$ at $t_0=0$ and integration times $T = 0.5, 1.0, 1.5, 2.0$ s
     in the human brain ventricles. The FTLE fields
     were computed in two boxed sections: (i) the posterior end of the third
     ventricle, including the superior most part of the aqueduct, and
@@ -1001,11 +995,13 @@ structures observed near the aqueduct and the interventricular foramina.
     \label{fig:FTLE_human1}
 \end{figure}
 
-Computing FTLE fields with the time-dependent Stokes equations (\Cref{eq:time_dependent_stokes_eq}),
-the jet structure observed in the Navier-Stokes solution is absent; the lobes that form
-and over time are elevated from the aqueduct entrance in the Navier-Stokes solution are not 
-present in the Stokes solution's FTLE fields.
-
+For an integration time of one cardiac cycle ($T=1.0$ s), FTLE fields computed
+with varying initial particle position $\xx_0$ show how the FTLE fields vary
+in time (\Cref{fig:FTLE_human2}). In the interventricular foramina,
+the attracting structures reverse their orientation over one cardiac cycle (1.0 second).
+The vortex formed by the jet near the aqueduct entrance detaches from the entrance 
+during early systole. A new vortex is forming during the transition to diastole,
+and a new vortex clearly forms during the transition to the next cardiac cycle.
 \begin{figure}
     \centering
     \includegraphics[width=\textwidth]{graphics/FTLE_human2.png}
@@ -1018,6 +1014,32 @@ present in the Stokes solution's FTLE fields.
     The lower colorbar limit is zero in all slices, while the higher colorbar limit is
     an FTLE value of 2.5 and 5.0 for the IVF and 3V slices, respectively.}
     \label{fig:FTLE_human2}
+\end{figure}
+
+Computing FTLE fields with the time-dependent Stokes equations (\Cref{eq:time_dependent_stokes_eq})
+the jet structure in the third ventricle differs greatly compared to the structre
+observed in the Navier-Stokes solution (\Cref{fig:FTLE_human3}).
+In the attracting FTLE field, the lobes that form
+and over time are elevated from the aqueduct entrance in the Navier-Stokes solution are not 
+present in the Stokes solution's FTLE fields. Similarly, the repelling structures are more
+extensive in the Navier-Stokes FTLE fields.
+
+\begin{figure}
+    \centering
+    \includegraphics[width=\textwidth]{graphics/FTLE_human3.png}
+    \caption{Comparing FTLE fields computed in the human brain ventricles
+    using the Navier-Stokes and Stokes solutions and initial particle position
+    $\xx_0 = \xx(t_0)$ at $t_0=0$, with varying integration times 
+    $T = 0.5, 1.0, 1.5, 2.0$ s. The FTLE fields
+    were computed in two boxed sections (see \Cref{fig:FTLE_human1}):
+    (i) the posterior end of the third
+    ventricle, including the superior most part of the aqueduct, and
+    (ii) the anterior part of the lateral ventricles, including
+    the interventricular foramina. The FTLE fields are displayed
+    in sagittal and coronal slices. The lower colorbar limit
+    is zero in all slices, while the higher colorbar limit is
+    an FTLE value of 2.5 and 5.0 for the IVF and 3V slices, respectively.}
+    \label{fig:FTLE_human3}
 \end{figure}
 
 \subsection{FTLE fields demonstrate ventricular flow compartmentalization in zebrafish embryos}
@@ -1046,7 +1068,13 @@ order of magnitude larger than the $T$ values used for the human ventricles.
 
 \subsection{Clearly defined Lagrangian structures are present in the ventricular system}
 Both in the zebrafish and the human model, we find ridges in the FTLE field
-that indicate presence of Lagrangian coherent structures.
+that indicate presence of Lagrangian coherent structures. The jet observed in 
+the third ventricle resonates well with previous computational
+studies~\cite{Kurtcuoglu2007ComputationalSylvius}. The jet creates a vortex
+every cardiac cycle. In the interventricular foramina, there are also
+clear ridges in the FTLE field, indicating regions of high stretching
+and delineation of regions with different advective transport times.
+
 In the zebrafish ventricles, there exists structures in the interventricular ducts
 that confines flow to separate parts of the ventricular system. This aligns well with
 previous studies that have demonstrated flow
@@ -1054,34 +1082,46 @@ compartmentalization in embryonic zebrafish
 brain ventricles~\cite{Olstad2019CiliaryDevelopment,
 Herlyng2025AdvectionDiffusion}.
 
-\subsection{Motile cilia}
-Our finding that cilia do not affect the bulk flow in the human brain ventricles
-compare well with the computational study by Siyahhan~\emph{et al.}~\cite{Siyahhan2014FlowVentricles}.
-On the other hand in the model of Yoshida~\emph{et al.}~\cite{Yoshida2022EffectVentricles} 
-cilia had a significant effect on mixing. In the zebrafish brain, however, the cilia are
-the main drivers of flow~\cite{Olstad2019CiliaryDevelopment, Herlyng2025AdvectionDiffusion},
-partly because of the much smaller length scale of the system. Therefore, maybe cilia probably
-play a similarly important role in small confined spaces of the human ventricular system,
-such as in the inferior and occipital horns of the lateral ventricles.
-
-We considered the beating direction of cilia to align with the direction of 
-CSF production velocities, similar to Siyahhan~\emph{et al.}, who considered
-directionality of the cilia forcing aligned
-with the wall shear stress of the macroscopic flow simulated in a
-production-only setup~\cite{Siyahhan2014FlowVentricles}.
-In our setup, with the only free boundaries of the geometry located
-in the caudal end of the geometry, the production velocity and thus
-the ciliary beating is generally caudally directed. The impact of
-this assumption could be interesting to assess.
-
-\subsection{Fluid inertia effects}
+\subsection{The effects of fluid inertia on ventricular flow and transport}
 The results we present indicate that when simulating CSF flow
 in human ventricles, accounting for intertial effects through
-solving the full Navier-Stokes equations is important for
-analysis of local flow features. Computing macroscopic quantities like stroke volumes
-is not as affected, meaning the more low-cost Stokes equations can
-be utilized for fast predictions in simulation frameworks where integrated
-quantities are needed.
+solving the full Navier-Stokes equations is important when investigating
+advective transport by the CSF flow, as well as analysis of local flow features.
+We draw this conclusion based on the vast differences in the structures
+present in the FTLE fields and the differences in local flow features
+between the Navier-Stokes and Stokes solutions.
+However, in terms of computing macroscopic quantities like stroke volume,
+the Stokes equations appear to be sufficiently accurate. As such,
+the Stokes equations can be utilized as a low-cost alternative for fast predictions
+in computational frameworks where integrated quantities are needed, despite the
+Reynolds number being in the low hundreds.
+
+\subsection{The effects of motile cilia and CSF production}
+Disregarding motile cilia did not alter the flow in the human brain ventricles significantly
+in terms of macroscopic flow quantities like stroke volume. 
+There were however minor differences in the FTLE field structures when disregarding cilia,
+with the lobe structures near the aqueduct entrance more attached to the 3V wall when including cilia,
+indicating that cilia alter the near-wall flow.
+This finding compares well with the computational study by Siyahhan~\emph{et al.}~\cite{Siyahhan2014FlowVentricles},
+whose results showed only a minor effect of cilia on near-wall flow.
+On the other hand, in the model of Yoshida~\emph{et al.}~\cite{Yoshida2022EffectVentricles} 
+cilia had a significant effect on mixing. We observed that the cilia model parameters
+strongly influenced the effect of cilia on the flow (see \Cref{subsec:limnitations}),
+and we are of the opinion that any definite conclusions on the effect of cilia in
+brain ventricular flow and transport should be postponed until more experimental data
+on cilia parameters in the human brain ventricles are available.
+This contrasts the case for the embryonic zebrafish brain, however, where the model parameters
+are more comprehensively resolved, and previous work strongly suggests cilia are
+the main drivers of flow~\cite{Olstad2019CiliaryDevelopment, Herlyng2025AdvectionDiffusion}.
+This is partly because of the much smaller length scale of the ventricular system of embryonic zebrafish
+as compared to adult humans. Therefore, cilia may play a similarly important
+role in small confined spaces of the human ventricular system,
+such as in the inferior and occipital horns of the lateral ventricles.
+
+The constant-in-time CSF production we imposed had little impact, apart from
+generating a net outward flow from the ventricular system. In terms of local
+flow features, there was no noticeable difference when disregarding CSF production.
+The FTLE fields were also largely unaffected compared to the baseline model.
 
 \subsection{Model validation, brain deformation and CSF flow}
 To assess the physiological validity of the flow, we computed several
@@ -1109,6 +1149,16 @@ however that several previous studies, both in experiment and computational stud
 report millimeter per second velocities~\cite{enzmann1993cerebrospinal, enzmann1991normal,
 Causemann2022HumanFramework, Sweetman2011ThreeDimensional, howden2008three, wagshul2011pulsating,
 greitz1993pulsatile, sweetman2011cerebrospinal}. \fixme{Something we can comment on the magnitude discrepancies?}
+
+We considered the beating direction of cilia to align with the direction of 
+CSF production velocities, similar to Siyahhan~\emph{et al.}, who considered
+directionality of the cilia forcing aligned
+with the wall shear stress of the macroscopic flow simulated in a
+production-only setup~\cite{Siyahhan2014FlowVentricles}.
+In our setup, with the only free boundaries of the geometry located
+in the caudal end of the geometry, the production velocity and thus
+the ciliary beating is generally caudally directed. The impact of
+this assumption could be interesting to assess.
 
 The flow rates are in the range of clinically reported values~\cite{Liu2024UsingBreathing, wagshul2011pulsating,
 }.
@@ -1140,17 +1190,6 @@ conclusion~\cite{Kurtcuoglu2007ComputationalSylvius}, namely that medial-lateral
 of the third ventricle is required to fully \fixme{explain} ventricular CSF flow.
 
 
-Since there was virtually no difference in the CSF velocity approximations
-calculated with the Navier-Stokes and the Stokes equations, 
-the time-dependent Stokes equations seem a satisfactory approximation
-to the Navier-Stokes equations for brain ventricular flow, although Reynolds
-numbers are in the higher hundreds.
-
-The velocity vector fields match to some extent with previous reports. %cite
-The jets in the interventricular foramina and 3V entry towards
-the aqueduct are visible there
-as well, with small velocities elsewhere.
-
 
 % Despite using different techniques, all studies agree that
 % maximum tissue displacement occurs during systole. Over-
@@ -1173,10 +1212,11 @@ as well, with small velocities elsewhere.
 % inferior brain structures, DENSE also showed large motion
 % in the medial brain structures near the 3rd and lateral ventricles [65].
 
-\subsection{Limitations}
+\subsection{Limitations}\label{subsec:limitations}
 This modeling work comprises several mechanisms, parameters and
 assumptions that are uncertain.
-For the (damped) linear elastic model, there is an inherent
+For the solid equations we used a damped linear elastic model,
+where there is an inherent
 uncertainty in the material parameters
 of brain tissue~\cite{smillie2005hydroelastic}.
 Biological soft tissues rarely exhibit Hookean material behavior,
@@ -1184,27 +1224,16 @@ and nonlinear models are presumably most appropriate to
 model deformations over longer timespans
 \cite{Cheng2010ComputationalModel, Cheng2007UnconfinedCompression,
 smillie2005hydroelastic, tully2009coupling, kaczmarek1997hydromechanics}.
-We justify our choice of linear elasticity with linear damping by the fact that
-we consider deformations on the timescale of a cardiac cycle,
+We justify our choice of deformation model by the fact that
+we seek simply a smooth extension to the rest of the domain
+for the displacement measurement boundary condition $\bm{g}(\xx, t)$,
+while the ventricles are in reality fluid-filled cavities.
+The choice of linear elasticity with linear damping is considered
+adequate since we consider deformations on the timescale of a cardiac cycle,
 where nonlinear damping effects are negligible.
-Moreover, the ventricles are in reality fluid-filled, and we
-seek simply a smooth extension to the rest of the domain
-for the displacement measurement boundary condition $\bm{g}(\xx, t)$.
 
-CSF production might in reality neither be constant nor evenly
-distributed across the choroid plexuses of the ventricles~\cite{}.
-Also, in reality 10--30\% of the CSF production
-may come from interstitial fluid transported through the ependymal cell
-layer of the brain ventricles walls into the ventricles~\cite{Brodal2016TheSystem}.
-
-Respiration has its own flow component~\cite{Vinje2019RespiratoryMeasurements}.
-We only modeled pulsatile deformations driven by a cardiac freqeuncy.
-
-Computing LCS with velocity fields obtained from a more holistic
-brain model would be interesting, as X points out that full CNS models are
-important.
-
-There is uncertainty around our choice of Navier slip boundary condition.
+In terms of the flow model, there are uncertainties related to several mechanisms.
+There is great uncertainty around our choice of Navier slip boundary condition.
 First, the force per surface area parameter $\tau$ is based on the value used by
 Siyahhan~\emph{et al.}~\cite{Siyahhan2014FlowVentricles}, which they obtained by
 calibrating CSF flow simulations with rodent CSF velocity data. Because the
@@ -1231,6 +1260,19 @@ chose the value of $\alpha=47 \ \mathrm{Pa\cdot s/m}$ as a
 compromise between these two cases. An experiment looking into
 fair values of both $\tau$ and $\alpha$ is required for further
 insights on this.
+
+% Need citations in the following paragraph
+Moreover, CSF production might in reality neither be constant nor evenly
+distributed across the choroid plexuses of the ventricles~\cite{}.
+Also, in reality 10--30\% of the CSF production
+may come from interstitial fluid transported through the ependymal cell
+layer of the brain ventricles walls into the ventricles~\cite{Brodal2016TheSystem}.
+Additionally, there is probably absorption of CSF through the ventricular walls
+into the brain parenchyma~\cite{}, which we did not model.
+Also, respiration has a flow component~\cite{Vinje2019RespiratoryMeasurements},
+while we only modeled pulsatile deformations driven by a cardiac freqeuncy.
+Here, we disregarded these (and other possible mechanisms) to focus
+on the impact of cilia and CSF production on the ventricular flow and transport.
 
 \section{Conclusions and outlook}
 We hope our work inspires further Lagrangian analysis of
