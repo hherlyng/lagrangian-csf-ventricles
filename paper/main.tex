@@ -88,20 +88,28 @@
 \begin{abstract}
     The dynamic flow of cerebrospinal fluid in brain ventricles 
     exhibits flow features on several scales, both spatially and temporally.
-    Understanding such complex time-dependent flow through instantaneous flow
-    variables can deceive understanding of the flow. Here, we analyze brain ventricular
-    cerebrosinal fluid flow from the Lagrangian perspective -- a time-integrated view
-    of the flow. With realistic geometries generated from medical imaging data,
-    we model cerebrospinal fluid flow in human and embroynic zebrafish brain ventricles. 
-    Flow is governed by cardiac pulsations, cerebrospinal fluid secretion and motile cilia 
+    Understanding such complex time-dependent flow and the accompanying transport
+    through instantaneous (Eulerian) flow variables can deceive understanding of the flow.
+    Here, we analyze brain ventricular cerebrosinal fluid flow from the Lagrangian
+    perspective -- a time-integrated view of the flow. With realistic geometries
+    generated from medical imaging data, we model cerebrospinal fluid flow
+    in adult human and embroynic zebrafish brain ventricles. 
+    Flow is assumed to be governed by cardiac pulsations, cerebrospinal fluid secretion and motile cilia 
     in the human brain, while in the zebrafish brain we consider flow driven solely by motile cilia.
-    The models are implemented and solved with finite element methods. We use the resulting velocity fields to
-    compute finite-time Lyapunov exponent fields and use them to characterize Lagrangian coherent structures.
+    The flow driven by cardiac pulsations is derived from a damped linear elastic solid model
+    that models deformation of the brain ventricles as a result of applying displacement boundary
+    conditions, with the boundary data derived from experimental data.
+    The solid and flow models are implemented and solved with finite element methods.
+    We use the resulting velocity fields to compute finite-time Lyapunov exponent
+    fields and use these fields to characterize Lagrangian coherent structures.
     These coherent structures demonstrate prominent flow features in the brain ventricles that resonate
-    well with experimental research. In the human brain ventricles, we asses the role of inertia
-    by considering flow governed by both the Navier-Stokes and the Stokes equations.
-    Comparisons show that solutions to the Stokes equations
-    display less intricate flow features than solutions to the Navier-Stokes equations.
+    well with findings in experimental research. In the human brain ventricles, we also 
+    asses the role of inertia by considering both flow governed by 
+    the Navier-Stokes and the Stokes equations. Comparisons show that
+    solving the Stokes equations is adequate to compute integrated flow
+    variables like stroke volumes, but that the Stokes approximation fails 
+    to resolve intricate features of flow and advective transport which
+    are present in the solution to the Navier-Stokes equations.
 \end{abstract}
 
 % Notes:
@@ -109,23 +117,22 @@
 % - Might serve different purposes, does cilia/production lead to more net flow than pulsations?
 % - Talk about attracting/repelling instead of backward/forward structures
 % - Overlay velocity glyphs on FTLE fields? White, scarcely populated, just to show flow direction
-% - Ref eq. previously introduced when talking about the discretization
-% - Include Stokes vs. Navier-Stokes, interesting to see conclusion
 % - Mention why div-conforming method is used/a novelty/favorable
 % - Introduce LCS and what they are in the intro, and that FTLE characterize them
 
 \section{Introduction}
 % I1: What is the problem - from big picture to our precise topic - why is it interesting?
-Brains are constantly in motion. The motion is tightly coupled
+Brains are constantly in motion. These motions are tightly coupled
 to the cardiac and respiratory cycles, bodily movement and
-neural activity, and the brain motion is a key contributor to
+neural activity. This brain motion is a key contributor to
 cerebrospinal fluid (CSF) flow~\cite{Enzmann1992BrainImaging,
 baledent2001cerebrospinal, sweetman2011cerebrospinal}.
 CSF is produced by choroid plexus in the brain ventricles,
 from where the fluid flows into the spinal cord or
 to the subarachnoid space~\cite{rasmussen2018glymphatic}.
-CSF flow is an important contributor to brain homeostasis, delivery of
-nutrients, and serves as a cushion for the brain~\cite{fame2020emergence,
+The flow of CSF is an important contributor to brain homeostasis, delivery of
+nutrients, and CSF bathes the cortex such that the fluid
+serves as a cushion for the brain~\cite{fame2020emergence,
 kelley2023cerebrospinal, linninger2016cerebrospinal}.
 Meanwhile, several pathologies afflicting the brain
 are related to disruption of CSF flow,
@@ -134,25 +141,12 @@ results from blockage of CSF flow~\cite{linninger2016cerebrospinal}.
 Although CSF is fundamental to brain functioning,
 the underlying mechanisms of CSF flow are still not
 completely understood~\cite{kelley2023cerebrospinal}.
-% he quantitation
-% of aqueductal CSF flow as a function
-% of the cardiac cycle, may enhance our
-% ability to diagnose one of the few po-
-% tentially treatable causes of demen-
-% tia,NPH. \cite{bradley1986flowing}
-% Therefore, furthering our understanding
-% of CSF flow in brain ventricles bears interest, as it may improve
-% diagnostic techniques or help develop preventive treatments.
-% In the brain ventricles, CSF communicates with surrounding organs
-% through specialized cells that line the ventricular walls,
-% such as the tanycytes bridging the gap between the third
-% ventricle and the hypothalamus.
 
 % I2: What do we know about the problem and the topic?
 The nature of CSF flow has been studied extensively
 in recent decades, both experimentally and computationally.
-Among the physical processes that affect CSF flow are:
-blood vessel dynamics, displacement of brain tissue,
+Among the physiological processes that affect CSF flow are:
+blood vessel and respiration dynamics,
 production and absorption of CSF,
 beating of motile cilia, neural activity, and posture changes.
 \cite{kelley2023cerebrospinal, sweetman2011cerebrospinal,
@@ -164,7 +158,7 @@ With these physical processes occuring
 over various time and length scales, CSF flow
 also consists of motions on different
 scales~\cite{kelley2023cerebrospinal}.
-In the brain ventricles, large-scale bulk motion
+In the brain ventricles, large-scale, pulsatile bulk motion
 is induced by pulsations related to
 the cardiac and respiratory cycles, both cycles
 dynamically changing the blood volume in the brain
@@ -172,74 +166,80 @@ which deforms surrounding tissue and results in CSF flow~\cite{enzmann1991normal
 wagshul2011pulsating, Liu2024UsingBreathing, baledent2004relationship,
 greitz1992pulsatile, Vinje2019RespiratoryMeasurements,
 kelley2023cerebrospinal, greitz1993pulsatile}.
-Back-and-forth motion with vortical flow features
-has been visualized in human brains~\cite{stadlbauer2010insight}.
+Back-and-forth motion of CSF with vortical flow features
+has been visualized in human brains~\cite{stadlbauer2010insight},
+and the pulsatility is clearly present in measurements of flow rates
+\cite{baledent2004relationship, Liu2024UsingBreathing, Vinje2019RespiratoryMeasurements}.
 At smaller scales, visualizations of ventricular
 CSF flow trajectories in animals have demonstrated
 intricate features such as stagnation and separation points,
 and vortex-structured flows created by motile cilia
 \cite{gilpin2017flowtrace, Faubel2016CiliaVentricles,
 Olstad2019CiliaryDevelopment}.
-Separatrices and vortices are examples of material structures
+Cilia-driven CSF flow has also 
+to a lesser extent been studied in humans~\cite{worthington1963ependymal,
+Yoshida2022EffectVentricles, Siyahhan2014FlowVentricles},
+demonstrating local effects of cilia on CSF flow patterns.
+Some flow patterns such as separatrices and vortices are examples of material structures
 in fluid flows, often referred to as Lagrangian coherent
 structures (LCS), that are responsible for stretching and 
 folding in the mixing of passive tracers~\cite{haller2015lagrangian,
-haller2000lagrangian}. As such, LCS provide a time-integrated view
-of fluid transport~\cite{shadden2005definition, haller2015lagrangian,
-haller2000lagrangian}.
+haller2000lagrangian}. LCS can be characterized by computing
+finite-time Lyapunov exponent (FTLE) fields through integration of fluid
+parcel trajectories; ridges of these FTLE fields are good approximations of
+LCS~\cite{shadden2005definition}. Characterizing LCS thus provides
+a time-integrated view of fluid transport
+\cite{shadden2005definition, haller2015lagrangian, haller2000lagrangian}.
 The explanatory power of LCS has previously been demonstrated
 in a host of applications, including blood flow
 \cite{shadden2008characterization, shadden2010computational},
 atmospheric flow~\cite{Gunther2021LagrangianWinds},
 flow in airways~\cite{lukens2010using}
 and oceanic flows~\cite{beron2015dissipative}.
-% Cilia-driven CSF flow has also 
-% to a lesser extent been studied in humans~\cite{worthington1963ependymal,
-% Yoshida2022EffectVentricles, Siyahhan2014FlowVentricles}.
 
 % I3: What do we not know about the problem and what do we want to
 % know? What are the precise research questions we want to address?
 % Refer to specific studies and what specifically we do not know.
 Despite the predictive power of studying flow from a
-Lagrangian persepctive, only a limited amount of previous CSF flow studies
-have considered this perspective~\cite{Yoshida2022EffectVentricles},
-where particle trajectories are tracked over time.
-Most studies are rather based on
-Eulerian flow analysis~\cite{Kurtcuoglu2007ComputationalSylvius,
+Lagrangian perspective--where fluid parcel trajectories are tracked over time--only
+a limited amount of previous CSF flow studies
+have considered this perspective~\cite{Yoshida2022EffectVentricles}.
+Most studies are rather based on flow analysis with an
+Eulerian perspective~\cite{Kurtcuoglu2007ComputationalSylvius,
 Causemann2022HumanFramework, howden2008three, Sweetman2011ThreeDimensional,
 Siyahhan2014FlowVentricles},
-where flow variables such as velocity and volumetric flux
+in which flow variables such as velocity and volumetric flux
 are measured at a fixed point in space and time.
-These instantaneous flow variables may however deceive
+Instantaneous flow variables may however deceive
 interpretation of time-dependence in the flow~\cite{shadden2005definition},
 especially in flows that contain motion at multiple scales,
-such as ventricular CSF flow. Knowledge of precise contributions of
+such as ventricular CSF flow. Therefore,
+further knowledge of flow and transport in brain ventricles,
+and the precise contributions of specific
 flow mechanisms such as cardiac pulsations, CSF production,
-and beating of motile cilia to mixing and transport of CSF
-could therefore benefit from Lagrangian analysis.
-For example, how are LCS organized in brain ventricular CSF flow?
-How are these LCS affected by flow mechanisms
+and beating of motile cilia to mixing and transport of CSF,
+could be gained from Lagrangian analysis.
+For example, do LCS exist in brain ventricular CSF flow,
+and if so, how are the LCS organized?
+How are would the LCS be affected by flow mechanisms
 such as cardiac pulsations, motile cilia and CSF production?
-% characterizing the structures with finite-time Lyapunov exponent (FTLE) fields
-% calculated from particle trajectories. Ridges
-% of the FTLE field are good approximations of the LCS of the 
-% flow~\cite{shadden2005definition}.
-% Volume transmission is a theory that outlines
-% the importance of CSF flow in the neuromodulatory processes of the brain. 
+Does inertia play a significant role in establishing the
+LCS and thus the advective transport within the brain ventricles?
 
 % I4: How do we address the problem and what do we find out?
 In this work, we characterize LCS in brain ventricular CSF flow
 using a computational model. We model intraventricular CSF flow
 in brain ventricles of adult human and embryonic zebrafish using geometries
 generated with medical imaging data. Using finite element methods,
-we simulate CSF flow. The CSF velocity fields are used to calculate particle trajectories.
+we simulate brain deformation and CSF flow. The CSF velocity fields are
+used to calculate particle trajectories.
 These trajectories are used to compute finite-time Lyapunov exponent (FTLE) fields, which
 we use to characterize LCS. In the human brain, we model
 flow driven by cardiac pulsations, choroid plexus secretion and motile cilia,
 and study the impact of each mechanism on flow patterns and advective transport.
 For the zebrafish brain, we model flow driven by motile cilia, and demonstrate
-that FTLE fields can be used to characterize experimentally observed 
-flow trajectories. Altogether, our work demonstrates the usefulness of
+that FTLE fields can be used to characterize LCS that reflect flow trajectories
+previously observed in experiments. Altogether, our work demonstrates the usefulness of
 Lagrangian analysis in furthering our understanding of CSF flow.
 
 \section{Methods}
@@ -1286,6 +1286,14 @@ Eulerian-based flow analysis of CSF flow in embryonic zebrafish brain ventricles
 demonstrate how FTLE fields can be used to characterize prominent flow structures in brain ventricles.
 There are still several unresolved model parameters and assumptions, but hopefully this work inspires
 future work on Lagrangian analysis of brain ventricular flow and transport.
+
+
+Reportedly, quantitation of aqueductal CSF flow as a function
+of the cardiac cycle may enhance our ability to diagnose one of the
+potentially treatable causes of dementia, namely normal 
+pressure hydrocephalus~\cite{bradley1986flowing}. Looking at how
+geometry modifications impact LCS in the brain ventricles
+and the aqueduct could add insights to this.
 
 \subsection*{Acknowledgments}
 Grateful thanks to Miroslav Kuchta, Marie E. Rognes
