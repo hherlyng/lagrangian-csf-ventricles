@@ -1,85 +1,15 @@
-\documentclass[11pt]{article}
-\usepackage[utf8]{inputenc}
-\usepackage[left=2cm,
-            right=2cm,
-            top=2.25cm,
-            bottom=2.25cm,
-            headheight=12pt,
-            a4paper]{geometry}
-\usepackage{amsmath}
-\usepackage{amssymb}
-\usepackage{amsfonts}
-\usepackage{siunitx}
-\usepackage{physics}
-\usepackage{bm} % Bold-faced math
-\usepackage{amsopn}
-\usepackage[skip=10pt]{caption}
-\usepackage{color}
-\usepackage{xcolor,colortbl}
-\usepackage[pdftex, bookmarks, colorlinks, breaklinks, allcolors=blue]{hyperref}
-\usepackage{soul}
-\hypersetup{colorlinks, citecolor=blue}
-\usepackage[capitalise]{cleveref}
-\usepackage{stmaryrd} % double brackets for jump operator
-\usepackage{graphicx}
-\usepackage{mathtools}
-\usepackage{enumerate}
-\usepackage[superscript,ref]{cite} % Citation
-
-% Bibliography tools
-\usepackage{csquotes}
-
-%% Some new commands
-% Partial derivatives
-\newcommand{\pdifft}[1]{\frac{\partial  #1}{\partial t}}
-\newcommand{\pdiffdifft}[1]{\frac{\partial^2 #1}{\partial t^2}}
-
-% Norms
-\newcommand{\normltwo}[1]{{ \vert\vert#1\vert\vert}_{L^2}}
-\newcommand{\normlinf}[1]{{\vert\vert#1\vert\vert}_{L^{\infty}}}
-\newcommand{\Hnorm}[1]{\norm{#1}_{H^1}}
-\newcommand{\Lnorm}[1]{\norm{#1}_{L^2}}
-
-% Bold faced math characters
-\newcommand{\cc}{\bm{c}}
-\newcommand{\nn}{\bm{n}}
-\newcommand{\rr}{\bm{r}}
-\newcommand{\uu}{\bm{u}}
-\newcommand{\ww}{\bm{w}}
-\newcommand{\xx}{\bm{x}}
-\newcommand{\yy}{\bm{y}}
-\newcommand{\TT}{\mathbb{T}}
-\newcommand{\DD}{\mathcal{D}}
-\newcommand{\Scal}{\mathcal{S}}
-\newcommand{\Bcal}{\mathcal{B}}
-\newcommand{\bsigma}{\bm{\sigma}}
-\newcommand{\bsigmahat}{\hat{\bm{\sigma}}}
-\newcommand{\btau}{\bm{\tau}}
-\newcommand{\beps}{\bm{\varepsilon}}
-\newcommand{\bphi}{\bm{\phi}}
-
-% Comments
-\newcommand{\lyng}[1]{\textcolor{blue}{HH: #1}}
-\newcommand{\fixme}[1]{\textcolor{red}{#1}}
-
-\newcommand{\dx}{\, \mathrm{d}x}
+\documentclass{template}
 
 \setcounter{footnote}{1}
 
 % Title
 \title{\textbf{Characterization of coherent flow structures in brain ventricles}}
-\author{
-    H.~Herlyng, S.~C.~Shadden
-}
-
-\date{\today}
-% Optional PDF information
-\ifpdf
-\hypersetup{
-  pdftitle={lagrangian-csf},
-  pdfauthor={H.~Herlyng and S.~C.~Shadden}
-}
-\fi
+\author[1,*]{Halvor Herlyng}
+\author[2]{Shawn C.~Shadden}
+\affil[1]{Department of Numerical Analysis and Scientific Computing, Simula Research Laboratory, Oslo, Norway} % Kristian Augusts gate 23, 0164
+\affil[2]{Department of Mechanical Engineering, University of California, Berkeley, USA} % Erling Skjalgsons gate 1, 7491
+\affil[*]{\href{mailto:hherlyng@simula.no}{hherlyng@simula.no}}
+\date{\vspace{-2em}} % Remove space between affiliations and abstract
 
 \begin{document}
 
@@ -1056,7 +986,7 @@ extensive in the Navier-Stokes FTLE fields.
 
 \begin{figure}
     \centering
-    \includegraphics[width=\textwidth]{graphics/FTLE_human3.png}
+    \includegraphics[width=0.85\textwidth]{graphics/FTLE_human3.png}
     \caption{Comparing FTLE fields computed in the human brain ventricles
     using the Navier-Stokes and Stokes solutions and initial particle position
     $\xx_0 = \xx(t_0)$ at $t_0=0$, with varying integration times 
