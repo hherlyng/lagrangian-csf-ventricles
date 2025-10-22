@@ -16,25 +16,28 @@
 \maketitle
 
 \begin{abstract}
-    The dynamic flow of cerebrospinal fluid in brain ventricles 
+    The dynamic flow of cerebrospinal fluid (CSF) in brain ventricles 
     exhibits flow features on several scales, both spatially and temporally.
-    Understanding such complex time-dependent flow and the accompanying transport
-    through instantaneous (Eulerian) flow variables can deceive understanding of the flow.
-    Here, we analyze brain ventricular cerebrosinal fluid flow from the Lagrangian
-    perspective -- a time-integrated view of the flow. With realistic geometries
-    generated from medical imaging data, we model cerebrospinal fluid flow
+    Analyzing this complex time-dependent flow and the accompanying transport
+    through instantaneous (Eulerian) flow variables is normal, but instantaneous
+    variables can deceive understanding of flow, especially time dependence.
+    Here, we analyze brain ventricular CSF flow both in a Eulerian
+    sense and from the Lagrangian perspective -- a time-integrated view of the flow.
+    With geometries generated from medical imaging data, we model CSF flow
     in adult human and embroynic zebrafish brain ventricles. 
-    Flow is assumed to be governed by cardiac pulsations, cerebrospinal fluid secretion and motile cilia 
-    in the human brain, while in the zebrafish brain we consider flow driven solely by motile cilia.
-    The flow driven by cardiac pulsations is derived from a damped linear elastic solid model
-    that models deformation of the brain ventricles as a result of applying displacement boundary
+    In the human brain we model flow governed by cardiac pulsations,
+    CSFsecretion and motile cilia. 
+    The flow driven by cardiac pulsations is derived from a damped linear elastic model
+    of brain ventricle deformations, as a result of applying displacement boundary
     conditions, with the boundary data derived from experimental data.
+    In the zebrafish brain we consider flow driven solely by motile cilia.
     The solid and flow models are implemented and solved with finite element methods.
-    We use the resulting velocity fields to compute finite-time Lyapunov exponent
-    fields and use these fields to characterize Lagrangian coherent structures.
+    We use the resulting velocity fields to compute finite-time Lyapunov exponent (FTLE)
+    fields and use these fields to characterize Lagrangian coherent structures,
+    which can be approximated by ridges in the FTLE fields.
     These coherent structures demonstrate prominent flow features in the brain ventricles that resonate
     well with findings in experimental research. In the human brain ventricles, we also 
-    asses the role of inertia by considering both flow governed by 
+    investigate the role of inertia by comparing flow models governed by 
     the Navier-Stokes and the Stokes equations. Comparisons show that
     solving the Stokes equations is adequate to compute integrated flow
     variables like stroke volumes, but that the Stokes approximation fails 
