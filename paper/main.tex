@@ -1045,12 +1045,11 @@ that separates the third ventricle from the aqueduct, which means
 that once fluid has reached the entrance to the aqueduct, it is quickly
 expelled through the aqueduct. Meanwhile, fluid inside the third ventricle
 can stay there for a longer time without exiting through the aqueduct.
-
 In the interventricular foramina, there are also
 clear ridges in the FTLE field with $T=1.0$ s, indicating regions of high stretching
 and delineation of regions with different advective transport times.
 The lobes that develop have a structure that could trap fluid close to the ventricular
-walls. 
+walls.
 
 In the zebrafish ventricles FTLE fields, there are clearly defined structures,
 both attracting and repelling, in the interventricular duct separating the
@@ -1199,7 +1198,7 @@ influences the results, could be investigated in future work.
 \subsection{Limitations}\label{subsec:limitations}
 This modeling work comprises several mechanisms, parameters and
 assumptions that are uncertain.
-For the solid equations we used a damped linear elastic model,
+For the solid equations, we used a damped linear elastic model
 where there is an inherent
 uncertainty in the material parameters
 of brain tissue~\cite{smillie2005hydroelastic}.
@@ -1216,8 +1215,26 @@ The choice of linear elasticity with linear damping is considered
 adequate since we consider deformations on the timescale of a cardiac cycle,
 where nonlinear damping effects are negligible.
 
-In terms of the flow model, there are uncertainties related to several mechanisms.
-There is great uncertainty around our choice of Navier slip boundary condition.
+In terms of the flow model, there are uncertainties related to several mechanisms,
+and there are mechanisms of CSF flow that we disregarded to focus 
+on the impact of cilia and CSF production on the ventricular flow and transport.
+As mentioned previously, there is probably absorption of CSF through the ventricular walls
+into the brain parenchyma~\cite{}, which we did not model. This mechanism would alter the
+volume dynamics and flow inside the ventricles.
+Moreover, CSF production might in reality neither be constant nor evenly
+distributed across the choroid plexuses of the ventricles~\cite{}.
+Also, in reality 10--30\% of the CSF production
+may come from interstitial fluid transported through the ependymal cell
+layer of the brain ventricles walls into the ventricles~\cite{Brodal2016TheSystem}.
+A variable-in-time production and a different distribution of the production
+magnitudes between the different choroid plexuses would impact the results. 
+Also, respiration has a flow component~\cite{Vinje2019RespiratoryMeasurements},
+while we only modeled pulsatile deformations driven by a cardiac freqeuncy.
+Disregarding the respiration can be justified by an experimental report
+which found cardiac pulsations to be the dominant of these pulsatile mechanisms
+in driving CSF flow~\cite{Soderstrom2025}.
+
+There is also great uncertainty around our choice of Navier slip boundary condition.
 First, the force per surface area parameter $\tau$ is based on the value used by
 Siyahhan~\emph{et al.}~\cite{Siyahhan2014FlowVentricles}, which they obtained by
 calibrating CSF flow simulations with rodent CSF velocity data. Because the
@@ -1245,19 +1262,6 @@ compromise between these two cases. An experiment looking into
 fair values of both $\tau$ and $\alpha$ is required for further
 insights on this.
 
-% Need citations in the following paragraph
-Moreover, CSF production might in reality neither be constant nor evenly
-distributed across the choroid plexuses of the ventricles~\cite{}.
-Also, in reality 10--30\% of the CSF production
-may come from interstitial fluid transported through the ependymal cell
-layer of the brain ventricles walls into the ventricles~\cite{Brodal2016TheSystem}.
-Additionally, there is probably absorption of CSF through the ventricular walls
-into the brain parenchyma~\cite{}, which we did not model.
-Also, respiration has a flow component~\cite{Vinje2019RespiratoryMeasurements},
-while we only modeled pulsatile deformations driven by a cardiac freqeuncy.
-Here, we disregarded these (and other possible mechanisms) to focus
-on the impact of cilia and CSF production on the ventricular flow and transport.
-
 \section{Conclusions and outlook}
 We have presented a computational framework for using finite-time Lyapunov exponent (FTLE)
 fields to characterize Lagrangian coherent structures in brain ventricles.
@@ -1268,16 +1272,10 @@ effects are crucial for capturing Lagrangian coherent structures and thus crucia
 modeling transport and mixing in the (human) brain ventricles. Through comparison with previous
 Eulerian-based flow analysis of CSF flow in embryonic zebrafish brain ventricles, our results further
 demonstrate how FTLE fields can be used to characterize prominent flow structures in brain ventricles.
-There are still several unresolved model parameters and assumptions, but hopefully this work inspires
-future work on Lagrangian analysis of brain ventricular flow and transport.
-
-
-Reportedly, quantitation of aqueductal CSF flow as a function
-of the cardiac cycle may enhance our ability to diagnose one of the
-potentially treatable causes of dementia, namely normal 
-pressure hydrocephalus~\cite{bradley1986flowing}. Looking at how
-geometry modifications impact LCS in the brain ventricles
-and the aqueduct could add insights to this.
+An interesting path for future work would be to assess how these structures change
+with either pathological flow regimes or changes in the ventricular geometry.
+Although there are still several unresolved model parameters and assumptions,
+this work hopefully inspires future work on Lagrangian analysis of brain ventricular flow and transport.
 
 \subsection*{Acknowledgments}
 Grateful thanks to Miroslav Kuchta, Marie E. Rognes
