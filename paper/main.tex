@@ -170,6 +170,7 @@ These trajectories are used to compute finite-time Lyapunov exponent (FTLE) fiel
 we use to characterize LCS. In the human brain, we model
 flow driven by cardiac pulsations, choroid plexus secretion and motile cilia,
 and study the impact of each mechanism on flow patterns and advective transport.
+The results indicate the presence of LCS that are mostly determined by cardiac pulsations.
 For the zebrafish brain, we model flow driven by motile cilia, and demonstrate
 that FTLE fields can be used to characterize LCS that reflect flow trajectories
 previously observed in experiments. Altogether, our work demonstrates the usefulness of
@@ -733,7 +734,7 @@ and the velocities $\uu(\xx, t)$ of the second cycle are used
 to calculate FTLE fields. Because the FTLE computation code 
 interpolates velocity based on values in the mesh nodes, the
 finite element velocity approximation is projected from $\mathrm{BDM}_2$
-into $\mathrm{CG}_2$ and then evaluated in a $\mathrm{CG}_1$ space.
+into $\mathrm{CG}_2$ (quadratic continuous Lagrange elements) and then evaluated in a $\mathrm{CG}_1$ space.
 
 \subsubsection{Finite element method for the solid equations}
 The time-dependent linear elasticity equations (\Cref{eq:strong_linear_elasticity_1})
@@ -794,7 +795,8 @@ We solve the solid equations iteratively with a
 Flexible Generalized Minimal Residual method~\cite{fgmres}, with
 the system preconditioned with Algebraic Multigrid (AMG) preconditioning
 using BoomerAMG~\cite{yang2002boomeramg} from the hypre library~\cite{hypre}. 
-The software used for finite element simulations is openly available. \fixme{Add citation.}
+The software used for finite element simulations is openly available. 
+\fixme{Add citation/link to repo.}
 
 \section{Results}
 \subsection{Finite element simulations}
