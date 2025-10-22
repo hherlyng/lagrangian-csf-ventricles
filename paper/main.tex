@@ -1304,22 +1304,8 @@ was verified in previous work~\cite{Herlyng2025AdvectionDiffusion},
 thus we only present verification analysis of the human brain model here.
 Mesh and polynomial order refinement studies for the human
 model were performed both for the fluid and the solid equations.
-We refine element polynomial degree on a single mesh.
-We also refine mesh with a single element degree.
-We consider three versions of the ventricles mesh,
-with a total of 51 016 (maximal 0.73 cm, minimal 0.049 cm), 408 128 (maximal 0.40 cm, minimal 0.023 cm),
-and 3 265 024 (maximal 0.22 cm, minimal 0.010 cm) tetrahedral cells.
-We look at convergence in the maximum displacement magnitude, the
-displacement in a point on the traction-free boundary, and
-the kinetic and elastic eneries.
 
-Cardiac cycle independecy was assessed. We simulated flow for
-2 cardiac cycles and deformation for 4 cardiac cycles. Simulating flow for 4
-instead of 2 cardiac cycles showed made virtually no change to most of the computed flow
-quantities, with the biggest discrepancy being a 1.5\% change in the max-to-min pressure
-gradient, verifying periodicity. The displacement results were also unchanged when simulating
-for more than 4 cardiac cycles. These results justify our choice.
-
+\subsection{Finite element method for the fluid equations}
 Correctness of the discretization schemes on the human brain ventricles geometry
 were verified using the Method of Manufactured Solutions~\cite{Roache2001CodeSolutions}.
 Convergence properties of the fluid discretization scheme were assessed with two
@@ -1329,8 +1315,34 @@ in the $\bm{H}^1$ semi-norm and the pressure error measured in the $L^2$ norm.
 Temporal convergence was assessed
 with a Taylor vortex problem~\cite{Karniadakis2005Verification},
 where the first-order accuracy of the backward Euler scheme was
-confirmed. Solving the linear elasticity equations numerically
-with quadratic basis functions, the errors of the displacement
+confirmed.
+
+Computed stroke volumes converged when increasing polynomial order.
+The maximum and minimum velocity magnitudes converged,
+with the magnitudes decreasing for increasing polynomial orders.
+We also assessed cardiac cycle independency, and observed a negligible error
+between simulating for 2 or 3 cardiac cycles, justifying our choice of 2 cycles
+in the main body of the text.
+
+\subsection{Finite element method for the solid equations}
+We refine element polynomial degree on a single mesh.
+We also refine mesh with a single element degree.
+We consider three versions of the ventricles mesh,
+with a total of 51 016 (maximal 0.73 cm, minimal 0.049 cm), 408 128 (maximal 0.40 cm, minimal 0.023 cm),
+and 3 265 024 (maximal 0.22 cm, minimal 0.010 cm) tetrahedral cells.
+We look at convergence in the maximum displacement magnitude, the
+displacement in a point on the traction-free boundary, and
+the kinetic and elastic energies.
+
+Cardiac cycle independecy was assessed. We simulated flow for
+2 cardiac cycles and deformation for 4 cardiac cycles. Simulating flow for 4
+instead of 2 cardiac cycles showed made virtually no change to most of the computed flow
+quantities, with the biggest discrepancy being a 1.5\% change in the max-to-min pressure
+gradient, verifying periodicity. The displacement results were also unchanged when simulating
+for more than 4 cardiac cycles. These results justify our choice.
+
+We verified the implementation of the linear elasiticty equations
+by numerically the equations with quadratic basis functions. The errors of the displacement
 approximation measured in the $\bm{L}^2$ norm and
 $\bm{H}^1$ semi-norm converged at the optimal rates of three
 and two, respectively. In time, second-order accuracy of the 
