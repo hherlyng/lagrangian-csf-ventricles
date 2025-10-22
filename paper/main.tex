@@ -802,7 +802,7 @@ When solving the linear elasticity equations with the applied
 experimental displacement data, there is an initial contraction and
 caudal displacement of the brain ventricles during systole (\Cref{fig:flow_results}). 
 This contraction and caudal displacement leads to a rapid increase in caudal CSF flow through the interventricular
-foramina and cerebral aqueduct, when solving the Navier-Stokes equations (\Cref{eq:navier_stokes_eq}).
+foramina and cerebral aqueduct, when solving the Navier-Stokes equations (\Cref{eq:navier_stokes_mom_eq}).
 In the aqueduct, the flowrate peaks at
 0.22 ml/s after 26\% of the cardiac cycle. This is a little earlier than the largest
 volume displacement of the ventricle; a volume displacement of $-0.16\%$
@@ -934,7 +934,7 @@ are the narrowest sections of the ventricular system, where flow
 is strong as a result of the principle of mass conservation.
 
 FTLE fields computed using the solution to the Navier-Stokes
-equations (\Cref{eq:navier_stokes_eq}) with varying integration time $T$ show the emergence of
+equations (\Cref{eq:navier_stokes_mom_eq}) with varying integration time $T$ show the emergence of
 a jet at the cephalic entrance to the aqueduct (\Cref{fig:FTLE_human1}). 
 There are also clearly visible ridge-like structures in the FTLE fields in the
 interventricular foramina.  In the bulk of the lateral and third ventricles,
@@ -979,7 +979,7 @@ and a new vortex clearly forms during the transition to the next cardiac cycle.
     \label{fig:FTLE_human2}
 \end{figure}
 
-Computing FTLE fields with the time-dependent Stokes equations (\Cref{eq:time_dependent_stokes_eq})
+When computing FTLE fields with the time-dependent Stokes equations (\Cref{eq:time_dependent_stokes_eq}),
 the jet structure in the third ventricle differs greatly compared to the structre
 observed in the Navier-Stokes solution (\Cref{fig:FTLE_human3}).
 In the attracting FTLE field, the lobes that form
