@@ -444,7 +444,7 @@ while retaining the qualitative behavior
 of a downward and contractile motion during systole and an upward
 and dilated motion during diastole. Reduction of the magnitudes was 
 calibrated by comparing the CSF flow results with experimental values
-of aqueductal cumulative flow volume\cite{eide2021direction, wagshul2011pulsating}. % Limitations? Discussion?
+of aqueductal cumulative flow volume\cite{eide2021direction, wagshul2011pulsating}. 
 
 The boundary $\Bcal_2$ consists of the spinal canal outlet
 and the lateral apertures. These boundaries are anchored for two reasons:
@@ -984,7 +984,8 @@ the jet structure in the third ventricle differs greatly compared to the structr
 observed in the Navier-Stokes solution (\Cref{fig:FTLE_human3}).
 In the attracting FTLE field, the lobes that form
 and over time are elevated from the aqueduct entrance in the Navier-Stokes solution are not 
-present in the Stokes solution's FTLE fields. Similarly, the repelling structures are more
+present in the Stokes solution's FTLE fields. This indicates a stronger stirring effect
+in the Navier-Stokes solution. Similarly, the repelling structures are more
 extensive in the Navier-Stokes FTLE fields.
 
 \begin{figure}
@@ -1033,16 +1034,30 @@ order of magnitude larger than the $T$ values used for the human ventricles.
 \section{Discussion}
 
 \subsection{Lagrangian structures are present in the ventricular system}
-Both in the zebrafish and the human model, we find ridges in the FTLE field
-that indicate presence of Lagrangian coherent structures. The jet observed in 
+Both in the zebrafish and the human model, we find ridges in the finite-time
+Lyapunov exponent fields (FTLE) that indicate the presence
+of Lagrangian coherent structures (LCS). The jet observed in 
 the third ventricle resonates well with previous computational
-studies~\cite{Kurtcuoglu2007ComputationalSylvius}. The jet creates a vortex
-every cardiac cycle. In the interventricular foramina, there are also
-clear ridges in the FTLE field, indicating regions of high stretching
-and delineation of regions with different advective transport times.
+studies~\cite{Kurtcuoglu2007ComputationalSylvius}. The time-dependent FTLE
+fields indicate that the jet creates a vortex every cardiac cycle. 
+The repelling structures have a well-defined ridge when $T=1.0$ s
+that separates the third ventricle from the aqueduct, which means
+that once fluid has reached the entrance to the aqueduct, it is quickly
+expelled through the aqueduct. Meanwhile, fluid inside the third ventricle
+can stay there for a longer time without exiting through the aqueduct.
 
-In the zebrafish ventricles, there exists structures in the interventricular ducts
-that confines flow to separate parts of the ventricular system. This aligns well with
+In the interventricular foramina, there are also
+clear ridges in the FTLE field with $T=1.0$ s, indicating regions of high stretching
+and delineation of regions with different advective transport times.
+The lobes that develop have a structure that could trap fluid close to the ventricular
+walls. 
+
+In the zebrafish ventricles FTLE fields, there are clearly defined structures,
+both attracting and repelling, in the interventricular duct separating the
+anterior and middle ventricles. If one for a given integration time $T$ 
+combines the attracting and repelling FTLE fields, the prominent structure forms
+a hyperbolic separation point. The separation point confines flow to
+separate parts of the ventricular system. This finding aligns well with
 previous studies that have demonstrated flow
 compartmentalization in embryonic zebrafish
 brain ventricles~\cite{Olstad2019CiliaryDevelopment,
@@ -1050,17 +1065,30 @@ Herlyng2025AdvectionDiffusion}.
 
 \subsection{The effects of fluid inertia on ventricular flow and transport}
 The results we present indicate that when simulating CSF flow
-in human ventricles, accounting for intertial effects through
+in human ventricles at Reynolds numbers in the lower hundreds, accounting for intertial effects through
 solving the full Navier-Stokes equations is important when investigating
 advective transport by the CSF flow, as well as analysis of local flow features.
 We draw this conclusion based on the vast differences in the structures
-present in the FTLE fields and the differences in local flow features
-between the Navier-Stokes and Stokes solutions.
-However, in terms of computing macroscopic quantities like stroke volume,
-the Stokes equations appear to be sufficiently accurate. As such,
-the Stokes equations can be utilized as a low-cost alternative for fast predictions
-in computational frameworks where integrated quantities are needed, despite the
-Reynolds number being in the low hundreds.
+present in the FTLE fields and the differences observed in local flow features
+between the Navier-Stokes and Stokes solutions. The lobe structures that 
+form in the Navier-Stokes FTLE fields indicate stronger stirring and mixing of
+CSF than in the CSF flow approximated with the Stokes equations.
+
+In terms of computing macroscopic or integrated quantities like stroke volume,
+however, the Stokes equations seem sufficiently accurate, showing little discrepancy with
+the Navier-Stokes solution. As such, the Stokes equations can be
+utilized as a low-cost alternative for fast predictions
+in computational frameworks where integrated quantities are needed.
+We note that several previous computational studies report maximal aqueductal
+CSF velocities on a mm/s scale~\cite{enzmann1993cerebrospinal, enzmann1991normal,
+Causemann2022HumanFramework, Sweetman2011ThreeDimensional, howden2008three, wagshul2011pulsating,
+greitz1993pulsatile, sweetman2011cerebrospinal}, which is ten times lower than the
+cm/s scale reported here and in several other works
+\cite{kim1999quantitative, nitz1992flow, Kurtcuoglu2007ComputationalSylvius}. 
+This ten-fold reduction in maximal velocity would reduce the Reynolds number
+by a factor ten. Although inertial forces would still dominate viscous forces at 
+these numbers, investigating the effects on the discrepancy in the advective transport
+between the Stokes and Navier-Stokes solutions would be interesting to address in future work.
 
 \subsection{The effects of motile cilia and CSF production}
 Disregarding motile cilia did not alter the flow in the human brain ventricles significantly
@@ -1073,15 +1101,16 @@ whose results showed only a minor effect of cilia on near-wall flow.
 On the other hand, in the model of Yoshida~\emph{et al.}~\cite{Yoshida2022EffectVentricles} 
 cilia had a significant effect on mixing. We observed that the cilia model parameters
 strongly influenced the effect of cilia on the flow (see \Cref{subsec:limitations}),
-and we are of the opinion that any definite conclusions on the effect of cilia in
-brain ventricular flow and transport should be postponed until more experimental data
-on cilia parameters in the human brain ventricles are available.
-This contrasts the case for the embryonic zebrafish brain, however, where the model parameters
+and we are of the opinion that any further insights on the effect of cilia in
+brain ventricular flow and transport would heavily benefit from more experimental data
+on cilia parameters in the human brain ventricles.
+This contrasts the case for the embryonic zebrafish brain, where the model parameters
 are more comprehensively resolved, and previous work strongly suggests cilia are
 the main drivers of flow~\cite{Olstad2019CiliaryDevelopment, Herlyng2025AdvectionDiffusion}.
-This is partly because of the much smaller length scale of the ventricular system of embryonic zebrafish
-as compared to adult humans. Therefore, cilia may play a similarly important
-role in small confined spaces of the human ventricular system,
+The great effect of cilia in zebrafish ventricles is a direct result of the smaller
+length scale of the ventricular system of embryonic zebrafish
+as compared to adult humans. Cilia may play a similarly important
+role in smaller confined spaces of the human ventricular system,
 such as in the inferior and occipital horns of the lateral ventricles.
 
 The constant-in-time CSF production we imposed had little impact, apart from
@@ -1089,24 +1118,36 @@ generating a net outward flow from the ventricular system. In terms of local
 flow features, there was no noticeable difference when disregarding CSF production.
 The FTLE fields were also largely unaffected compared to the baseline model.
 
-\subsection{Model validation, brain deformation and CSF flow}
-To assess the physiological validity of the flow, we computed several
-flow quantities of interest to compare with previous works.
-It should be noted that some of these quantities vary widely
-in terms of values reported in research literature.
-The cumulative flow volume of
-in the aqueduct was used to
+\subsection{Model validation: brain deformations and ventricular CSF flow}
+To ensure that the CSF flow we modeled to be a result of cardiac pulsatility 
+brain deformations had a physiological magnitude,
+the stroke volume (cumulative flow volume) in the cerebral aqueduct was used to
 calibrate the deformation boundary conditions such that
-the deformations yielded flow volumes similar to those
+the deformations yielded flow volumes (when solving the
+Navier-Stokes equations) similar to those
 reported by Eide~\emph{et al.}~\cite{eide2021direction}.
-They reported values of $67\pm 57$ \textmu l, which is in the higher
-range of reported values~\cite{baledent2004relationship,
+This choice was made based on the fact that the 
+ventricular volume displacement directly determines
+the volume of displaced CSF.
+We also compared other quantities, such as the peak-to-nadir pressure
+gradient, with previously reported values.
+We note that some of these quantities, vary widely
+in terms of values reported in research literature.
+
+Eide~\emph{et al.}~\cite{eide2021direction} reported values of $67\pm 57$ \textmu l
+for the aqueductal stroke volume, which is in the higher range of reported values~\cite{baledent2004relationship,
 Liu2024UsingBreathing, kim1999quantitative},
 while some studies report lower values in the range
 of 15--30 \textmu l~\cite{wagshul2011pulsating, nitz1992flow, greitz1994mr,
 greitz1993pulsatile}.
-Our calibration of the deformations
-such that the flow volume equaled \fixme{44.1\textmu l} is therefore justified.
+We therefore calibrated the deformations by tuning down the displacement magnitude,
+such that the aqueductal stroke volume
+computed to 46.1\textmu l, a value in the lower range of those reported by Eide~\emph{et al.}.
+With this choice, the resulting pressure gradient matches well with that
+reported by Eide~\emph{et al.}~\cite{eide2021direction},
+and also other experimental studies~\cite{Liu2024UsingBreathing, ringstad2017non}.
+Also, the volumetric flow rates are in the range of clinically
+reported values~\cite{Liu2024UsingBreathing, wagshul2011pulsating}.
 The resulting maximum and minimum velocity magnitudes
 of our model are slightly greater than those reported by Eide~\emph{et al.}~\cite{eide2021direction},
 and also other studies that report velocities on the scale of centimeters per second
@@ -1114,7 +1155,35 @@ and also other studies that report velocities on the scale of centimeters per se
 however that several previous studies, both in experiment and computational studies,
 report millimeter per second velocities~\cite{enzmann1993cerebrospinal, enzmann1991normal,
 Causemann2022HumanFramework, Sweetman2011ThreeDimensional, howden2008three, wagshul2011pulsating,
-greitz1993pulsatile, sweetman2011cerebrospinal}. \fixme{Something we can comment on the magnitude discrepancies?}
+greitz1993pulsatile, sweetman2011cerebrospinal}.
+
+We note that the deformations in our solid model are smaller in magnitude than the experimental 
+data they are based on, although the qualitative behavior of the displacement curves were conserved.
+The magnitude of the maximum volume change in our model was around 0.15\%. This is a lot less
+than that reported by previous research, where 0.9\%~\cite{zhu2006dynamics}
+and even as high as 20\%~\cite{lee1989variation} has been reported. The latter value would
+produce unrealistically large flow volumes in our model, but the discrepancy between our model
+and experimental reports strongly indicate the absence of another volume-regulating mechanism 
+in our model. Absorption of CSF through the ventricular walls could be one such mechanism.
+
+The cephalocaudal displacements we imposed are well-documented~\cite{Kurtcuoglu2007ComputationalSylvius,
+Enzmann1992BrainImaging, greitz1992pulsatile, soellinger2007assessment, soellinger20093d}.
+There is more uncertainty regarding displacements in the medial-lateral direction. Our understanding is
+that arterial swelling exerts pressure on the parenchyma and results in
+squeezing of the ventricular system, a squeezing which seems to be symmetric
+in the horizontal plane, as symmetry characterizes medial-lateral motion
+in some experimental reports~\cite{soellinger20093d, abderezaei2021development}. It has been
+reported that the periventricular deformations could be related to
+deformations in the third and lateral ventricles~\cite{abderezaei2021development}.
+We imposed medial-lateral displacements on the third and lateral 
+ventricles based on these reported findings, and the fact that our model
+was unable to produce physiological CSF flow without these displacements;
+when imposing only cephalocaudal displacements, the CSF flowrates were less than
+10\% of experimentally reported values. This resonates well with the conclusion of
+Kurtcuoglu~\emph{et al.}~\cite{Kurtcuoglu2007ComputationalSylvius},
+namely that medial-lateral displacement
+of the third ventricle is required to fully explain 
+the observed flowrates of ventricular CSF flow.
 
 We considered the beating direction of cilia to align with the direction of 
 CSF production velocities, similar to Siyahhan~\emph{et al.}, who considered
@@ -1123,60 +1192,9 @@ with the wall shear stress of the macroscopic flow simulated in a
 production-only setup~\cite{Siyahhan2014FlowVentricles}.
 In our setup, with the only free boundaries of the geometry located
 in the caudal end of the geometry, the production velocity and thus
-the ciliary beating is generally caudally directed. The impact of
-this assumption could be interesting to assess.
-
-The flow rates are in the range of clinically reported values~\cite{Liu2024UsingBreathing, wagshul2011pulsating,
-}.
-Also, the pressure gradient matches well with that reported by Eide~\emph{et al.}~\cite{eide2021direction},
-and also other experimental studies~\cite{Liu2024UsingBreathing, ringstad2017non}.
-
-We note that the deformations ended up being smaller in magnitude than the experimental 
-data, although the qualitative behavior of the displacement curves were conserved.
-The magnitude of the maximum volume change in our model was around 0.15\%, which is a lot smaller
-than that reported by previous research, where 0.9\%~\cite{zhu2006dynamics}
-and even as high as 20\%~\cite{lee1989variation} has been reported. \fixme{The latter seems
-way too much, as that is just too much volume which is displaced.}
-
-The cephalocaudal displacements we imposed are well-documented~\cite{Kurtcuoglu2007ComputationalSylvius,
-Enzmann1992BrainImaging, greitz1992pulsatile, soellinger2007assessment, soellinger20093d}.
-There is more uncertainty in the medial-lateral direction. Our understanding is
-that arterial swelling exerts pressure on the parenchyma and results in
-squeezing of the ventricular system, a squeezing which seems to be symmetric
-in the horizontal plane, as symmetry characterizes medial-lateral motion
-in some experimental reports~\cite{soellinger20093d, abderezaei2021development}. It has been
-reported that the periventricular deformations could be related to
-deformations in the third and lateral ventricles~\cite{abderezaei2021development}.
-We imposed deformations medial-lateral displacements on the third and lateral 
-ventricles based on these reported findings, and the fact that our model
-was unable to produce physiological CSF flow without these displacements.
-When imposing only cephalocaudal displacements, the CSF flowrates were less than
-10\% of experimentally reported values. This resonates well with Kurtcuoglu~\emph{et al.}'s
-conclusion~\cite{Kurtcuoglu2007ComputationalSylvius}, namely that medial-lateral displacement
-of the third ventricle is required to fully \fixme{explain} ventricular CSF flow.
-
-
-
-% Despite using different techniques, all studies agree that
-% maximum tissue displacement occurs during systole. Over-
-% all, brain motion was found to be strongest in the cephalo-
-% caudal direction [8], followed by lateral motion, with rela-
-% tively little movement in the anteroposterior direction [7,
-% 20]. All studies reported the largest velocities and displace-
-% ments of the brain occurred close to the central brain regions
-% and base of the brain, in tissue adjacent to the circle of Wil-
-% lis, foramen magnum and brain stem (midbrain, pons and
-% medulla).
-
-% from https://pdf.sciencedirectassets.com/777084/1-s2.0-S2666522020X00037/1-s2.0-S2666522021000022/main.pdf?X-Amz-Security-Token=IQoJb3JpZ2luX2VjEGMaCXVzLWVhc3QtMSJGMEQCIFsYXTtc1RHMSmIK52xVkIvN%2Bumz2sbFhDOyeFEGBiEuAiAl6PomsgXFcKGN3W%2FSnUIQPx69iUpdnRiX%2Fd5YbdJQmSqzBQhcEAUaDDA1OTAwMzU0Njg2NSIMV3XPdDrmcSDbLJ3hKpAFwLI%2B%2FdeHrozPBeMvZR%2BgjYRec0A1YLbiheYjSXzNIEDXPMjOqmHwyUpcKuV5q2vAwY4FtBfu3WVSH8JWmR0%2Fk4cbcfXzHljQ6e%2BnHmfcqYNj2F0T3VSaokaOnGYW0LDYEtsJNxK1hofZIU5Zp2R8eOWBBpQiqWCD1s8lwzt1CosEgFK5j2H41WKplu0zTRXwyFeumPB8Qoh1BEXOBe%2BVnel%2FxwIa%2B35cQ1Bylcp%2FPqmBlSXvGjA%2FD52pPm%2B8KSVAveAggAIIH39FFEWVjYEMTV%2BcwPKmEVtSaTvf8FtXVKA%2ByIB%2FRyJztaT6HonLdqlg1q6yWdT755FfU8Hu4bKPSrZNOd9%2FcEX4H0HHfIp6YhDTcMnZrH39hkzazlWOFH3n0Pir6iIM%2BHraNZDqSEdbaYWVD4AjIo5TpIwQT5oFgjYx3%2BRevirU4weJgvtQXfT0zd83XlLWSd9%2F6vB5whVhgH7U9YeQ8RBuQ%2FW6%2FhsRGFpjaDd6wOwQtvxV0V6gIfv8ae7pXx7hnUCH8PLl5mTiJVCbuMkkCj4nKwbDj6Ym3iIEEFFXNm1LKAQUkQQycztXXUjOW2Rk%2BfFUFkFtyN0J12AbStuB%2FpgXm6LaBOMtRXvnAtFYVoczydgkGdvV6ATCzTQiRRRrfmjHSpdxiqalGkjKbyzFbrfjISlTsMpBKhUO1S5hicJb57g9WcBWFBFZFngoIxJDZTo6tkojKTvzbyQ9G%2BKQl0%2FEzSL%2Bh8VhufNitTYllU7hSvymQgzH%2BbLUoPyk13IkWi%2FIDzegYJCZrXw8JQ5cZcKjzqBGGgZY9PLx8BEpapsg4lvgGxZkKOfpCZt2TYJ8NJeDGMDpbdNi2QK9UhDhwPDYbcsnI9fw5TgwoML0wgY6sgEd0v8wRCBRjUbuThLGzI2ssmRgyGi%2BC%2Fsj868ag2Dr93D4YCmOUfX3iS3Gh7DFo2SN7sQqyuA5RSdvzVAQ7wszPxacr4JbbL7h%2FnD4XEGN1XIHYT7RrdpvzKDMcdxTmN17v8%2BF6IkVjfp8GSIYgSA3SN8%2FSENpcq9eVvTaWLS7MOBFeqM7DXNYszu3lsFQDyw4ja1%2FPXnSHSSNWdB79h%2BKbOaM%2FUL%2BFVocTURat90KfV9a&X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Date=20250626T121052Z&X-Amz-SignedHeaders=host&X-Amz-Expires=300&X-Amz-Credential=ASIAQ3PHCVTY4QUWI4GR%2F20250626%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Signature=2f39df75eab0574eb192f414e82add491e273736e459fd55b1d5d1bb7109491f&hash=78f6fddcd654398abfa1a1a00fd856c38f6b19d1e5a20a2758468389bf23a036&host=68042c943591013ac2b2430a89b270f6af2c76d8dfd086a07176afe7c76c2c61&pii=S2666522021000022&tid=spdf-fd31c558-5f4b-4954-9952-c411d8c39b2e&sid=f8d661842be6c741fd1bba05596e16d10e11gxrqb&type=client&tsoh=d3d3LnNjaWVuY2VkaXJlY3QuY29t&rh=d3d3LnNjaWVuY2VkaXJlY3QuY29t&ua=0c005f5653045e045c&rr=955c9a9f5baeeb55&cc=no
-
-% One other contributing factor for the observed localized medial-lateral deformation
-% near the periventricular region,
-% could be the enlargement of the 3rd and lateral ventricles during
-% the cardiac cycle [63,64]. 
-% More specifically, in addition to the substantial motion in the
-% inferior brain structures, DENSE also showed large motion
-% in the medial brain structures near the 3rd and lateral ventricles [65].
+the ciliary beating is generally caudally directed. Assessing the impact
+of this directionality, and whether e.g. a more cephalic directed beating
+influences the results, could be investigated in future work.
 
 \subsection{Limitations}\label{subsec:limitations}
 This modeling work comprises several mechanisms, parameters and
