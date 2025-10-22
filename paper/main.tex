@@ -1163,7 +1163,10 @@ than that reported by previous research, where 0.9\%~\cite{zhu2006dynamics}
 and even as high as 20\%~\cite{lee1989variation} has been reported. The latter value would
 produce unrealistically large flow volumes in our model, but the discrepancy between our model
 and experimental reports strongly indicate the absence of another volume-regulating mechanism 
-in our model. Absorption of CSF through the ventricular walls could be one such mechanism.
+in our model. One potential explanation could be that our model lacks the parts of the CSF flow
+system downstream of the ventricles, and models the median aperture and lateral apertures as 
+open (traction-free) boundaries. In reality, there is some flow resistance since CSF downstream
+of the ventricular system must be displaced if the ventricular CSF is to be displaced. 
 
 The cephalocaudal displacements we imposed are well-documented~\cite{Kurtcuoglu2007ComputationalSylvius,
 Enzmann1992BrainImaging, greitz1992pulsatile, soellinger2007assessment, soellinger20093d}.
@@ -1218,16 +1221,18 @@ where nonlinear damping effects are negligible.
 In terms of the flow model, there are uncertainties related to several mechanisms,
 and there are mechanisms of CSF flow that we disregarded to focus 
 on the impact of cilia and CSF production on the ventricular flow and transport.
-As mentioned previously, there is probably absorption of CSF through the ventricular walls
-into the brain parenchyma~\cite{}, which we did not model. This mechanism would alter the
-volume dynamics and flow inside the ventricles.
-Moreover, CSF production might in reality neither be constant nor evenly
-distributed across the choroid plexuses of the ventricles~\cite{}.
-Also, in reality 10--30\% of the CSF production
+As mentioned previously, our model lacks other parts of the CSF flow system such
+as the spinal canal and the subarachnoid spaces. A more holistic model
+would alter the observed volume and flow dynamics of the ventricles.
+Moreover, CSF production may in reality neither be constant nor evenly
+distributed across the choroid plexuses of the ventricles,
+and might be produced elsewhere in the brian~\cite{miyajima2015evaluation}.
+For example, Brodal~\cite{Brodal2016TheSystem}
+report that in reality 10--30\% of the CSF production
 may come from interstitial fluid transported through the ependymal cell
-layer of the brain ventricles walls into the ventricles~\cite{Brodal2016TheSystem}.
+layer of the brain ventricles walls into the ventricles.
 A variable-in-time production and a different distribution of the production
-magnitudes between the different choroid plexuses would impact the results. 
+magnitudes between the different choroid plexuses would impact our results. 
 Also, respiration has a flow component~\cite{Vinje2019RespiratoryMeasurements},
 while we only modeled pulsatile deformations driven by a cardiac freqeuncy.
 Disregarding the respiration can be justified by an experimental report
