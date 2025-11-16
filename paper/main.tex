@@ -6,8 +6,8 @@
 \title{\textbf{Characterization of coherent flow structures in brain ventricles}}
 \author[1,*]{Halvor Herlyng}
 \author[2]{Shawn C.~Shadden}
-\affil[1]{Department of Numerical Analysis and Scientific Computing, Simula Research Laboratory, Oslo, Norway} % Kristian Augusts gate 23, 0164
-\affil[2]{Department of Mechanical Engineering, University of California, Berkeley, USA} % Erling Skjalgsons gate 1, 7491
+\affil[1]{Department of Numerical Analysis and Scientific Computing, Simula Research Laboratory, Oslo, Norway}
+\affil[2]{Department of Mechanical Engineering, University of California, Berkeley, USA}
 \affil[*]{\href{mailto:hherlyng@simula.no}{hherlyng@simula.no}}
 \date{\vspace{-2em}} % Remove space between affiliations and abstract
 
@@ -44,13 +44,6 @@
     to resolve intricate features of flow and advective transport that
     are present in the solution to the Navier-Stokes equations.
 \end{abstract}
-
-% Notes:
-% - Consider scenarios 1. ChP turned off and 2. Cilia turned off. If these don't do much then pulsatility is most important
-% - Might serve different purposes, does cilia/production lead to more net flow than pulsations?
-% - Overlay velocity glyphs on FTLE fields? White, scarcely populated, just to show flow direction
-% - Mention why div-conforming method is used/a novelty/favorable
-% - Introduce LCS and what they are in the intro, and that FTLE characterize them
 
 \section{Introduction}
 % I1: What is the problem - from big picture to our precise topic - why is it interesting?
@@ -261,43 +254,6 @@ all variables are evaluated in the reference configuration.
 Like for the differential operator $\nabla$, integrals of the weak formulation
 must be transformed appropriately to account for the
 domain motion~\cite{Scovazzi2007LectureNotes}.
-
-% The ventricular domain $\Omega_t = \Omega(t)$ is then deforming in time,
-% and we solve the fluid equations with an Arbitrary Lagrangian Eulerian (ALE) method.
-% The governing equations in the physical, material reference frame $\Omega_t$ are
-% recast in Eulerian coordinates by mapping the variables from the deformed configuration $\Omega_t$
-% to the reference configuration $\hat{\Omega} = \Omega_0$. 
-% We denote this mapping $\psi : f(\XX, t) \mapsto f(\xx, t)$ where
-% $\xx = \psi(\XX, t) \in \Omega_0$ are the Eulerian coordinates
-% and $\XX\in\Omega_0$ are the (Lagrangian) material coordinates. The Navier-Stokes
-% equations \Cref{eq:navier_stokes_cont_eq,eq:navier_stokes_mom_eq} hold in the physical, material reference frame 
-% for the variables $\uu(\XX, t)$ and $p(\XX, t)$.
-% The equations are recast in Eulerian coordinates as
-% \begin{alignat}{2}
-%     \hat{\nabla}\cdot\uu = 0 \quad\text{in }\Omega_0, \label{eq:ALE_cont_eq} \\
-%     \rho\left(\pdifft{\uu}\bigg|_{\xx} + (\bm{c}\cdot\hat{\nabla})\uu\right) = \hat{\nabla}\cdot\TT \quad\text{in }\Omega_0, \label{eq:ALE_mom_eq} \\
-% \end{alignat}
-% where the del-operator $\hat{\nabla} = \nabla_{\xx} = \mathbf{F}^{-T}\nabla_{\XX}$ is transformed
-% using the deformation gradient $\mathbf{F} = \nabla_{\XX}\xx$ and $\bm{c} = \uu(\xx, t) - \dot{\ww}(\xx, t)$
-% is the convective velocity in which $\dot{\ww}(\xx, t)$ is the velocity of the domain $\Omega_t$.
-
-% Denoting the domain boundary 
-% $\partial\Omega = \Gamma = \Gamma_1\cup\Gamma_2\cup\Gamma_3$, the three boundary condition types in
-% the material reference frame read
-% \begin{alignat}{2}
-%     \uu(\XX, t)\cdot\nn(\XX, t) &= 0 \quad &\text{on }\Gamma_t^1, \label{eq:material_impermeability_BC}\\
-%     \TT_{\parallel} &= \btau(\XX, t) - \alpha\uu_{\parallel}(\XX, t) \quad &\text{on }\Gamma_t^2, \label{eq:material_tangential_traction_BC}\\
-%     \uu(\XX, t)\cdot\nn(\XX, t) &= q \quad &\text{on }\Gamma_t^3.
-%     \label{eq:material_production_BC}
-% \end{alignat}
-% Mapped to the reference configuration where the boundary is denoted
-% $\partial\Omega_0 = \Gamma_0 = \Gamma^1\cup\Gamma^2\cup\Gamma^3$, these boundary conditions become
-% \begin{alignat}{2}
-%     \uu(\xx, t)\cdot\hat{\nn} &= \dot{\ww}(\xx, t)\cdot\hat{\nn} \quad &\text{on }\Gamma_1, \label{eq:reference_impermeability_BC}\\
-%     \TT_{\parallel} &= \btau(\xx, t) - \alpha\uu_{\parallel}(\xx, t) \quad &\text{on }\Gamma_2, \label{eq:reference_tangential_traction_BC}\\
-%     \uu\cdot\hat{\nn} &= \hat{q} + \dot{\ww}(\xx, t)\cdot\hat{\nn} \quad &\text{on }\Gamma_3.
-%     \label{eq:reference_production_BC}
-% \end{alignat}
 
 For fluid flows where viscous forces dominate inertial 
 forces, the steady Stokes equations
@@ -549,7 +505,9 @@ ventricle~\cite{Olstad2019CiliaryDevelopment}.
 % The directions of ciliary beat on the wall of the fourth ventricle in the mouse.
 % Arch Histol Jpn 1977; 40: 283–296
 
-\subsubsection{Boundary condtions for the fluid equations}\label{sec:boundary_conditions}
+\subsubsection{Boundary condtions for the fluid equations}
+\label{sec:boundary_conditions}
+
 For the human CSF flow model, we partition the boundary into
 three parts: $\partial\DD = \Scal = \Scal_1\cup\Scal_2\cup\Scal_3$.
 Using the mechanisms introduced in the previous subsections,
@@ -796,7 +754,7 @@ are implemented and solved with DOLFINx~\cite{baratta2023dolfinx},
 a FEniCS Project software.
 A direct solver using MUMPS~\cite{Amestoy2011Mumps} is used to solve the fluid equations.
 We solve the solid equations iteratively with a
-Flexible Generalized Minimal Residual method~\cite{fgmres}, with
+Flexible Generalized Minimal Residual (GMRES) method~\cite{fgmres}, with
 the system preconditioned with Algebraic Multigrid (AMG) preconditioning
 using BoomerAMG~\cite{yang2002boomeramg} from the hypre library~\cite{hypre}. 
 The software used for finite element simulations is openly available. 
@@ -897,14 +855,14 @@ These vortical patterns are absent in the Stokes solution.
 \end{figure}
 
 % Comparison of model versions
-\fixme{Reference model versions.}
-When comparing results for the three flow model versions, most of the computed flow quantities are similar.
-The aqueductal and lateral aperture stroke volumes are the same when removing cilia from the model.
-Removing production while keeping cilia, there is slightly less flow with a 4\% decrease in these stroke volumes,
-with a similar decrease in the interventricular foramina stroke volumes.
-The median aperture stroke volume is less for both the model with the cilia removed and the model with production removed
-compared to the baseline, with an 11\% and 12\% decrease, respectively. The pressure gradient peak-to-nadir is unaltered.
-The maximal and minimal velocity magnitudes and flowrates change less than 4\% and 3\%, respectively, between the three models.
+When comparing results for the three flow model versions (DSC, DC, DS), most of the computed flow quantities are similar.
+The aqueductal and lateral aperture stroke volumes are the same when excluding cilia (DS) as for the full model (DSC).
+Removing secretion while keeping cilia (DC model), there is slightly less flow with a 4\% decrease in the aqueductal
+and lateral aperture stroke volumes when compared to DSC, with a similar decrease in the interventricular foramina stroke volumes.
+The median aperture stroke volume is less for both DS and DC compared to DSC, with an 11\% and 12\% decrease for DS and DC,
+respectively. The pressure gradient peak-to-nadir is unaltered for both DC and DS.
+The maximal and minimal velocity magnitudes and flowrates change
+less than 4\% and 3\%, respectively, between the three models.
 
 \subsection{Finite element simulations in zebrafish brain ventricles}
 % Summarize zebrafish velocity field characteristics
@@ -944,8 +902,9 @@ are the narrowest sections of the ventricular system, where flow
 is strong as a result of the principle of mass conservation.
 
 FTLE fields computed using the solution to the Navier-Stokes
-equations (\Cref{eq:navier_stokes_mom_eq}) with varying integration time $T$ show the emergence of
-a jet at the cephalic entrance to the aqueduct (\Cref{fig:FTLE_human1}). 
+equations (\Cref{eq:navier_stokes_mom_eq}) with varying integration time $T$
+show the emergence of a jet and the generation of a vortex ring
+at the cephalic entrance to the aqueduct (\Cref{fig:FTLE_human1}). 
 There are clearly visible ridge-like structures in the FTLE fields in the
 interventricular foramina. In the bulk of the lateral and third ventricles,
 there are no clear structures in the FTLE fields.
@@ -1069,7 +1028,7 @@ The vortex ring also traps fluid, thus the presence
 of this structure suggests some CSF may occupy the third ventricle for
 relatively long times.
 
-For $T=1.0$ s there is a repelling structure characterized
+For $T=1.0$ s (one cardiac cycle) there is a repelling structure characterized
 by a well-defined ridge in the forward-in-time FTLE field.
 This repelling structure separates the third ventricle from the aqueduct, which means
 that once fluid has reached the entrance to the aqueduct, it is quickly
@@ -1093,9 +1052,10 @@ Herlyng2025AdvectionDiffusion}.
 
 \subsection{The effects of fluid inertia on ventricular flow and transport}
 The results we present indicate that when simulating CSF flow
-in human ventricles at Reynolds numbers in the lower hundreds, accounting for intertial effects through
+in human ventricles at Reynolds numbers in the lower hundreds,
+accounting for intertial effects through
 solving the full Navier-Stokes equations is important when investigating
-advective transport by the CSF flow, as well as analysis of local flow features.
+advective transport by the CSF flow and analyzing local flow features.
 We draw this conclusion based on the vast differences in the structures
 present in the FTLE fields and the differences observed in local flow features
 between the Navier-Stokes and Stokes solutions. The lobe structures and
@@ -1120,14 +1080,16 @@ these numbers, investigating the effects on the discrepancy in the advective tra
 between the Stokes and Navier-Stokes solutions would be interesting to address in future work.
 
 \subsection{The effects of motile cilia and CSF production}
-Disregarding motile cilia did not alter the flow in the human brain ventricles significantly
+Disregarding motile cilia (DS model) did not alter the flow in the human brain ventricles significantly
 in terms of macroscopic flow quantities like stroke volume. 
-There were however minor differences in the FTLE field structures when disregarding cilia,
-with the lobe structures near the aqueduct entrance more attached to the 3V wall when including cilia,
+There were however minor differences in the FTLE field structures computed with the DS model compared
+to both DC and DSC, with the lobe structures near the aqueduct
+entrance more attached to the 3V wall when including cilia (DC/DSC),
 indicating that cilia alter the near-wall flow.
-This finding compares well with the computational study by Siyahhan~\emph{et al.}~\cite{Siyahhan2014FlowVentricles},
-whose results showed only a minor effect of cilia on near-wall flow.
-On the other hand, in the model of Yoshida~\emph{et al.}~\cite{Yoshida2022EffectVentricles} 
+This finding compares well with the computational study
+by Siyahhan~\emph{et al.}~\cite{Siyahhan2014FlowVentricles},
+whose results showed only a minor effect of cilia on near-wall flow in the lateral
+ventricles. On the other hand, in the model of Yoshida~\emph{et al.}~\cite{Yoshida2022EffectVentricles} 
 cilia had a significant effect on mixing. We observed that the cilia model parameters
 strongly influenced the effect of cilia on the flow (see \Cref{subsec:limitations}),
 and we are of the opinion that any further insights on the effect of cilia in
@@ -1142,10 +1104,11 @@ as compared to adult humans. Cilia may play a similarly important
 role in smaller confined spaces of the human ventricular system,
 such as in the inferior and occipital horns of the lateral ventricles.
 
-The constant-in-time CSF production we imposed had little impact, apart from
-generating a net outward flow from the ventricular system. In terms of local
-flow features, there was no noticeable difference when disregarding CSF production.
-The FTLE fields were also largely unaffected compared to the baseline model.
+The constant-in-time CSF secretion we imposed had little impact on the
+computed flow quantities, apart from generating a net outward flow from the
+ventricular system. In terms of local flow features and FTLE fields,
+these were largely unaffected when disregarding CSF secretion (DC model)
+compared to the DSC model.
 
 \subsection{Model validation: brain deformations and ventricular CSF flow}
 To ensure that the CSF flow we modeled to be a result of cardiovascular pulsatility 
@@ -1228,7 +1191,9 @@ the ciliary beating is generally caudally directed. Assessing the impact
 of this directionality, and whether e.g. a more cephalic directed beating
 influences the results, could be investigated in future work.
 
-\subsection{Limitations}\label{subsec:limitations}
+\subsection{Limitations}
+\label{subsec:limitations}
+
 This modeling work comprises several mechanisms, parameters and
 assumptions that are uncertain.
 For the solid equations, we used a damped linear elastic model
@@ -1269,7 +1234,8 @@ Disregarding the respiration can be justified by an experimental report
 which found cardiovascular pulsations to be the dominant of these pulsatile mechanisms
 in driving CSF flow~\cite{Soderstrom2025}.
 
-There is also great uncertainty around our choice of Navier slip boundary condition.
+As already mentioned, there is also great uncertainty around our choice
+of Navier slip boundary condition and the associated parameter values.
 First, the force per surface area parameter $\tau$ is based on the value used by
 Siyahhan~\emph{et al.}~\cite{Siyahhan2014FlowVentricles}, which they obtained by
 calibrating CSF flow simulations with rodent CSF velocity data. Because the
@@ -1314,7 +1280,7 @@ this work hopefully inspires future work on Lagrangian analysis of brain ventric
 
 \subsection*{Acknowledgments}
 H. Herlyng thanks Miroslav Kuchta, Marie E. Rognes
-and Marius Causemann for model discussions,
+and Marius Causemann for helpful model discussions,
 and Nathalie Jurisch-Yaksi for
 insightful discussions about the ventricular system.
 H. Herlyng acknowledges computational support from the
