@@ -1019,30 +1019,33 @@ Both in the zebrafish and the human model, we find ridges in the finite-time
 Lyapunov exponent fields (FTLE) that indicate the presence
 of Lagrangian coherent structures (LCS), demonstrating organization
 of the CSF flow. In the human ventricular system, the jet observed in 
-the third ventricle is consistent with previous computational
+the third ventricle (\Cref{fig:FTLE_human1}) is consistent with previous computational
 studies~\cite{Kurtcuoglu2007ComputationalSylvius}. The unsteady FTLE
-fields indicate that the jet creates a vortex ring every cardiac cycle.
-This vortex ring indicates strong streching and folding of the CSF,
+fields (\Cref{fig:FTLE_human2}) indicate that the jet creates a vortex ring every cardiac cycle.
+As characterized in previous studies, this vortex ring indicates
+strong streching and folding of the CSF,
 contributing to mixing and stirring~\cite{shadden2006lagrangian, shadden2007transport}. 
 The vortex ring also traps fluid, thus the presence
-of this structure suggests some CSF may occupy the third ventricle for
+of the ring suggests some CSF may occupy the third ventricle for
 relatively long times.
 
-For $T=1.0$ s (one cardiac cycle) there is a repelling structure characterized
-by a well-defined ridge in the forward-in-time FTLE field.
+For $T=1.0$ s (one cardiac cycle) there is a repelling structure 
+in the third ventricle characterized by a well-defined ridge
+in the forward-in-time FTLE field (\Cref{fig:FTLE_human1}).
 This repelling structure separates the third ventricle from the aqueduct, which means
 that once fluid has reached the entrance to the aqueduct, it is quickly
 expelled through the aqueduct. Meanwhile, fluid inside the third ventricle
 can stay there for a longer time without exiting through the aqueduct.
 In the interventricular foramina, there are also
-clear ridges in the FTLE field with $T=1.0$ s, indicating regions of high stretching
-and delineation of regions with different advective transport times.
-The lobes that develop have a structure that could trap fluid close to the ventricular
-walls.
+clear ridges in the FTLE field with $T=1.0$ s (\Cref{fig:FTLE_human1}),
+indicating regions of high stretching and delineation of regions
+with different advective transport times. The lobes that develop
+have a structure that could trap fluid close to the ventricular walls.
 
-In the zebrafish ventricles FTLE fields, there are clearly defined LCS,
-both attracting and repelling, in the interventricular duct separating the
-anterior and middle ventricles. Combining the backward- and forward-in-time FTLE fields,
+In the zebrafish ventricles FTLE fields (\Cref{fig:FTLE_zfish}),
+there are clearly defined LCS, both attracting and repelling,
+in the interventricular duct separating the anterior and middle ventricles.
+Combining the backward- and forward-in-time FTLE fields,
 the prominent attracting and repelling structures form a hyperbolic separation point. 
 This confines flow to separate parts of the ventricular system.
 This finding aligns well with previous studies that have demonstrated flow
@@ -1057,7 +1060,8 @@ accounting for intertial effects through
 solving the full Navier-Stokes equations is important when investigating
 advective transport by the CSF flow and analyzing local flow features.
 We draw this conclusion based on the vast differences in the structures
-present in the FTLE fields and the differences observed in local flow features
+present in the FTLE fields (\Cref{fig:FTLE_human3}) and the
+differences observed in local flow features (\Cref{fig:3d_flow_results})
 between the Navier-Stokes and Stokes solutions. The lobe structures and
 vortex rings that form in the Navier-Stokes FTLE fields
 indicate stronger stirring and mixing of
@@ -1085,7 +1089,7 @@ in terms of macroscopic flow quantities like stroke volume.
 There were however minor differences in the FTLE field structures computed with the DS model compared
 to both DC and DSC, with the lobe structures near the aqueduct
 entrance more attached to the 3V wall when including cilia (DC/DSC),
-indicating that cilia alter the near-wall flow.
+indicating that cilia alter the near-wall flow (\Cref{fig:FTLE_human3}).
 This finding compares well with the computational study
 by Siyahhan~\emph{et al.}~\cite{Siyahhan2014FlowVentricles},
 whose results showed only a minor effect of cilia on near-wall flow in the lateral
@@ -1108,9 +1112,9 @@ The constant-in-time CSF secretion we imposed had little impact on the
 computed flow quantities, apart from generating a net outward flow from the
 ventricular system. In terms of local flow features and FTLE fields,
 these were largely unaffected when disregarding CSF secretion (DC model)
-compared to the DSC model.
+compared to the DSC model (\Cref{fig:FTLE_human3}).
 
-\subsection{Model validation: brain deformations and ventricular CSF flow}
+\subsection{Model validation with experimental data of brain deformations and ventricular CSF flow}
 To ensure that the CSF flow we modeled to be a result of cardiovascular pulsatility 
 brain deformations had a physiological magnitude,
 the stroke volume (cumulative flow volume) in the cerebral aqueduct was used to
@@ -1121,13 +1125,14 @@ reported by Eide~\emph{et al.}~\cite{eide2021direction}.
 This choice was made based on the fact that the 
 ventricular volume displacement directly determines
 the volume of displaced CSF.
-We also compared other quantities, such as the peak-to-nadir pressure
-gradient, with previously reported values.
-We note that some of these quantities, vary widely
+We also compared other quantities like the peak-to-nadir pressure
+gradient with previously reported values.
+We note that some of these quantities vary widely
 in terms of values reported in research literature.
 
 Eide~\emph{et al.}~\cite{eide2021direction} reported values of $67\pm 57$ \textmu l
-for the aqueductal stroke volume, which is in the higher range of reported values~\cite{baledent2004relationship,
+for the aqueductal stroke volume, which is in
+the higher range of reported values~\cite{baledent2004relationship,
 Liu2024UsingBreathing, kim1999quantitative},
 while some studies report lower values in the range
 of 15--30 \textmu l~\cite{wagshul2011pulsating, nitz1992flow, greitz1994mr,
@@ -1213,26 +1218,30 @@ The choice of linear elasticity with linear damping is considered
 adequate since we consider deformations on the timescale of a cardiac cycle,
 where nonlinear damping effects are negligible.
 
-In terms of the flow model, there are uncertainties related to several mechanisms,
-and there are mechanisms of CSF flow that we disregarded to focus 
-on the impact of cilia and CSF production on the ventricular flow and transport.
-As mentioned previously, our model lacks other parts of the CSF flow system such
-as the spinal canal and the subarachnoid spaces. A more holistic model
-would alter the observed volume and flow dynamics of the ventricles.
-Moreover, CSF production may in reality neither be constant nor evenly
-distributed across the choroid plexuses of the ventricles,
-and might be produced elsewhere in the brian~\cite{miyajima2015evaluation}.
+In terms of the flow model, there are mechanisms of CSF flow that we disregarded.
+For example, respiration has a flow component~\cite{Vinje2019RespiratoryMeasurements},
+while we only modeled pulsatile deformations driven by a cardiac freqeuncy.
+We disregarded the respiration partly because cardiovascular pulsations
+have been found to be the dominant of these pulsatile mechanisms
+in driving CSF flow~\cite{Soderstrom2025}. Other mechanisms like 
+absorption of CSF and neural activity were not modeled because 
+of our focus on the impact of cilia and CSF production on the
+ventricular flow and transport.
+Additionally, we comment that our model lacks other
+parts of the CSF flow system such
+as the spinal canal and the subarachnoid spaces,
+a choice made based on our focus on ventricular flow. 
+
+We model CSF secretion as constant in time and evenly distributed
+across the choroid plexuses. These assumptions may not perfectly reflect
+reality, as there are still debates whether CSF may be produced
+elsewhere in the brian~\cite{miyajima2015evaluation}.
 For example, Brodal~\cite{Brodal2016TheSystem}
 report that in reality 10--30\% of the CSF production
 may come from interstitial fluid transported through the ependymal cell
 layer of the brain ventricles walls into the ventricles.
-A variable-in-time production and a different distribution of the production
-magnitudes between the different choroid plexuses would impact our results. 
-Also, respiration has a flow component~\cite{Vinje2019RespiratoryMeasurements},
-while we only modeled pulsatile deformations driven by a cardiac freqeuncy.
-Disregarding the respiration can be justified by an experimental report
-which found cardiovascular pulsations to be the dominant of these pulsatile mechanisms
-in driving CSF flow~\cite{Soderstrom2025}.
+A variable-in-time production of CSF and a different distribution of the production
+magnitudes between the different choroid plexuses could impact our results. 
 
 As already mentioned, there is also great uncertainty around our choice
 of Navier slip boundary condition and the associated parameter values.
