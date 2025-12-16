@@ -5,10 +5,11 @@
 % Title
 \title{\textbf{Characterization of coherent flow structures in brain ventricles}}
 \author[1,*]{Halvor Herlyng}
-\author[2]{Shawn C.~Shadden}
+\author[2,$\dagger$]{Shawn C.~Shadden}
 \affil[1]{Department of Numerical Analysis and Scientific Computing, Simula Research Laboratory, Oslo, Norway}
 \affil[2]{Department of Mechanical Engineering, University of California, Berkeley, USA}
 \affil[*]{\href{mailto:hherlyng@simula.no}{hherlyng@simula.no}}
+\affil[$\dagger$]{\href{mailto:shadden@berkeley.edu}{shadden@berkeley.edu}}
 \date{\vspace{-2em}} % Remove space between affiliations and abstract
 
 \begin{document}
@@ -72,7 +73,7 @@ The nature of CSF flow has been studied extensively
 in recent decades, both experimentally and computationally.
 Among the physiological processes that affect CSF flow are:
 blood vessel and respiration dynamics,
-production and absorption of CSF,
+secretion and absorption of CSF,
 beating of motile cilia, neural activity, and posture changes.
 \cite{kelley2023cerebrospinal, sweetman2011cerebrospinal,
 Olstad2019CiliaryDevelopment, Faubel2016CiliaVentricles,
@@ -141,13 +142,13 @@ especially in flows that contain motion at multiple scales,
 such as ventricular CSF flow. Therefore,
 further knowledge of flow and transport in brain ventricles,
 and the precise contributions of specific
-flow mechanisms such as cardiovascular pulsations, CSF production,
+flow mechanisms such as cardiovascular pulsations, CSF secretion,
 and beating of motile cilia to mixing and transport of CSF,
 could be gained from Lagrangian analysis.
 For example, do LCS exist in brain ventricular CSF flow,
 and if so, how are the LCS organized?
 How are the LCS affected by flow mechanisms
-such as cardiovascular pulsations, motile cilia and CSF production?
+such as cardiovascular pulsations, motile cilia and CSF secretion?
 Does inertia play a significant role in establishing the
 LCS and thus the advective transport within the brain ventricles?
 
@@ -314,9 +315,9 @@ The respiratory cycle also influences CSF flow pressure
 gradients, but at different frequencies than the cardiac cycle~\cite{Vinje2019RespiratoryMeasurements}.
 In this study, we model deformations of the ventricles with a cardiac cycle frequency.
 
-In addition to cardiovascular pulsatility, we model CSF production and ciliary beating
+In addition to cardiovascular pulsatility, we model CSF secretion and ciliary beating
 that both contribute to CSF flow in the human brain ventricles.
-CSF is mainly produced by the choroid plexus tissue in the lateral,
+CSF is mainly produced by secretion through the choroid plexus tissue in the lateral,
 third and fourth ventricles (\Cref{fig:model_sketch}). Motile cilia
 are abundant in the human brain~\cite{doetsch1997cellular,
 scott1973scanning, coletti2018characterization, worthington1963ependymal},
@@ -436,12 +437,12 @@ $\eta_M = 0.20$ and $\eta_K = 0.10$ were set to dampen the motion
 such as to control vibrations around the cardiac cycle frequency 1 Hz,
 which is close to some of the eiqenfrequencies of the geometry.
 
-\subsubsection{Choroid plexus CSF production}\label{subsubsec:secretion}
-CSF production is modeled by imposing a normal flux at the
+\subsubsection{Choroid plexus CSF secretion}\label{subsubsec:secretion}
+CSF secretion is modeled by imposing a normal flux at the
 choroid plexus boundaries. We assume that all CSF that enters the brain ventricles
 is produced by the choroid plexus, and that the influx is evenly distributed
-over the production sites in the lateral, third and fourth ventricles.
-We assume a total daily CSF production
+over the secretion sites in the lateral, third and fourth ventricles.
+We assume a total daily CSF production of
 $Q = 504$ ml/day~\cite{Czosnyka2004CerebrospinalDynamics, huff2017neuroanatomy},
 where the minus signs is due to $\nn$ facing out of the domain.
 The production $Q$ is imposed through a normal flux at the choroid plexus boundary
@@ -596,7 +597,7 @@ where $t$ denotes time, $\uu$ is the CSF velocity, and $\xx_0=\xx(t_0; t_0, \xx_
 is the initial position of the particle at the initial time $t_0$. 
 \Cref{eq:dx_dt_equals_u} can be integrated to yield the particle position at a time $t>t_0$:
 \begin{equation}
-    \xx(t; t_0, \xx_0) = \xx(t_0) + \int_{t_0}^t \uu(\xx, s)\,\mathrm ds.
+    \xx(t; t_0, \xx_0) = \xx(t_0) + \int_{t_0}^t \uu(\xx, \xi)\,\mathrm d\xi.
 \end{equation}
 We define this relation as the mapping
 \begin{equation}
@@ -746,9 +747,9 @@ benzaken2024constructing}.
 
 \subsubsection{Software implementation}
 The FTLE field computations are performed with a 
-framework implemented in C. 
-\fixme{Add a citation for this, in that case which? Is this openly available?}
-% Move this to "software availability" section?
+framework implemented in C. The framework
+is openly available:
+(\href{https://github.com/FlowPhysics/flowVC}{https://github.com/FlowPhysics/flowVC}).
 The finite element methods for the fluid and solid equations
 are implemented and solved with DOLFINx~\cite{baratta2023dolfinx},
 a FEniCS Project software.
@@ -757,8 +758,8 @@ We solve the solid equations iteratively with a
 Flexible Generalized Minimal Residual (GMRES) method~\cite{fgmres}, with
 the system preconditioned with Algebraic Multigrid (AMG) preconditioning
 using BoomerAMG~\cite{yang2002boomeramg} from the hypre library~\cite{hypre}. 
-The software used for finite element simulations is openly available. 
-\fixme{Add citation/link to repo.}
+The software used for finite element simulations is openly available
+\fixme{Add Zenodo link.}. 
 
 \section{Results}
 \subsection{Finite element simulations in human brain ventricles}
@@ -1093,7 +1094,7 @@ by a factor ten. Although inertial forces would still dominate viscous forces at
 these numbers, investigating the effects on the discrepancy in the advective transport
 between the Stokes and Navier-Stokes solutions would be interesting to address in future work.
 
-\subsection{The effects of motile cilia and CSF production}
+\subsection{The effects of motile cilia and CSF secretion}
 Disregarding motile cilia (DS model) did not alter the flow in the human brain ventricles significantly
 in terms of macroscopic flow quantities like stroke volume. 
 There were however minor differences in the FTLE field structures computed with the DS model compared
@@ -1239,7 +1240,7 @@ We disregarded the respiration partly because cardiovascular pulsations
 have been found to be the dominant of these pulsatile mechanisms
 in driving CSF flow~\cite{Soderstrom2025}. Other mechanisms like 
 absorption of CSF and neural activity were not modeled because 
-of our focus on the impact of cilia and CSF production on the
+of our focus on the impact of cilia and CSF secretion on the
 ventricular flow and transport.
 Additionally, we comment that our model lacks other
 parts of the CSF flow system such
