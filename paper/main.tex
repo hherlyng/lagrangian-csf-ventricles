@@ -650,51 +650,18 @@ we compute the following quantities:
 \end{itemize}
 
 \subsection{Numerical methods}
-\subsubsection{Finite element method for the fluid equations}
-We discretize the governing equations of fluid motion
-(\Cref{eq:navier_stokes_mom_eq,eq:continuity_eq,eq:unsteady_stokes_eq,eq:stokes_eq})
-with an $\bm{H}(\mathrm{div}; \DD)$-conforming finite element method
-using $\mathrm{BDM}_2-\mathrm{DG}_1$ elements for velocity-pressure;
-quadratic Brezzi--Douglas--Marini (BDM) elements for the velocity and
-linear discontinuous Galerkin (DG)
-elements for the pressure. The scheme conserves mass exactly pointwise.
-The velocity component normal to facets is continuous
-for the BDM elements, while tangential continuity is achieved
-by a stabilization technique~\cite{Hong2016AEquations}. 
-When solving the Navier-Stokes equations, the convective term
-is linearized as $(\uu^{n+1}\cdot\nabla)\uu^{n+1} \approx (\uu^n\cdot\nabla)\uu^{n+1}$
-where $n$ denotes timestep. Moreover, the convective fluxes both on facets
-internal to the mesh and on open boundaries are stabilized with
-an upwinding technique~\cite{Schroeder2018Towards,
-di2011mathematical}.
-
-The cilia tangential traction boundary condition is imposed weakly,
-while the ventricular wall displacement velocity is imposed strongly.
-The choroid plexus flux boundary
-condition is imposed weakly using Nitsche's method
-\cite{Nitsche1971UberSind, benzaken2024constructing}.
-A detailed derivation
-of the BDM--DG discretization for the unsteady 
-Stokes equations can be found in
-Herlyng~\emph{et al.}~\cite{Herlyng2025AdvectionDiffusion}.
-
-In time, the fluid equations are discretized with the first-order, implicit
-Euler scheme using a timestep $\Delta t = 0.001$ s.
-Since we use an implicit time discretization and solve the fluid euquations
-directly, an initial condition is only needed
-for the velocity field, and not the pressure.
-When solving the Stokes equations, the fluid is 
-initially at rest: $\uu_0(\xx)=\uu(\xx, 0)=\bm{0}$.
-For the Navier-Stokes equations, we solve the Stokes equations
-(with $\uu_0(\xx)=\bm{0}$) and use the solution
-$\uu_{\mathrm{Stokes}}(\xx)$ as initial condition;
-$\uu_0(\xx)=\uu_{\mathrm{Stokes}}(\xx)$. 
-The fluid equations are solved for two cardiac cycles,
-and the velocities $\uu(\xx, t)$ of the second cycle are used
-to calculate FTLE fields. Because the FTLE computation code 
-interpolates velocity based on values in the mesh nodes, the
-finite element velocity approximation is projected from $\mathrm{BDM}_2$
-into $\mathrm{CG}_2$ (quadratic continuous Lagrange elements) and then evaluated in a $\mathrm{CG}_1$ space.
+The general pipeline of our computational modeling is:
+\begin{enumerate}
+    \item Solve the elasticity equations for the brain tissue displacements $\ww(\xx, t)$
+    and use $\ww$ to compute the wall displacement velocity $\dot{\ww}(\xx, t)$,
+    which is used as a boundary condition in the human CSF flow model
+    \item Solve the fluid equations to obtain the CSF velocity field $\uu(\xx, t)$
+    \item Use the velocity $\uu$ to compute quantities of interest
+    \item Use the velocity $\uu$ to compute FTLE fields
+\end{enumerate}
+The following subsections provide details on the numerical methods used
+to solve the governing equations for tissue deformation and fluid flow,
+as well as the computation of FTLE fields.
 
 \subsubsection{Finite element method for the tissue deformation equations}
 The unsteady (damped) linear elasticity equations (\Cref{eq:strong_linear_elasticity_1})
@@ -744,6 +711,52 @@ displacements were imposed strongly. The normal displacements
 were imposed weakly using Nitsche's method~\cite{Nitsche1971UberSind,
 benzaken2024constructing}.
 
+\subsubsection{Finite element method for the fluid equations}
+We discretize the governing equations of fluid motion
+(\Cref{eq:navier_stokes_mom_eq,eq:continuity_eq,eq:unsteady_stokes_eq,eq:stokes_eq})
+with an $\bm{H}(\mathrm{div}; \DD)$-conforming finite element method
+using $\mathrm{BDM}_2-\mathrm{DG}_1$ elements for velocity-pressure;
+quadratic Brezzi--Douglas--Marini (BDM) elements for the velocity and
+linear discontinuous Galerkin (DG)
+elements for the pressure. The scheme conserves mass exactly pointwise.
+The velocity component normal to facets is continuous
+for the BDM elements, while tangential continuity is achieved
+by a stabilization technique~\cite{Hong2016AEquations}. 
+When solving the Navier-Stokes equations, the convective term
+is linearized as $(\uu^{n+1}\cdot\nabla)\uu^{n+1} \approx (\uu^n\cdot\nabla)\uu^{n+1}$
+where $n$ denotes timestep. Moreover, the convective fluxes both on facets
+internal to the mesh and on open boundaries are stabilized with
+an upwinding technique~\cite{Schroeder2018Towards,
+di2011mathematical}.
+
+The cilia tangential traction boundary condition is imposed weakly,
+while the ventricular wall displacement velocity is imposed strongly.
+The choroid plexus flux boundary
+condition is imposed weakly using Nitsche's method
+\cite{Nitsche1971UberSind, benzaken2024constructing}.
+A detailed derivation
+of the BDM--DG discretization for the unsteady 
+Stokes equations can be found in
+Herlyng~\emph{et al.}~\cite{Herlyng2025AdvectionDiffusion}.
+
+In time, the fluid equations are discretized with the first-order, implicit
+Euler scheme using a timestep $\Delta t = 0.001$ s.
+Since we use an implicit time discretization and solve the fluid euquations
+directly, an initial condition is only needed
+for the velocity field, and not the pressure.
+When solving the Stokes equations, the fluid is 
+initially at rest: $\uu_0(\xx)=\uu(\xx, 0)=\bm{0}$.
+For the Navier-Stokes equations, we solve the Stokes equations
+(with $\uu_0(\xx)=\bm{0}$) and use the solution
+$\uu_{\mathrm{Stokes}}(\xx)$ as initial condition;
+$\uu_0(\xx)=\uu_{\mathrm{Stokes}}(\xx)$. 
+The fluid equations are solved for two cardiac cycles,
+and the velocities $\uu(\xx, t)$ of the second cycle are used
+to calculate FTLE fields. Because the FTLE computation code 
+interpolates velocity based on values in the mesh nodes, the
+finite element velocity approximation is projected from $\mathrm{BDM}_2$
+into $\mathrm{CG}_2$ (quadratic continuous Lagrange elements) and then evaluated in a $\mathrm{CG}_1$ space.
+
 \subsubsection{FTLE field computation}
 To compute FTLE fields, we initiate a cartesian grid of fluid particles at a
 time $t_0$ and compute the flow map $\phi_{t_0}^{t_0+T}$
@@ -773,7 +786,7 @@ The software used for finite element simulations is openly available
 \fixme{Add Zenodo link.}. 
 
 \section{Results}
-\subsection{Finite element simulations in human brain ventricles}
+\subsection{Pulsatile deformations lead to pulsatile CSF flow in the human brain ventricles}
 When solving the linear elasticity equations with the applied
 experimental displacement data, there is an initial contraction and
 caudal displacement of the brain ventricles during systole
