@@ -71,7 +71,7 @@
 \newcommand{\cc}{\bm{c}}
 \newcommand{\nn}{\bm{n}}
 \newcommand{\rr}{\bm{r}}
-\newcommand{\ss}{\bm{s}}
+%\newcommand{\qq}{\bm{q}}
 \newcommand{\uu}{\bm{u}}
 \newcommand{\vv}{\bm{v}}
 \newcommand{\ww}{\bm{w}}
