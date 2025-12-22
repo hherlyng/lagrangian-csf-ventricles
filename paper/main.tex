@@ -158,10 +158,9 @@ LCS and thus the advective transport within the brain ventricles?
 
 % I4: How do we address the problem and what do we find out?
 In this work, we characterize LCS in brain ventricular CSF flow
-using a computational model. We model intraventricular CSF flow
-in two geometries generated with medical imaging data. 
-One represents the brain ventricles of an adult human. The other
-represents the brain ventricles of embryonic zebrafish, an animal whose
+using two computational models generated with medical imaging data.
+One geometry represents the brain ventricles of an adult human. The other
+geometry represents the brain ventricles of embryonic zebrafish, an animal whose
 ventricular system shares many similarities with the human brain ventricles.
 Using finite element methods, we simulate CSF flow
 in these two geometries. The CSF velocity fields are used to
@@ -170,9 +169,10 @@ compute finite-time Lyapunov exponent (FTLE) fields, which
 we use to characterize LCS. In the human brain, we model
 flow driven by cardiovascular pulsations, choroid plexus secretion and motile cilia,
 and study the impact of each mechanism on flow patterns and advective transport.
-The results indicate the presence of LCS that are mostly determined by cardiovascular pulsations.
-For the zebrafish brain, we model flow driven by motile cilia, and demonstrate
-that FTLE fields can be used to characterize LCS that reflect flow trajectories
+The results indicate the presence of LCS that are mostly determined
+by cardiovascular pulsations. For the zebrafish brain, we model flow
+driven by motile cilia, and demonstrate that FTLE fields can be
+used to characterize LCS that reflect flow trajectories
 previously observed in experiments. Altogether, our work demonstrates the usefulness of
 Lagrangian analysis in furthering our understanding of CSF flow.
 
@@ -574,15 +574,15 @@ and is imposed on the end of the median aperture and on the lateral apertures
 to simulate open boundaries.
 
 For the zebrafish model, the domain boundary is denoted
-$\hat{\Scal} = \hat{\Scal}_1\cup\hat{\Scal}_2$.
+$\mathcal{Z} = \mathcal{Z}_1\cup\mathcal{Z}_2$.
 Similar to previous work~\cite{Herlyng2025AdvectionDiffusion},
 we consider a frictionless ($\alpha=0$) 
 tangential traction on the cilia boundary
 and a free-slip condition elsewhere:
 \begin{alignat}{2}
-    \TT_{\parallel} &= \Tilde{\btau}(\xx, t)  &&\quad\text{on }\hat{\Scal}_1, \\
-    \TT_{\parallel} &= \bm{0} &&\quad\text{on }\hat{\Scal}_2, \\
-    \uu\cdot\nn &= 0 &&\quad\text{on }\hat{\Scal}.
+    \TT_{\parallel} &= \Tilde{\btau}(\xx, t) = \Tilde{\tau}(\xx, t)P_{\nn}()  &&\quad\text{on }\mathcal{Z}_1, \\
+    \TT_{\parallel} &= \bm{0} &&\quad\text{on }\mathcal{Z}_2, \\
+    \uu\cdot\nn &= 0 &&\quad\text{on }\mathcal{Z}.
 \end{alignat}
 The last condition reflects impermeability of the ventricular walls. The function
 $\Tilde{\btau}(\xx, t)$ is strongest in the middle ventricle and weaker in the 
@@ -622,30 +622,29 @@ we define the (right) Cauchy-Green deformation tensor
     \mathbf{C} = \left(\nabla\bphi_{t_0}^t\right)^*\nabla\bphi_{t_0}^t
 \end{equation}
 where $\mathbf{A}^*$ denotes the transpose of a tensor $\mathbf{A}$.
-
-In the flow field $\uu(\xx, t)$, the maximum stretching that occurs between
-two points $\xx$ and $\yy$ aligns with the eigenvector associated with
-the maximum eigenvalue $\lambda_{\mathrm{max}}$ of $\mathbf{C}$~\cite{shadden2005definition}.
-Related to this eigenvalue is the finite-time Lyapunov exponent (FTLE), defined as
+The finite-time Lyapunov exponent (FTLE) is defined as
 \begin{equation}
-    \sigma_{t_0}^{t_0+T}(\xx) = \frac{1}{\vert T\vert}\ln{\sqrt{\lambda_{\mathrm{max}}}},
+    \sigma:=\sigma_{t_0}^{t_0+T}(\xx_0) = \frac{1}{\vert T\vert}\ln{\sqrt{\lambda_{\mathrm{max}}}},
 \end{equation}
-where we have defined the integration time $T = t - t_0$. 
-By definition, the FTLE measures the separation
-of fluid particle trajectories with time:
+where we have defined the integration time $T = t - t_0$, and $\lambda_{\mathrm{max}}$
+is the maximum eigenvalue of $\mathbf{C}$.
+The FTLE measures how sensitive a fluid trajectory
+is to perturbations in its initial position.
+Namely, let $\boldsymbol{\delta}(t_0)$ be an infinitesimal change
+in position from a fluid particle at $\xx_0$ at time $t_0$.
+This perturbation will have at most an exponential growth
+rate of $\sigma$ according to~\cite{shadden2008characterization}
 \begin{equation}
-    \max||\delta\xx(\xx, t+t_0)|| = \exp\left(\sigma_{t_0}^{t_0+T}(\xx)|T|\right)||\overline{\delta\xx}(\xx, t_0)||,
+    \max||\boldsymbol{\delta}(t_0 + T)||
+    \leq e^{\sigma |T|}||\boldsymbol{\delta}(t_0)||.
 \end{equation}
-where $\overline{\delta\xx}(\xx, t_0)$ is the particle position change along
-the eigenvector associated with $\lambda_{\mathrm{max}}$.
-Note the absolute value of the integration time $T$,
-which is employed because FTLE values can be calculated
+Note that the absolute value of the integration time $T$
+is employed because FTLE values can be Computed
 both by integration forward ($t>t_0$) and backward ($t<t_0$) in time.
 FTLE values computed by integration forward in time
-reveal repelling Lagrangian structures of the flow,
+reveal repelling LCS of the flow,
 whereas FTLE values computed by integration backward in time 
-reveal attracting structures. These Lagrangian structures
-are characterized by ridges in the FTLE fields.
+reveal attracting LCS. 
 
 \subsection{Model scenarios and quantities of interest}
 To quantify flow and analyze the role of different flow mechanisms
