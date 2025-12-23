@@ -227,7 +227,7 @@ We model CSF as an incompressible, Newtonian fluid of density
 $\rho=1000 \ \mathrm{kg/m^3}$ and dynamic viscosity
 $\mu=0.7 \ \mathrm{mPa\cdot s}$~\cite{Bloomfield1998EffectsFluid}
 in a domain $\DD\subset\mathbb{R}^d$
-with boundary $\partial\DD=\Scal\subset\mathbb{R}^{d-1}$.
+with boundary $\partial\DD\subset\mathbb{R}^{d-1}$.
 Neglecting the graviational acceleration, no body forces are acting on the fluid.
 The flow is governed by the Navier-Stokes equations, which determine the
 fluid velocity $\uu(\xx, t)$ and pressure $p(\xx, t)$ for times $t > 0$:
@@ -283,9 +283,11 @@ the role of fluid inertia, and whether the unsteady Stokes equations
 serve as a fair approximation in this setting.
 
 \subsection{Governing equations of brain tissue deformation}
-In the human brain ventricles, we model tissue displacement related
-to cardiovascular pulsations by assuming that the brain
-ventricles are a linear elastic material, with viscoelastic
+For the human brain ventricles, we use displacements of the brain
+ventricles walls related to cardiovascular pulsations
+as a driving force for CSF flow. The wall displacements are 
+derived from a model of brain tissue deformation that considers the brain
+ventricles as a linear elastic material, with viscoelastic
 behavior modeled by Rayleigh damping. The displacement $\ww(\xx, t)$
 of the brain ventricles is then governed by
 \begin{equation}
@@ -333,16 +335,15 @@ such as to control vibrations around the cardiac cycle frequency 1 Hz,
 which is close to some of the eiqenfrequencies of the geometry.
 
 \subsection{Modeling CSF flow in deforming brain ventricles}
-For the human brain ventricles, we use the tissue displacements
-modeled by \Cref{eq:strong_linear_elasticity_1} as a driving force
-for CSF flow. This is done by applying displacement velocities
+The tissue displacements modeled by \Cref{eq:strong_linear_elasticity_1}
+are used as a driving force for CSF flow by applying displacement velocities
 $\dot{\ww}(\xx, t)$ as boundary conditions in the fluid model.
-To account for these deformations of the domain $\DD$,
-we solve the Navier-Stokes equations
-(\Cref{eq:navier_stokes_mom_eq,eq:continuity_eq})
+To account for the fact that the fluid then occupies a deforming domain,
+we solve the Navier-Stokes equations (\Cref{eq:navier_stokes_mom_eq,eq:continuity_eq})
 and the unsteady Stokes equations (\Cref{eq:continuity_eq,eq:unsteady_stokes_eq})
-with an Arbitrary Lagrangian Eulerian (ALE) method~\cite{Duarte2004ALE,Scovazzi2007LectureNotes}.
-The governing equations are solved in the reference configuration
+with an Arbitrary Lagrangian Eulerian (ALE)
+method~\cite{Duarte2004ALE,Scovazzi2007LectureNotes}.
+The governing equations of CSF flow are solved in the reference configuration
 $\DD_{\chi} = \DD(\xx, t_0)$, using an invertible mapping
 $\psi : \DD_{\chi}\mapsto\DD_{\xx}$ between the reference configuration
 and the current (deformed) configuration $\DD_{\xx} = \DD(\xx, t)$. 
@@ -792,7 +793,7 @@ using $\mathrm{BDM}_k$--$\mathrm{DG}_{k-1}$ elements for velocity-pressure;
 Brezzi--Douglas--Marini (BDM) elements for the velocity and discontinuous Galerkin (DG)
 elements for the pressure~\cite{Brezzi1985TwoProblems,Nedelec1986AIR3}.
 We use $k=2$ for the human model and $k=1$ for the 
-zebrafish model. The $\mathrm{BDM}_k-\mathrm{DG}_{k-1}$ elements
+zebrafish model. The $\mathrm{BDM}_k$--$\mathrm{DG}_{k-1}$ elements
 yield a spatial discretization that conserves mass exactly pointwise.
 The velocity component normal to facets is continuous
 for the BDM elements, while tangential continuity is achieved
