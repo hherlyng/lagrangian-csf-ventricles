@@ -52,7 +52,7 @@ to the cardiac and respiratory cycles, bodily movement and
 neural activity. This brain motion is a key contributor to
 cerebrospinal fluid (CSF) flow~\cite{Enzmann1992BrainImaging,
 baledent2001cerebrospinal, sweetman2011cerebrospinal}.
-CSF is produced by choroid plexus in the brain ventricles,
+CSF is produced by choroid plexus in the brain ventricles~\cite{Damkier2013},
 from where the fluid flows into the spinal cord or
 to the subarachnoid space~\cite{rasmussen2018glymphatic}.
 The flow of CSF maintains brain homeostasis,
@@ -231,11 +231,11 @@ with boundary $\partial\DD=\Scal\subset\mathbb{R}^{d-1}$.
 Neglecting the graviational acceleration, no body forces are acting on the fluid.
 The flow is governed by the Navier-Stokes equations, which determine the
 fluid velocity $\uu(\xx, t)$ and pressure $p(\xx, t)$ for times $t > 0$:
-\begin{alignat}{1}
+\begin{alignat}{2}
     \rho\left(\pdifft{\uu}
-    + (\uu\cdot\nabla)\uu\right) &= \nabla\cdot\TT \quad\text{in }\DD,
+    + (\uu\cdot\nabla)\uu\right) &= \nabla\cdot\TT \quad&&\text{in }\DD,
     \label{eq:navier_stokes_mom_eq} \\
-    \nabla\cdot\uu &= 0 \quad\text{in }\DD,
+    \nabla\cdot\uu &= 0 \quad&&\text{in }\DD,
     \label{eq:continuity_eq}
 \end{alignat}
 with the stress tensor $\TT$ defined as
@@ -269,16 +269,18 @@ In such a flow regime, the unsteady Stokes equations
 \end{equation}
 may serve as a fair approximation.
 In~\Cref{eq:unsteady_stokes_eq}, the convective acceleration term
-$(\uu\cdot\nabla)\uu$ in~\Cref{eq:navier_stokes_mom_eq} is neglected,
+$\rho (\uu\cdot\nabla)\uu$ in~\Cref{eq:navier_stokes_mom_eq} is neglected,
 while the local acceleration
 $\rho\partial\uu/\partial t$ is retained to account for transient effects.
-Several previous computational studies of CSF flow are
-based on \Cref{eq:unsteady_stokes_eq}
+Although most computational studies of CSF flow in human brain ventricles
+employ the Navier-Stokes momentum equation, some previous
+studies are based on \Cref{eq:unsteady_stokes_eq}
 \cite{Causemann2022HumanFramework, kelley2023cerebrospinal}.
-We will compute flow in human brain ventricles with both the Navier-Stokes
-equations (\Cref{eq:navier_stokes_mom_eq}) and the unsteady
-Stokes equations (\Cref{eq:unsteady_stokes_eq}) to assess
-the role of fluid inertia.
+We will compute flow in human brain ventricles with both the
+Navier-Stokes (\Cref{eq:navier_stokes_mom_eq}) and the unsteady
+Stokes (\Cref{eq:unsteady_stokes_eq}) momentum equations to assess
+the role of fluid inertia, and whether the unsteady Stokes equations
+serve as a fair approximation in this setting.
 
 \subsection{Governing equations of brain tissue deformation}
 In the human brain ventricles, we model tissue displacement related
@@ -287,57 +289,67 @@ ventricles are a linear elastic material, with viscoelastic
 behavior modeled by Rayleigh damping. The displacement $\ww(\xx, t)$
 of the brain ventricles is then governed by
 \begin{equation}
-    \rho\ddot{\ww} + \eta_M\rho\dot{\ww} - \eta_K\nabla\cdot\bsigma_s(\dot{\ww})
+    \rho\ddot{\ww} + \zeta_M\rho\dot{\ww} - \zeta_K\nabla\cdot\bsigma_s(\dot{\ww})
     - \nabla\cdot\bsigma_s(\ww) = \bm{0} \quad\text{in }\DD,
     \label{eq:strong_linear_elasticity_1}
 \end{equation}
-where $\dot{\ww} = \pdifft{\ww}$. The damping factors $\zeta_M$ and $\zeta_K$ are
-related to the Rayleigh damping factor $\zeta = \zeta_M / (2\omega) + \zeta_K\omega / 2$
-for some eigenfrequency $\omega$. The damping factor $\zeta$ is thus composed of
-two separate damping factors; one related to inertia ($\zeta_M$)
-and one related to stiffness ($\zeta_K$).
+where $\dot{\ww} = \pdifft{\ww}$ and $\ddot{\ww} = \pdiffdifft{\ww}$
+are the displacement velocity and acceleration, respectively.
+The two damping factors $\zeta_M$ and $\zeta_K$
+are related to inertia and stiffness. 
 Moreover, $\bsigma_s = 2\eta\beps(\ww) + \lambda\mathrm{tr}(\beps(\ww))\delta$ is the
-solid stress tensor, in which $\eta$ and $\lambda$ are the Lamé parameters,
+tissue stress tensor, in which $\eta$ and $\lambda$ are the Lamé parameters,
 and $\delta$ is the Kronecker delta. 
 
 The Lamé parameters $\eta$ and $\lambda$ are derived from
 Poisson's ratio $\nu$ and Young's modulus $E$ of brain tissue.
-In reality the brain ventricles are filled with CSF, and only the
-ventricular walls are brain tissue. Since the purpose of the solid model
-is to generate a smooth displacement field for the ventricular wall deformations,
+In reality, the brain ventricles are filled with CSF, and only the
+ventricular walls are brain tissue. Since the purpose of this tissue model
+is to generate a smooth displacement field for the ventricular wall displacements,
 we expect the precise choice of $\nu$ and $E$ not to
 influence the general trends of the results, but rather
-only the required magnitude of the applied displacements $\bm{g}(\xx, t)$,
-Moreover, there is uncertainty in these material parameters. Especially $E$, 
+only the required magnitude of the applied displacements $\bm{g}(\xx, t)$.
+Additionally, there is in general an uncertainty
+in these material parameters. Especially $E$, 
 for which values reported in the literature span several orders of magnitude
 \cite{Budday2015Mechanical, Cheng2010ComputationalModel,
 Cheng2007UnconfinedCompression, Sweetman2011ThreeDimensional}.
 We adopt the choices of $\nu=0.479$ and $E=1500$
 made by Causemann~\emph{et al.}~\cite{Causemann2022HumanFramework}
-in their computational model of pulsatile CSF flow. The $\nu$ value 
+in their computational model of pulsatile CSF flow in the brain. The $\nu$ value 
 reflects a near incompressibility of brain tissue and the ventricular system,
 while the $E$ value represents an average of
 gray and white matter brain tissue surrounding the ventricular system
-\cite{Budday2015Mechanical}. The mass and stiffness damping factors
+\cite{Budday2015Mechanical}. 
+
+In general, the total Rayleigh damping factor $\zeta$ depends on
+two separate damping factors, one related to inertia ($\zeta_M$)
+and one related to stiffness ($\zeta_K$), and is given by
+$\zeta = \zeta_M / (2\omega) + \zeta_K\omega / 2$
+for some eigenfrequency $\omega$~\cite{ChopraAnilK2007Dynamics}.
+The mass and stiffness damping factors
 $\eta_M = 0.20$ and $\eta_K = 0.10$ were set to dampen the motion
 such as to control vibrations around the cardiac cycle frequency 1 Hz,
 which is close to some of the eiqenfrequencies of the geometry.
 
 \subsection{Governing fluid equations in deforming brain ventricles}
-Because the human brain ventricles deform over time, 
-the domain $\DD$ is deforming and varies over time.
+We use the tissue displacements modeled by \Cref{eq:strong_linear_elasticity_1}
+as a driving force for CSF flow in the human brain ventricles.
+This is done by applying displacement velocities $\dot{\ww}(\xx, t)$
+as boundary conditions in the fluid model. This makes
+the domain $\DD$ deform over time.
 Therefore, we solve the Navier-Stokes equations
-(\Cref{eq:navier_stokes_mom_eq,navier_stokes_cont_eq})
-and the unsteady Stokes equations (\Cref{eq:navier_stokes_cont_eq,eq:unsteady_stokes_eq})
-with an Arbitrary Lagrangian Eulerian (ALE) approach~\cite{Duarte2004ALE}.
-The governing equations are solved in the reference configuration $\phi(\chi, t)$,
+(\Cref{eq:navier_stokes_mom_eq,eq:continuity_eq})
+and the unsteady Stokes equations (\Cref{eq:continuity_eq,eq:unsteady_stokes_eq})
+with an Arbitrary Lagrangian Eulerian (ALE) approach~\cite{Duarte2004ALE,Scovazzi2007LectureNotes}.
+The governing equations are solved in the reference configuration $\DD_{\chi} = \DD(\chi, t)$,
 using the mapping $\psi : \xx\mapsto\chi$ from the current deformed
-configuration $(\xx, t)$ at time $t$ to the reference configuration.
+configuration $\DD_x = \DD(\xx, t)$ at time $t$ to the reference configuration.
 In this setup, the governing equations are
-\begin{alignat}{1}
+\begin{alignat}{2}
     \rho\left(\pdifft{\uu} + ((\uu - \cc)\cdot\hat{\nabla})\uu\right)
-    &= \hat{\nabla}\cdot\TT \quad\text{in }\hat{\DD}, \label{eq:ALE_momentum_eq} \\
-    \hat{\nabla}\cdot\uu &= 0 \quad\text{in }\hat{\DD}, \label{eq:ALE_continuity_eq}
+    &= \hat{\nabla}\cdot\TT \quad&&\text{in }\hat{\DD}, \label{eq:ALE_momentum_eq} \\
+    \hat{\nabla}\cdot\uu &= 0 \quad&&\text{in }\hat{\DD}, \label{eq:ALE_continuity_eq}
 \end{alignat}
 where $\cc = \dot{\ww}$ is the domain velocity and
 $\hat{\nabla}$ is the transformed differential operator accounting
@@ -368,8 +380,8 @@ In the embryonic zebrafish brain ventricles, we consider ciliary beating as
 the only flow mechanism for two reasons. First, an extensive description
 of cardiovascular pulsatility, similar to the one for human brain ventricles,
 does not exist~\cite{Herlyng2025AdvectionDiffusion}.
-Second, choroid plexus secretion begins later than 
-the developmental stage we consider. % Cite secretion
+Second, in zebrafish choroid plexus secretion begins later than 
+the developmental stage we consider~\cite{bill2008development}. 
 
 The following three subsections detail our modeling approach for the three
 types of flow mechanisms outlined above. For a complete specification of
@@ -460,8 +472,9 @@ parts are the remaining parts of the geometry not mentioned, and certain small
 regions delineating different displacement BC regions, to avoid stress concentrations.
 
 \subsubsection{Choroid plexus CSF secretion}\label{subsubsec:secretion}
-CSF is mainly produced by secretion through the choroid plexus tissue in the lateral,
-third and fourth ventricles (\Cref{fig:model_sketch}).
+In the human brain, CSF is mainly produced by secretion
+through the choroid plexus tissue in the lateral,
+third and fourth ventricles (\Cref{fig:model_sketch})~\cite{Damkier2013}.
 CSF secretion is modeled by imposing a normal flux at the
 choroid plexus boundaries. We assume that all CSF that enters the brain ventricles
 is produced by the choroid plexus, and that the influx is evenly distributed
@@ -580,13 +593,13 @@ we consider a frictionless ($\alpha=0$)
 tangential traction on the cilia boundary
 and a free-slip condition elsewhere:
 \begin{alignat}{2}
-    \TT_{\parallel} &= \Tilde{\btau}(\xx, t) = \Tilde{\tau}(\xx, t)P_{\nn}()  &&\quad\text{on }\mathcal{Z}_1, \\
+    \TT_{\parallel} &= \Tilde{\btau}(\xx, t)  &&\quad\text{on }\mathcal{Z}_1, \\
     \TT_{\parallel} &= \bm{0} &&\quad\text{on }\mathcal{Z}_2, \\
     \uu\cdot\nn &= 0 &&\quad\text{on }\mathcal{Z}.
 \end{alignat}
 The last condition reflects impermeability of the ventricular walls. The function
-$\Tilde{\btau}(\xx, t)$ is strongest in the middle ventricle and weaker in the 
-anterior ventricle (\Cref{fig:model_sketch}). See
+$\Tilde{\btau}(\xx, t)$ yields stronger cilia forces in the middle ventricle
+and weaker forces in the anterior ventricle. We refer the reader to
 Herlyng~\emph{et al.}~\cite{Herlyng2025AdvectionDiffusion} for more details.
 
 \subsection{Finite-time Lyapunov exponent fields and Lagrangian coherent structures}
@@ -657,26 +670,36 @@ also for comparison with previous computational and clinical studies,
 we compute the following quantities:
 \begin{itemize}
     \item The volumetric CSF flow rate
-    $\int_{\Scal_{\mathrm{aq}}}\uu(\xx, t)\,\mathrm dS$
-    over a cross section $\Scal_{\mathrm{aq}}$ in the cerebral aqueduct
+    $$ Q_{\mathrm{aq}}(t) = \int_{\Scal_{\mathrm{aq}}}\uu(\xx, t)\cdot\nn(\xx)\,\mathrm dS $$
+    over a cross section $\Scal_{\mathrm{aq}}$ in the cerebral aqueduct.
+
     \item The cumulative CSF flow volume in the aqueduct,
     median aperture, lateral apertures
-    and interventricular foramina.
+    and interventricular foramina. The cumulative flow volume $V(t)$
+    is computed by integrating the volumetric flow rate $Q(t)$
+    from an initial time $t_0$ to time $t$:
+    $$ V(t) = \int_{t_0}^{t} Q(\xi)\,\mathrm d\xi.$$
+
     \item The CSF stroke volume in the aqueduct, median aperture, lateral apertures,
     and interventricular foramina. The stroke volume is the maximum (with respect
     to time) of the cumulative flow volume.
+
     \item The peak-to-nadir mean pressure gradient, measured as the difference in
     the maximum and minimum value of the mean pressure gradient $\Delta \overline{p}$
     over a cardiac cycle. Here, the mean denotes the cross-sectional average
     of the pressure:
-    $\overline{p} = \frac{1}{\mathcal{C}}\int_{\mathcal{C}} p(\xx, t)\,\mathrm dS$,
-    where $\mathcal{C}$ is a given cross section
-    \item Maximum and minimum CSF velocities
+    $$\overline{p} = \frac{1}{|\mathcal{C}|}\int_{\mathcal{C}} p(\xx, t)\,\mathrm dS,$$
+    where $\mathcal{C}$ is a given cross section with area $|\mathcal{C}|$.
+
+    \item Maximum ($u_{\mathrm{max}}$) and minimum ($u_{\mathrm{min}}$)
+    CSF velocity magnitudes over one cardiac cycle.
+    At a given time $t$, the magnitude $u$ is 
+    $$ u = \sqrt{u_{x}^2 + u_{y}^2 + u_{z}^2}. $$
 \end{itemize}
 
 \subsection{Numerical methods}
 This section provides details on the numerical methods used
-to solve the governing equations for tissue deformation and fluid flow,
+to solve the governing equations for brain tissue deformation and CSF flow,
 as well as the computation of FTLE fields.
 To summarize, the general workflow of our computational modeling is:
 \begin{enumerate}
@@ -688,7 +711,7 @@ To summarize, the general workflow of our computational modeling is:
     \item Use the velocity $\uu$ to compute FTLE fields
 \end{enumerate}
 
-\subsubsection{Finite element method for the tissue deformation equations}
+\subsubsection{Finite element method for the elasticity equations}
 The unsteady (damped) linear elasticity equations (\Cref{eq:strong_linear_elasticity_1})
 are solved using a finite element method with
 fourth-order continuous Lagrange elements for the
@@ -803,11 +826,11 @@ and finally evaluated in a $\mathrm{CG}_1$ space.
 The FTLE field computations are performed with a 
 framework that is implemented in C and openly available at
 \href{https://github.com/FlowPhysics/flowVC}{https://github.com/FlowPhysics/flowVC}.
-The finite element methods for the fluid and tissue equations
+The finite element methods for the fluid and elasticity equations
 are implemented and solved with DOLFINx~\cite{baratta2023dolfinx},
 a FEniCS Project software.
 A direct solver using MUMPS~\cite{Amestoy2011Mumps} is used to solve the fluid equations.
-We solve the tissue equations iteratively with a
+We solve the elasticity equations iteratively with a
 Flexible Generalized Minimal Residual (GMRES) method~\cite{fgmres} using
 Algebraic Multigrid (AMG) preconditioning, specifically
 BoomerAMG~\cite{yang2002boomeramg} from the hypre library~\cite{hypre}. 
@@ -815,7 +838,7 @@ The software used for finite element simulations is openly available
 \fixme{Add Zenodo link.}. 
 
 \section{Results}
-\subsection{Pulsatile tissue deformation leads to pulsatile CSF flow in the human brain ventricles}
+\subsection{Pulsatile brain tissue deformation leads to pulsatile CSF flow in the human brain ventricles}
 When solving the linear elasticity equations with the applied
 experimental displacement data, there is an initial contraction and
 caudal displacement of the brain ventricles during systole
@@ -1047,7 +1070,7 @@ present in the Stokes solution's FTLE fields. This indicates a stronger stirring
 in the Navier-Stokes solution. Similarly, the repelling structures are more
 extensive in the Navier-Stokes FTLE fields.
 
-\subsection{Tissue deformations are the main contributor to Lagrangian structures}
+\subsection{Brain tissue deformations are the main contributor to Lagrangian structures}
 The FTLE fields computed in the third ventricle with the DC and DS models
 are generally comparable to the DSC results, with the formation of
 a vortex ring (\Cref{fig:FTLE_human3}, panels \textbf{b, c, d}).
@@ -1380,7 +1403,7 @@ thus we only present verification analysis of the human brain model here.
 Mesh and polynomial order refinement studies for the human
 model were performed both for the fluid and the solid equations.
 
-\subsection{Finite element method for the fluid equations}
+\subsection{Finite element methods for the fluid equations}
 Correctness of the discretization schemes on the human brain ventricles geometry
 were verified using the Method of Manufactured Solutions~\cite{Roache2001CodeSolutions}.
 Convergence properties of the fluid discretization scheme were assessed with two
@@ -1399,7 +1422,7 @@ We also assessed cardiac cycle independency, and observed a negligible error
 between simulating for 2 or 3 cardiac cycles, justifying our choice of 2 cycles
 in the main body of the text. 
 
-\subsection{Finite element method for the solid equations}
+\subsection{Finite element method for the elasticity equations}
 We refine element polynomial degree on a single mesh.
 We also refine mesh with a single element degree.
 We consider three versions of the ventricles mesh,
