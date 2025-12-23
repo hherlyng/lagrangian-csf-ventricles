@@ -332,33 +332,26 @@ $\eta_M = 0.20$ and $\eta_K = 0.10$ were set to dampen the motion
 such as to control vibrations around the cardiac cycle frequency 1 Hz,
 which is close to some of the eiqenfrequencies of the geometry.
 
-\subsection{Governing fluid equations in deforming brain ventricles}
-We use the tissue displacements modeled by \Cref{eq:strong_linear_elasticity_1}
-as a driving force for CSF flow in the human brain ventricles.
-This is done by applying displacement velocities $\dot{\ww}(\xx, t)$
-as boundary conditions in the fluid model. This makes
-the domain $\DD$ deform over time.
-Therefore, we solve the Navier-Stokes equations
+\subsection{Modeling CSF flow in deforming brain ventricles}
+For the human brain ventricles, we use the tissue displacements
+modeled by \Cref{eq:strong_linear_elasticity_1} as a driving force
+for CSF flow. This is done by applying displacement velocities
+$\dot{\ww}(\xx, t)$ as boundary conditions in the fluid model.
+To account for these deformations of the domain $\DD$,
+we solve the Navier-Stokes equations
 (\Cref{eq:navier_stokes_mom_eq,eq:continuity_eq})
 and the unsteady Stokes equations (\Cref{eq:continuity_eq,eq:unsteady_stokes_eq})
-with an Arbitrary Lagrangian Eulerian (ALE) approach~\cite{Duarte2004ALE,Scovazzi2007LectureNotes}.
-The governing equations are solved in the reference configuration $\DD_{\chi} = \DD(\chi, t)$,
-using the mapping $\psi : \xx\mapsto\chi$ from the current deformed
-configuration $\DD_x = \DD(\xx, t)$ at time $t$ to the reference configuration.
-In this setup, the governing equations are
-\begin{alignat}{2}
-    \rho\left(\pdifft{\uu} + ((\uu - \cc)\cdot\hat{\nabla})\uu\right)
-    &= \hat{\nabla}\cdot\TT \quad&&\text{in }\hat{\DD}, \label{eq:ALE_momentum_eq} \\
-    \hat{\nabla}\cdot\uu &= 0 \quad&&\text{in }\hat{\DD}, \label{eq:ALE_continuity_eq}
-\end{alignat}
-where $\cc = \dot{\ww}$ is the domain velocity and
-$\hat{\nabla}$ is the transformed differential operator accounting
-for the mapping $\psi$.
-In \Cref{eq:ALE_momentum_eq} and \Cref{eq:ALE_continuity_eq},
-all variables are evaluated in the reference configuration.
-Like for the differential operator $\nabla$, integrals of the weak formulation
+with an Arbitrary Lagrangian Eulerian (ALE) method~\cite{Duarte2004ALE,Scovazzi2007LectureNotes}.
+The governing equations are solved in the reference configuration
+$\DD_{\chi} = \DD(\xx, t_0)$, using an invertible mapping
+$\psi : \DD_{\chi}\mapsto\DD_{\xx}$ between the reference configuration
+and the current (deformed) configuration $\DD_{\xx} = \DD(\xx, t)$. 
+The mapping $\psi$ induces a transformation of the differential operators
+in the strong form of the governing fluid equations. 
+Similarly, integrals of the weak formulation
 must be transformed appropriately to account for the
 domain motion~\cite{Scovazzi2007LectureNotes}.
+Further details on the ALE method are provided in~\Cref{sec:numerical_methods}.
 
 \subsection{Flow mechanisms and boundary conditions}
 CSF flow in adult human brain ventricles differs from CSF flow in embryonic
@@ -385,9 +378,10 @@ the developmental stage we consider~\cite{bill2008development}.
 
 The following three subsections detail our modeling approach for the three
 types of flow mechanisms outlined above. For a complete specification of
-the resulting boundary conditions, see~\Cref{sec:boundary_conditions}.
+the resulting boundary conditions, see~\Cref{sec:boundary_conditions_human} (human model)
+and~\Cref{sec:boundary_conditions_zfish} (zebrafish model).
 
-\subsubsection{Cardiovascular pulsation-related deformation of brain ventricles}
+\subsubsection{Modeling cardiovascular pulsation-related deformation of brain ventricles}
 \label{subsubsec:deformation}
 The main driver of intraventricular CSF flow in humans is pulsatile volume displacement
 of the ventricles, which is closely related to the cardiac and respiratory cycles~\cite{wagshul2011pulsating,
@@ -398,20 +392,29 @@ of the brain ventricles leads to antegrade (from cephalic to caudal) CSF flow.
 When the blood vessels relax and contract during diastole, the flow reverses and
 CSF flows back into the system~\cite{sweetman2011cerebrospinal, greitz1992pulsatile}.
 The respiratory cycle also influences CSF flow pressure 
-gradients, but at different frequencies than the cardiac cycle~\cite{Vinje2019RespiratoryMeasurements}.
-In this study, we model deformations of the ventricles with a cardiac cycle frequency.
+gradients, but at different frequencies
+than the cardiac cycle~\cite{Vinje2019RespiratoryMeasurements}.
+In this study, the respiratory influence on brain deformations is not considered,
+and we model deformations of the ventricles with a cardiac cycle frequency.
 
-We model cardiovascular pulsations by imposing a brain displacement boundary
-condition. Displacement boundary conditions based on experimental
-data are imposed on parts of the boundary,
-while the rest of the boundary is considered traction-free.
-The dynamic equations are solved to yield
-$\ww(\xx, t)$, from which we calculate $\dot{\ww}(\xx, t)$
-for use as a boundary condition in the CSF flow model.
+We model CSF flow driven by cardiovascular pulsations
+through imposing a velocity boundary condition on the
+brain ventricular walls. This velocity boundary condition
+is given by the displacement velocities $\dot{\ww}$ obtained 
+by solving~\Cref{eq:strong_linear_elasticity_1}.
+The displacement velocity determines the normal component
+of the CSF velocity
+\begin{equation}
+    \uu\cdot\nn = \dot{\ww}\cdot\nn \quad\text{on }\Scal_1,
+\end{equation}
+where $\nn$ is the outward facing normal and 
+$\Scal_1\subset\Scal = \partial\DD$.
 
-For \Cref{eq:strong_linear_elasticity_1}, we partition the boundary 
-$\partial\DD$ into three parts: $\partial\DD=\Bcal_1\cup\Bcal_2\cup\Bcal_3$.
-We impose the boundary conditions
+Displacement boundary conditions based on experimental
+data are used to solve \Cref{eq:strong_linear_elasticity_1} 
+and determine $\dot{\ww}$. To this end, we partition the boundary 
+$\partial\DD$ into three parts $\partial\DD=\Bcal_1\cup\Bcal_2\cup\Bcal_3$
+and impose the boundary conditions
 \begin{alignat}{2}
     \ww(\xx, t)  &= \bm{g}(\xx, t) &&\quad\text{on }\Bcal_1, \\
     \ww(\xx, t)  &= \bm{0} &&\quad\text{on }\Bcal_2, \\
@@ -471,56 +474,90 @@ Finally, the boundary $\Bcal_3$ is traction-free in all directions. These
 parts are the remaining parts of the geometry not mentioned, and certain small
 regions delineating different displacement BC regions, to avoid stress concentrations.
 
-\subsubsection{Choroid plexus CSF secretion}\label{subsubsec:secretion}
+\subsubsection{Modeling choroid plexus CSF secretion with a normal flux}\label{subsubsec:secretion}
 In the human brain, CSF is mainly produced by secretion
 through the choroid plexus tissue in the lateral,
-third and fourth ventricles (\Cref{fig:model_sketch})~\cite{Damkier2013}.
-CSF secretion is modeled by imposing a normal flux at the
-choroid plexus boundaries. We assume that all CSF that enters the brain ventricles
+third and fourth ventricles (\Cref{fig:model_sketch}A, B)~\cite{Damkier2013}.
+The CSF secretion is modeled by imposing a volumetric flux normal to the
+choroid plexus boundary, which is denoted $\Scal_2\subset\Scal$.
+We assume that all CSF that enters the brain ventricles
 is produced by the choroid plexus, and that the influx is evenly distributed
 over the secretion sites in the lateral, third and fourth ventricles.
-A total daily CSF production of
-$Q = 504$ ml/day is assumed
+A total daily CSF production of $Q_{\mathrm{chp}} = 504$ ml/day is assumed
 \cite{Czosnyka2004CerebrospinalDynamics, huff2017neuroanatomy}.
-The production $Q$ is imposed through a normal flux at the choroid plexus boundary
-boundary $\Scal_2$. Since we assume even distribution at the different
+Since we assume even distribution at the different
 choroid plexuses, we impose 
 \begin{equation}
-    \uu\cdot\nn = -\Tilde{Q} + \dot{\ww}\cdot\nn \quad\text{on }\Scal_2,
+    \uu\cdot\nn = -q_{\mathrm{chp}} + \dot{\ww}\cdot\nn \quad\text{on }\Scal_2,
     \label{eq:choroid_plexus_BC}
 \end{equation}
-where $\Tilde{Q} = \frac{Q}{S}$ and
-$S$ is the total choroid plexus boundary surface area,
-and $\nn$ is the outward normal.
+where $q_{\mathrm{chp}} = Q_{\mathrm{chp}}/S$ and
+$S$ is the total choroid plexus boundary surface area.
+The normal displacement velocity
+$\dot{\ww}\cdot\nn$ is included to account
+for the deforming ventricular walls.
 
-\subsubsection{Cilia forces}\label{subsubsec:cilia}
+\subsubsection{Modeling ciliary beating in the human brain with a tangential traction}\label{subsubsec:cilia}
 Motile cilia are abundant in the human brain~\cite{doetsch1997cellular,
 scott1973scanning, coletti2018characterization, worthington1963ependymal},
 but are not found in the caudal third of the third ventricle~\cite{scott1972comparative,
 bruni1972scanning, sanchez2024exploring} nor on choroid plexus~\cite{scott1972comparative,
-ho2023choroid, narita2015cilia}. Motile cilia are hair-like structures that line
+ho2023choroid, narita2015cilia}, although these latter areas
+may exhibit immotile cilia. Motile cilia are hair-like structures that line
 the ependyma of brain ventricular walls, and the beating motion of cilia propel
 CSF~\cite{Ringers2020Role, Olstad2019CiliaryDevelopment}.
+Based on experimental research, we model cilia everywhere in the 
+human brain ventricles, except for in the caudal third of the third
+ventricle and on choroid plexus~\cite{doetsch1997cellular,
+scott1973scanning, coletti2018characterization, worthington1963ependymal,
+scott1972comparative, bruni1972scanning, sanchez2024exploring,
+scott1972comparative, ho2023choroid, narita2015cilia}.
 
-Motile cilia are modeled by imposing on the fluid a
-tangential traction $\TT_{\parallel} = P_{\nn}(\TT\nn)
-= \btau(\xx, t) = \tau P_{\nn}(\rr(\xx, t))$
+The cilia are modeled by imposing on the fluid a
+tangential traction $\btau(\xx, t) = \tau P_{\nn}(\rr(\xx, t))$
 that represents the collective beating motion of cilia.
 Here $P_{\nn}(q) = (\mathbb{I} - \nn\otimes\nn)q$
 is the projection of a vector $q$ onto a plane normal
 to the boundary normal vector $\nn\coloneqq\nn(\xx, t)$,
 thus this projection is tangential to the boundary,
 while $\tau$ is a constant that determines the 
-magnitude of the tangential traction $\btau$. We model the direction $\rr$
+magnitude of the tangential traction $\btau$.
+In the human model, the tangential traction is
+imposed through a Navier slip boundary condition:
+\begin{equation}
+    \TT_{\parallel} = \btau(\xx, t) - \alpha P_{\nn}(\uu)
+    \quad\text{on }\Scal_1\setminus\Scal_4,
+    \label{eq:cilia_navier_slip_bc}
+\end{equation}
+where the boundary $\Scal_4\subset\Scal_1$ is the lower third of
+the third ventricle, where we do not impose cilia, and
+$\TT_{\parallel} = P_{\nn}(\TT)$ is the
+tangential traction vector. The friction coefficient $\alpha=\mu/L$ 
+is determined by the dynamic viscosity and the slip length $L$.
+We model the cilia layer lining the ventricular walls
+as a slip layer, such that the velocity slips at the cilia, but becomes
+noslip at the underlying wall. We choose $L=15$ $\mu$m
+which is a typical length of a cilium in human brain ventricles
+\cite{Siyahhan2014FlowVentricles,Afzelius2004CiliaRelatedDiseases}
+as the slip length, resulting in $\alpha=47 \ \mathrm{Pa\cdot s/m}$.
+In the regions where cilia are absent ($\Scal_2$ and $\Scal_4$), we consider
+\Cref{eq:cilia_navier_slip_bc} with $\btau(\xx, t) = \bm{0}$:
+\begin{equation}
+    \TT_{\parallel} = - \alpha P_{\nn}(\uu)
+    \quad\text{on }\Scal_2\cup\Scal_4.
+    \label{eq:navier_slip_bc}
+\end{equation}
+Thus although motile cilia are absent, we consider the walls to
+impose friction on the CSF.
+
+For the human model, we model the direction $\rr$
 motivated by the work of Guirao~\emph{et al.},
 who found that motile-cilia beating direction is oriented by
 CSF production during neural development~\cite{Guirao2010CouplingCilia}.
 To generate the vector $\rr(\xx, t)$, we simulate CSF flow with the
 choroid plexus boundary condition~\Cref{eq:choroid_plexus_BC},
 a zero normal traction condition on the median and lateral apertures,
-and $\uu\cdot\nn=0$ on the rest of the boundary. In the
-tangential direction, we impose the Navier
-slip condition $\TT_{\parallel}=-\alpha P_{\nn}(\uu)$.
+and $\uu\cdot\nn=0$ on the rest of the boundary. 
 The resulting velocity field,
 $\uu_{\mathrm{prod}}$, is normalized by its Euclidean length
 to yield the direction of the cilia:
@@ -532,31 +569,18 @@ There does not exist accurate data for the parameter $\tau$ that
 determines the magnitude of $\btau$, with only a few computational
 studies reporting a value for a cilia force magnitude
 \cite{Herlyng2025AdvectionDiffusion, Siyahhan2014FlowVentricles,
-Thouvenin2020OriginCanal}.
+Thouvenin2020OriginCanal}. None of these report values for humans.
 We set $\tau=7.9$ mPa based on the force magnitude used by
 Siyahhan~\emph{et al.}~\cite{Siyahhan2014FlowVentricles}
 for the purpose of comparison,
-since they also modeled CSF flow in human brain ventricles.
+since they also modeled CSF flow in human brain ventricles,
+albeit with $\tau$ based on rodent brain data.
 
-Based on experimental research, we model cilia everywhere in the 
-human brain ventricles, except for in the caudal third of the third
-ventricle and on choroid plexus~\cite{doetsch1997cellular,
-scott1973scanning, coletti2018characterization, worthington1963ependymal,
-scott1972comparative, bruni1972scanning, sanchez2024exploring,
-scott1972comparative, ho2023choroid, narita2015cilia}.
-In the zebrafish model, cilia are modeled on the dorsal and ventral
-parts of the middle ventricle walls, and on the dorsal wall of the anterior
-ventricle~\cite{Olstad2019CiliaryDevelopment}.
+\subsubsection{Summary of the boundary conditions
+for the fluid equations in the human brain ventricles}
+\label{sec:boundary_conditions_human}
 
-
-% Cilia directionality reference: Yamadori T.
-% The directions of ciliary beat on the wall of the fourth ventricle in the mouse.
-% Arch Histol Jpn 1977; 40: 283–296
-
-\subsubsection{Boundary condtions for the fluid equations}
-\label{sec:boundary_conditions}
-
-For the human CSF flow model, we partition the boundary into
+For the human CSF flow model, the boundary is partitioned into
 three parts: $\partial\DD = \Scal = \Scal_1\cup\Scal_2\cup\Scal_3$.
 Using the mechanisms introduced in the previous subsections,
 the boundary conditions are
@@ -568,25 +592,20 @@ the boundary conditions are
     \TT_{\parallel} &= - \alpha P_{\nn}(\uu) &&\quad\mathrm{on \ \mathcal{S}_2\cup\mathcal{S}_4}, \label{eq:navier_bc} \\
     \TT\nn &= \bm{0} &&\quad\mathrm{on \ \mathcal{S}_3}. \label{eq:outlet_bc}
 \end{alignat}
-Here $\dot{\ww}(\xx, t)$ is the displacement velocity of the ventricular walls,
-the vector $\TT_{\parallel}=\TT\nn - (\TT\nn\cdot\nn)\nn$ is the tangential traction,
-$P_{\nn}(\cdot)$ is the projection of a vector onto a plane normal
-to the outward-facing normal vector $\nn$. Both \Cref{eq:cilia_bc} and
-\Cref{eq:navier_bc} are Navier slip boundary conditions, where the
-friction coefficient $\alpha=\mu/L$ is determined by the dynamic viscosity and
-the slip length $L$. We model the cilia layer lining the ventricular walls
-as a slip layer, such that the velocity slips at the cilia, but becomes
-noslip at the underlying wall. We therefore choose $L=15$ $\mu$m
-which is a typical length of a cilium in human brain ventricles
-\cite{Siyahhan2014FlowVentricles,Afzelius2004CiliaRelatedDiseases}
-as the slip length, resulting in $\alpha=47 \ \mathrm{Pa\cdot s/m}$.
 The boundary $\mathcal{S}_4\subset\mathcal{S}_1$ is the lower third of
 the third ventricle, where we do not impose cilia. 
+Moreover, $\dot{\ww}(\xx, t)$ is the displacement velocity of the ventricular walls,
+the vector $\TT_{\parallel}=\TT\nn - (\TT\nn\cdot\nn)\nn$ is the tangential traction,
+and $P_{\nn}(\cdot)$ is the projection of a vector onto a plane normal
+to the outward-facing normal vector $\nn$. 
 \Cref{eq:outlet_bc} imposes zero traction,
 and is imposed on the end of the median aperture and on the lateral apertures
 to simulate open boundaries.
 
-For the zebrafish model, the domain boundary is denoted
+\subsubsection{Boundary conditions for CSF flow in the zebrafish brain ventricles}
+\label{sec:boundary_conditions_zfish}
+For the zebrafish model, the only flow mechanism
+we consider is motile cilia. We let the domain boundary be denoted
 $\mathcal{Z} = \mathcal{Z}_1\cup\mathcal{Z}_2$.
 Similar to previous work~\cite{Herlyng2025AdvectionDiffusion},
 we consider a frictionless ($\alpha=0$) 
@@ -597,7 +616,10 @@ and a free-slip condition elsewhere:
     \TT_{\parallel} &= \bm{0} &&\quad\text{on }\mathcal{Z}_2, \\
     \uu\cdot\nn &= 0 &&\quad\text{on }\mathcal{Z}.
 \end{alignat}
-The last condition reflects impermeability of the ventricular walls. The function
+The last condition reflects impermeability of the ventricular walls. The cilia
+boundary $\mathcal{Z}_1$ covers parts of the dorsal and ventral
+regions of the middle ventricle walls, as well as the dorsal wall of the anterior
+ventricle~\cite{Olstad2019CiliaryDevelopment}. The function
 $\Tilde{\btau}(\xx, t)$ yields stronger cilia forces in the middle ventricle
 and weaker forces in the anterior ventricle. We refer the reader to
 Herlyng~\emph{et al.}~\cite{Herlyng2025AdvectionDiffusion} for more details.
@@ -698,6 +720,8 @@ we compute the following quantities:
 \end{itemize}
 
 \subsection{Numerical methods}
+\label{sec:numerical_methods}
+
 This section provides details on the numerical methods used
 to solve the governing equations for brain tissue deformation and CSF flow,
 as well as the computation of FTLE fields.
@@ -779,6 +803,24 @@ where $n$ denotes timestep. Moreover, the convective fluxes both on facets
 internal to the mesh and on open boundaries are stabilized with
 an upwinding technique~\cite{Schroeder2018Towards,
 di2011mathematical}.
+
+ALE. The mapping $\psi$ induces a transformation of differential operators
+in the strong form of the governing fluid equations. The
+ALE form of the Navier-Stokes equations
+(\eqref{eq:navier_stokes_mom_eq,eq:continuity_eq}) reads
+\begin{alignat}{2}
+    \rho\left(\pdifft{\uu}J + (\cc\cdot\hat{\nabla}F^{-1})\uu\right)
+    &= \hat{\nabla}\cdot\left(\TT J\right) \quad&&\text{in }\hat{\DD}, \label{eq:ALE_momentum_eq} \\
+    \hat{\nabla}\cdot\uu &= 0 \quad&&\text{in }\hat{\DD}, \label{eq:ALE_continuity_eq}
+\end{alignat}
+where $\cc = \uu - \dot{\ww}$ is the convective velocity, namely
+the difference between the fluid velocity $\uu$ and the domain velocity, 
+in this case the displacement velocity $\dot{\ww}$.
+In \Cref{eq:ALE_momentum_eq} and \Cref{eq:ALE_continuity_eq},
+all variables are evaluated in the reference configuration, 
+e.g. $\uu = \uu(\chi, t)$.
+Similarly, the ALE form of the unsteady Stokes momentum equation
+(\eqref{eq:unsteady_stokes_eq}) reads
 
 The cilia tangential traction boundary condition is imposed weakly,
 while the ventricular wall displacement velocity is imposed strongly.
