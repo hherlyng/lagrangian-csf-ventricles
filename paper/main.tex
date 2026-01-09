@@ -473,7 +473,7 @@ First, to avoid rigid body motions when solving~\Cref{eq:strong_linear_elasticit
 Second, because these boundaries are
 considered open boundaries in the fluid model, the displacement velocity
 $\dot{\ww}$ on this boundary must be zero to avoid conflicting boundary conditions
-between the solid and the fluid model.
+between the tissue and the fluid models.
 Finally, the boundary $\Bcal_3$ is traction-free in all directions. These
 parts are the remaining parts of the geometry not mentioned, and certain small
 regions delineating different displacement BC regions, to avoid stress concentrations.
@@ -582,7 +582,7 @@ since they also modeled CSF flow in human brain ventricles,
 despite this value of $\tau$ being based on rodent brain data.
 
 \subsubsection{Summary of the boundary conditions
-for the fluid equations in human brain ventricles}
+for the governing CSF flow equations in human brain ventricles}
 \label{sec:boundary_conditions_human}
 
 For the human CSF flow model, the boundary is partitioned into
@@ -944,17 +944,17 @@ ventricles are evenly distributed between the two foramina (\Cref{fig:flow_resul
     \centering
     \includegraphics[width=\textwidth]{graphics/flow_results.png}
     \caption{\fixme{Reorder panels, cf. text.}
-    \textbf{a.} Volume dynamics of the ventricular system, third ventricle (3V)
+    \textbf{A.} Volume dynamics of the ventricular system, third ventricle (3V)
     and lateral ventricles (LV) over one cardiac cycle.
-    \textbf{b.} Applied displacement boundary conditions over four cardiac cycles.
+    \textbf{B.} Applied displacement boundary conditions over four cardiac cycles.
     The boundary condition magnitudes
     are ramped up over two cardiac cycles with a cosine window applied to the first
     cycle. The last cardiac cycle is where displacements are output to file for
     subsequent use as boundary conditions in the fluid equations.
-    \textbf{c--f.} Quantities of interest computed over one cardiac cycle:
-    Flowrate and pressure gradient in the cerebral aqueduct (\textbf{c}), as
-    well as cumulative flow volumes (\textbf{d}), mean pressures (\textbf{e}) and
-    flowrates (\textbf{f}) in different parts of the ventricular system.}
+    \textbf{C--F.} Quantities of interest computed over one cardiac cycle:
+    Flowrate and pressure gradient in the cerebral aqueduct (\textbf{C}), as
+    well as cumulative flow volumes (\textbf{D}), mean pressures (\textbf{E}) and
+    flowrates (\textbf{F}) in different parts of the ventricular system.}
     \label{fig:flow_results}
 \end{figure}
 
@@ -977,13 +977,13 @@ by the Navier-Stokes equations.
 \begin{figure}
     \centering
     \includegraphics[width=\textwidth]{graphics/3d_flow_results.png}
-    \caption{\textbf{a.} Forward-in-time integrated streamlines of particles seeded
+    \caption{\textbf{A.} Forward-in-time integrated streamlines of particles seeded
     in the interventricular foramina at times $t=0.25, 0.50, 0.75$ s, corresponding
     to systole, mid-cardiac cycle, and diastole, for the Navier-Stokes velocity
     approximation. Note the distinct colorbar limit in each plot. 
-    \textbf{b.} Navier-Stokes velocity vectors at times $t=0.25, 0.50, 0.75$ s in
+    \textbf{B.} Navier-Stokes velocity vectors at times $t=0.25, 0.50, 0.75$ s in
     the human brain ventricles with zoomed-in view of  (bottom row).
-    \textbf{c.} Zoomed-in view (of the boxed region shown in panel \textbf{b})
+    \textbf{C.} Zoomed-in view (of the boxed region shown in panel \textbf{B})
     of velocity vectors superior to the cerebral aqueduct entrance, both for
     the Navier-Stokes and the Stokes solution, with notable differences
     in flow features.
@@ -1008,16 +1008,16 @@ indicating a jet forming right above the entrance to
 the cerebral aqueduct (\Cref{fig:3d_flow_results}C).
 These vortical patterns are absent in the Stokes solution.
 
-\subsection{Comparing model versions}
+\subsection{Disregarding choroid plexus secretion or motile cilia lead to small changes in flow quantities}
 % Comparison of model versions
 When comparing results for the three flow model versions (DSC, DC, DS), most of the computed flow quantities are similar.
 The aqueductal and lateral aperture stroke volumes are the same when excluding cilia (DS) as for the full model (DSC).
 Removing secretion while keeping cilia (DC model), there is slightly less flow with a 4\% decrease in the aqueductal
 and lateral aperture stroke volumes when compared to DSC, with a similar decrease in the interventricular foramina stroke volumes.
-The median aperture stroke volume is less for both DS and DC compared to DSC, with an 11\% and 12\% decrease for DS and DC,
+The median aperture stroke volume is less for both DS and DC compared to DSC, with 11\% and 12\% decreases for DS and DC,
 respectively. The pressure gradient peak-to-nadir is unaltered for both DC and DS.
 The maximal and minimal velocity magnitudes and flowrates change
-less than 4\% and 3\%, respectively, between the three models.
+less than 4\% and 3\% for DC and DS, respectively.
 
 \subsection{Motile cilia generate rotational flow in embryonic zebrafish brain ventricles}
 % Summarize zebrafish velocity field characteristics
@@ -1077,14 +1077,15 @@ smeared out with diminishing FTLE values.
 \begin{figure}
     \centering
     \includegraphics[width=\textwidth]{graphics/FTLE_human1.png}
-    \caption{FTLE fields computed with initial release time
-    $t_0=0$ and integration times $T = 0.5, 1.0, 1.5, 2.0$ s
+    \caption{Slices of FTLE fields computed with initial release time
+    $t_0=0$ and integration times $T = \pm\{0.5, 1.0, 1.5, 2.0\}$ s
     in the human brain ventricles. The FTLE fields
-    were computed in two boxed sections: (i) the posterior end of the third
+    were computed in two box regions: (i) the posterior end of the third
     ventricle, including the superior most part of the aqueduct, and
     (ii) the anterior part of the lateral ventricles, including
-    the interventricular foramina. The FTLE fields are displayed
-    in sagittal and coronal slices. Within each slice-specific column,
+    the interventricular foramina. Coronal slices in the IVF (\textbf{A})
+    and the 3V (\textbf{B}) and sagittal slices in the 3V (\textbf{C})
+    of these FTLE fields are displayed. Within each slice-specific column,
     the left and right columns display forward- and backward-time FTLE
     fields, respectively.    
     The lower colorbar limit is zero in all slices,
@@ -1104,7 +1105,7 @@ and a new vortex clearly forms during the transition to the next cardiac cycle.
     \centering
     \includegraphics[width=\textwidth]{graphics/FTLE_human2.png}
     \caption{Sagittal slices of FTLE fields in the human brain ventricles 
-    computed with an integration time $T = 1.0$ s
+    computed with integration times $T = \pm 1.0$ s
     (one cardiac cycle). The FTLE fields are computed with varying
     initial release times $t_0$.
     The top two rows are slices taken in
@@ -1112,51 +1113,53 @@ and a new vortex clearly forms during the transition to the next cardiac cycle.
     forward- and backward-time FTLE fields, respectively.
     The bottom two rows are sagittal slices taken in the 3V (forward- and 
     backward-time FTLE displayed at the top and bottom).
-    See \Cref{fig:FTLE_human1} for the exact slice location.
-    The lower colorbar limit is zero in all slices, while the higher colorbar limit is
-    an FTLE value of 2.5 and 5.0 for the IVF and 3V slices, respectively.}
+    }
     \label{fig:FTLE_human2}
 \end{figure}
 
 \subsection{When neglecting fluid inertia, the model fails to resolve important Lagrangian structures}
 When computing FTLE fields with the unsteady Stokes equations (\Cref{eq:unsteady_stokes_eq}),
-the jet structure in the third ventricle differs greatly compared to the structre
-observed in the Navier-Stokes solution (\Cref{fig:FTLE_human3}, panels \textbf{a, b}).
-In the backward FTLE field, the lobes that form
+the jet structure in the third ventricle vanishes (\Cref{fig:FTLE_human3}A).
+This differs greatly from the structure
+observed in the Navier-Stokes solution (\Cref{fig:FTLE_human3}B).
+In the backward FTLE fields, the lobes that form
 and over time are elevated from the aqueduct entrance in the Navier-Stokes solution are not 
 present in the Stokes solution's FTLE fields. This indicates a stronger stirring effect
 in the Navier-Stokes solution. Similarly, the repelling structures are more
 extensive in the Navier-Stokes FTLE fields.
+\begin{figure}
+    \centering
+    \includegraphics[width=0.85\textwidth]{graphics/FTLE_human3.png}
+    \caption{Sagittal slices of FTLE fields computed in the human brain ventricles
+    using the unsteady Stokes equations (\textbf{A})
+    and the Navier-Stokes equations (\textbf{B})
+    with initial particle release time $t_0=0$ and integration times 
+    $T = \pm\{1.0, 2.0\}$ s. 
+    In both subpanels, forward-time FTLE are displayed in the left
+    column while backward-time FTLE are displayed in the right columnn.
+    }
+    \label{fig:FTLE_human3}
+\end{figure}
 
-\subsection{Brain tissue deformations are the main contributor to Lagrangian structures}
+\subsection{Brain tissue deformations are the main contributor to establishing Lagrangian structures}
 The FTLE fields computed in the third ventricle with the DC and DS models
 are generally comparable to the DSC results, with the formation of
-a vortex ring (\Cref{fig:FTLE_human3}, panels \textbf{b, c, d}).
+a vortex ring (\Cref{fig:FTLE_human4}).
 When excluding secretion (DC model), the leading edge of the vortex
 advances slightly faster. Meanwhile, excluding cilia (DS model)
 makes the forward-time FTLE field less attached to the ventricular
 walls close to the aqueductal entrance.
-
 \begin{figure}
     \centering
-    \includegraphics[width=0.85\textwidth]{graphics/FTLE_human3.png}
-    \caption{\textbf{a, b.} Comparison of FTLE fields computed in the human brain ventricles
-    using the Stokes (\textbf{a}) and Navier-Stokes (\textbf{b})
-    solutions with initial particle position
-    $\xx_0 = \xx(t_0)$ at $t_0=0$ and integration times 
-    $T = 1.0, 2.0$ s. 
-    \textbf{c, d.} Comparison of FTLE fields computed in the human brain ventricles
-    using the Navier-Stokes solution of the DC (excluded secretion, panel \textbf{c})
-    and DS (excluded cilia, panel \textbf{d}) models with $\xx_0 = \xx(t_0)$ at $t_0=0$
-    and integration times $T = 1.0, 2.0$ s.
-    In all subpanels, for each model-specific column,
-    forward-time FTLE are displayed on the left and backward-time FTLE on
-    the right. The FTLE fields were computed in a
-    boxed section in the posterior end of the third
-    ventricle, including the superior most part of the aqueduct
-    (see \Cref{fig:FTLE_human1} for the exact location). 
-    The FTLE fields are displayed in a sagittal slice. The lower colorbar limits
-    are zero, while the higher colorbar limits are  an FTLE value of 5.0.}
+    \includegraphics[width=0.85\textwidth]{graphics/FTLE_human4.png}
+    \caption{Sagittal slices of FTLE fields computed in the human brain ventricles
+    using the DC model (\textbf{A}, no secretion)
+    and DS model (\textbf{B}, no cilia)
+    with initial particle release time $t_0=0$ and integration times 
+    $T = \pm\{1.0, 2.0\}$ s. 
+    In both subpanels, forward-time FTLE are displayed in the left
+    column while backward-time FTLE are displayed in the right columnn.
+    }
     \label{fig:FTLE_human3}
 \end{figure}
 
@@ -1178,13 +1181,13 @@ a result of the lower velocities in the zebrafish brain ventricles.
 \begin{figure}
     \centering
     \includegraphics[width=\textwidth]{graphics/FTLE_zfish.png}
-    \caption{FTLE fields for integration times $T= 34, 68, 101$ s
-    in the zebrafish brain ventricles that
-    demonstrate compartmentalization of CSF flow. The FTLE fields
-    were computed in a boxed section of the interventricular duct
-    connecting the anterior and middle ventricles, and displayed
-    in horizontal, sagittal and coronal slices clipped at the 
-    center of the box. Common legends for all forward-in-time
+    \caption{FTLE fields for integration times $T = \pm\{34, 68, 101\}$ s
+    in embryonic zebrafish brain ventricles. The FTLE fields
+    were computed in a box section of the interventricular duct
+    connecting the anterior and middle ventricles.
+    Horizontal (\textbf{A}), sagittal (\textbf{B})
+    and coronal slices (\textbf{C}) in the center of the box
+    are displayed. Common legends for all forward-in-time
     and all backward-in-time fields.}
     \label{fig:FTLE_zfish}
 \end{figure}
@@ -1229,7 +1232,8 @@ compartmentalization in embryonic zebrafish
 brain ventricles~\cite{Olstad2019CiliaryDevelopment,
 Herlyng2025AdvectionDiffusion}.
 
-\subsection{The effects of fluid inertia on ventricular flow and transport}
+\subsection{Accounting for fluid inertia is important to resolve Lagrangian structures,
+but less important for macroscopic flow analysis}
 The results we present indicate that when simulating CSF flow
 in human ventricles at Reynolds numbers in the lower hundreds,
 accounting for intertial effects through
@@ -1259,13 +1263,14 @@ by a factor ten. Although inertial forces would still dominate viscous forces at
 these numbers, investigating the effects on the discrepancy in the advective transport
 between the Stokes and Navier-Stokes solutions would be interesting to address in future work.
 
-\subsection{The effects of motile cilia and CSF secretion}
+\subsection{Motile cilia and CSF secretion do not significantly
+affect Lagrangian structures in the brain ventricles}
 Disregarding motile cilia (DS model) did not alter the flow in the human brain ventricles significantly
 in terms of macroscopic flow quantities like stroke volume. 
 There were however minor differences in the FTLE field structures computed with the DS model compared
 to both DC and DSC, with the lobe structures near the aqueduct
 entrance more attached to the 3V wall when including cilia (DC/DSC),
-indicating that cilia alter the near-wall flow (\Cref{fig:FTLE_human3}, panels \textbf{b, c, d}).
+indicating that cilia alter the near-wall flow (\Cref{fig:FTLE_human4}).
 This finding compares well with the computational study
 by Siyahhan~\emph{et al.}~\cite{Siyahhan2014FlowVentricles},
 whose results showed only a minor effect of cilia on near-wall flow in the lateral
@@ -1290,7 +1295,7 @@ ventricular system. In terms of local flow features,
 these were largely unaffected when disregarding CSF secretion (DC model)
 compared to the DSC model. In the FTLE fields, we observe a small
 difference in the location of the leading edge of the vortex ring
-when disregarding secretion (\Cref{fig:FTLE_human3}, panels \textbf{b, c, d}).
+when disregarding secretion (\Cref{fig:FTLE_human4}).
 This may result from the secretion increasing the total CSF volume
 flowing through the system, leading to a faster development of the vortex ring.
 
@@ -1349,7 +1354,7 @@ influences the results, could be investigated in future work.
 
 This modeling work comprises several mechanisms, parameters and
 assumptions that are uncertain.
-For the solid equations, we used a damped linear elastic model
+For the tissue deformation equations, we used a damped linear elastic model
 where there is an inherent
 uncertainty in the material parameters
 of brain tissue~\cite{smillie2005hydroelastic}.
@@ -1421,7 +1426,10 @@ both $\tau$ and $\alpha$ may provide further insights on this.
 We have presented a computational framework for using finite-time Lyapunov exponent (FTLE)
 fields to characterize Lagrangian coherent structures in brain ventricles.
 The FTLE fields are computed from velocity fields predicted with finite element simulations
-of cerebrospinal fluid (CSF) flow. We demonstrated that accounting for fluid inertia
+of cerebrospinal fluid (CSF) flow. Of the three flow mechanisms we considered, cardiovascular pulsation-related
+deformations, choroid plexus secretion, and motile cilia, the deformations are the main contributor to
+establishing Lagrangian structures in the brain ventricles. Additionally,
+we demonstrated that accounting for fluid inertia
 in flow field predictions has little importance when computing integrated flow quantities,
 but fluid inertial effects are crucial for capturing Lagrangian coherent structures and thus crucial when
 modeling transport and mixing in the (human) brain ventricles. Through comparison with
@@ -1459,7 +1467,7 @@ Correctness of the zebrafish CSF flow model implementation
 was verified in previous work~\cite{Herlyng2025AdvectionDiffusion},
 thus we only present verification analysis of the human brain model here.
 Mesh and polynomial order refinement studies for the human
-model were performed both for the fluid and the solid equations.
+model were performed both for the fluid and the tissue deformation equations.
 
 \subsection{Finite element methods for the fluid equations}
 Correctness of the discretization schemes on the human brain ventricles geometry
