@@ -12,9 +12,11 @@ params = {
     "xtick.labelsize" : 46,
     "ytick.labelsize" : 46,
     "font.family" : "serif",
+    "font.serif" : ["Serif"],
     "text.usetex" : True,
     "axes.labelpad" : 14.0,
-    "legend.frameon" : False
+    "legend.frameon" : False,
+    "text.latex.preamble": r"\usepackage{mathptmx}"
 }
 plt.rcParams.update(params)
 
@@ -53,21 +55,25 @@ volumes = np.load(data_dir+f"volumes.npz")
 volumes_tot = (volumes['volumes_tot']-1.0)*100
 volumes_LV  = (volumes['volumes_LV']-1.0)*100
 volumes_3V  = (volumes['volumes_3V']-1.0)*100
-# volumes_4V  = (volumes['volumes_4V']-1.0)*100
+volumes_4V  = (volumes['volumes_4V']-1.0)*100
 
 # Print information
 print(f"Max total volume displacement [%]: {np.max(volumes_tot):.2f}")
 print(f"Time of max total volume displacement [s]: {np.argmax(volumes_tot)*timestep:.3f}")
 print(f"Min total volume displacement [%]: {np.min(volumes_tot):.2f}")
 print(f"Time of min total volume displacement [s]: {np.argmin(volumes_tot)*timestep:.3f}")
-print(f"Max 3V volume displacement [%]: {np.max(volumes_3V):.2f}")
-print(f"Time of max 3V volume displacement [s]: {np.argmax(volumes_3V)*timestep:.3f}")
-print(f"Min 3V volume displacement [%]: {np.min(volumes_3V):.2f}")
-print(f"Time of min 3V volume displacement [s]: {np.argmin(volumes_3V)*timestep:.3f}")
 print(f"Max LV volume displacement [%]: {np.max(volumes_LV):.2f}")
 print(f"Time of max LV volume displacement [s]: {np.argmax(volumes_LV)*timestep:.3f}")
 print(f"Min LV volume displacement [%]: {np.min(volumes_LV):.2f}")
 print(f"Time of min LV volume displacement [s]: {np.argmin(volumes_LV)*timestep:.3f}")
+print(f"Max 3V volume displacement [%]: {np.max(volumes_3V):.2f}")
+print(f"Time of max 3V volume displacement [s]: {np.argmax(volumes_3V)*timestep:.3f}")
+print(f"Min 3V volume displacement [%]: {np.min(volumes_3V):.2f}")
+print(f"Time of min 3V volume displacement [s]: {np.argmin(volumes_3V)*timestep:.3f}")
+print(f"Max 4V volume displacement [%]: {np.max(volumes_4V):.5f}")
+print(f"Time of max 4V volume displacement [s]: {np.argmax(volumes_4V)*timestep:.5f}")
+print(f"Min 4V volume displacement [%]: {np.min(volumes_4V):.5f}")
+print(f"Time of min 4V volume displacement [s]: {np.argmin(volumes_4V)*timestep:.5f}")
 
 # Plot
 times = np.arange(1001)*timestep
@@ -90,7 +96,7 @@ ax_vol.plot(times, volumes_3V, color=vol_colors[2], label="3V volume")
 [ax.legend() for ax in [ax_vel, ax_vol]]
 ax_bcs.legend(loc='lower right', ncols=2)
 
-ax_bcs.set_ylabel("Displacement [mm]")
+ax_bcs.set_ylabel("Displacement magnitude [mm]")
 ax_vel.set_ylabel("Velocity [mm/s]")
 ax_vol.set_ylabel(r"Volume change [\%]")
 [ax.set_xlabel('Time [s]') for ax in [ax_bcs, ax_vel, ax_vol]]

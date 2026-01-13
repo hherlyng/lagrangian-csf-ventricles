@@ -12,9 +12,11 @@ params = {
     "xtick.labelsize" : 54,
     "ytick.labelsize" : 54,
     "font.family" : "serif",
+    "font.serif" : ["Serif"],
     "text.usetex" : True,
     "axes.labelpad" : 14.0,
-    "legend.frameon" : False
+    "legend.frameon" : False,
+    "text.latex.preamble": r"\usepackage{mathptmx}"
 }
 plt.rcParams.update(params)
 
@@ -95,7 +97,7 @@ fig3, ax3 = plt.subplots(figsize=figsize, constrained_layout=True)
 fig4, ax4 = plt.subplots(figsize=figsize, constrained_layout=True)
 
 # Plot flowrate and pressure gradient in the aqueduct
-ax.plot(times, flowrates_aq, color=flowrate_colors[0], linestyle=linestyles[ls_idx], label=r"$\dot{V}$ "+label_end)
+ax.plot(times, flowrates_aq, color=flowrate_colors[0], linestyle=linestyles[ls_idx], label=r"$Q_{\mathrm{aq}}$ "+label_end)
 ax_.plot(times, pressure_gradients_aq, color=deltap_colors[2], linestyle=linestyles[ls_idx+1],
          marker='^', markevery=me, label=r"$\Delta \overline{p}$ "+label_end)
 
@@ -133,14 +135,14 @@ ax4.plot(times, pressures_lfm, color=deltap_colors[2], linestyle=linestyles[ls_i
 
 # Configure plots
 ax.legend(loc='upper right', bbox_to_anchor=(0.75, 1))
-ax_.legend(loc='upper right', bbox_to_anchor=(0.78, 0.90))
-ax.set_ylabel('Aqueductal flowrate [ml/s]', labelpad=0)
-ax_.set_ylabel('Pressure grad. [mmHg/cm]', color=deltap_colors[2], labelpad=0)
+ax_.legend(loc='upper right', bbox_to_anchor=(0.74, 0.90))
+ax.set_ylabel(r'Aqueduct flowrate $Q_{\mathrm{aq}}$ [ml/s]', labelpad=0)
+ax_.set_ylabel(r'Press. grad. $\Delta\overline{p}$ [mmHg/cm]', color=deltap_colors[2], labelpad=0)
 ax_.tick_params(axis='y', colors=deltap_colors[2])
-ax2.set_ylabel('Flowrate [ml/s]')
+ax2.set_ylabel(r'Flowrate $Q$ [ml/s]')
 ax2.legend(loc='upper right', bbox_to_anchor=(1, 1.05))
-ax3.set_ylabel(r'Cumulative flow volume [$\mu$l]')
-ax4.set_ylabel('Mean pressure [mmHg]', labelpad=0)
+ax3.set_ylabel(r'Cumulative flow vol. $V$ [\textmu l]')
+ax4.set_ylabel(r'Mean pressure $\overline{p}$ [mmHg]', labelpad=0)
 ax4.legend(loc='upper right')
 [axes.set_xlabel('Time [s]') for axes in [ax, ax2, ax3, ax4]]
 
