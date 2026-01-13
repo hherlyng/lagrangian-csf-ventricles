@@ -3,6 +3,22 @@ import numpy     as np
 import colormaps as cm
 import matplotlib.pyplot as plt
 
+file_extension = ".svg"
+params = {
+    "lines.linewidth" : 3,
+    "lines.markersize" : 12,
+    "legend.fontsize" : 48,
+    "axes.labelsize" :  58,
+    "xtick.labelsize" : 54,
+    "ytick.labelsize" : 54,
+    "font.family" : "serif",
+    "text.usetex" : True,
+    "axes.labelpad" : 14.0,
+    "legend.frameon" : False
+}
+plt.rcParams.update(params)
+
+
 models = {1 : "deformation",
           2 : "deformation+cilia",
           3 : "deformation+production",
@@ -15,9 +31,10 @@ solver_type = str(sys.argv[4])
 mesh_suffix = int(sys.argv[5])
 E = 1500
 dt = 0.001
+T = 4
 N = int(1 / dt)
 times = dt*np.arange(0, N+1)
-input_dir = f"../output/mesh_{mesh_suffix}/flow_data/p={p}_k={k}_{solver_type}/"
+input_dir = f"../output/mesh_{mesh_suffix}/flow_p={p}_E={E}_k={k}_dt={dt}_T={T}/{solver_type}/"
 
 print(f"\nReading post-processed results from simulation with parameters:")
 print(f"p = {p}, k = {k}, mesh = {mesh_suffix}, solver = {solver_type}, model = {model_version}")
@@ -69,29 +86,16 @@ deltap_colors   = cm.thermal.discrete(4).colors
 ls_idx = 0
 label_end = ''#f'E={E}, k={k}, p={p}'
 me = int(len(times)/25) # Marker interval
-params = {
-    "lines.linewidth" : 3,
-    "lines.markersize" : 12,
-    "legend.fontsize" : 42,
-    "axes.labelsize" :  56,
-    "xtick.labelsize" : 50,
-    "ytick.labelsize" : 50,
-    "font.family" : "serif",
-    "text.usetex" : True,
-    "axes.labelpad" : 14.0,
-    "legend.frameon" : False
-}
-plt.rcParams.update(params)
 
 figsize = [20, 11]
-fig, ax = plt.subplots(figsize=figsize)
+fig, ax = plt.subplots(figsize=figsize, constrained_layout=True)
 ax_ = ax.twinx()
-fig2, ax2 = plt.subplots(figsize=figsize)
-fig3, ax3 = plt.subplots(figsize=figsize)
-fig4, ax4 = plt.subplots(figsize=figsize)
+fig2, ax2 = plt.subplots(figsize=figsize, constrained_layout=True)
+fig3, ax3 = plt.subplots(figsize=figsize, constrained_layout=True)
+fig4, ax4 = plt.subplots(figsize=figsize, constrained_layout=True)
 
 # Plot flowrate and pressure gradient in the aqueduct
-ax.plot(times, flowrates_aq, color=flowrate_colors[0], linestyle=linestyles[ls_idx], label="Flowrate ")
+ax.plot(times, flowrates_aq, color=flowrate_colors[0], linestyle=linestyles[ls_idx], label=r"$\dot{V}$ "+label_end)
 ax_.plot(times, pressure_gradients_aq, color=deltap_colors[2], linestyle=linestyles[ls_idx+1],
          marker='^', markevery=me, label=r"$\Delta \overline{p}$ "+label_end)
 
@@ -99,9 +103,9 @@ ax_.plot(times, pressure_gradients_aq, color=deltap_colors[2], linestyle=linesty
 ax2.plot(times, flowrates_aq, color=flowrate_colors[0], linestyle=linestyles[ls_idx],
          label="Aqueduct "+label_end)
 ax2.plot(times, flowrates_ap, color=flowrate_colors[1], linestyle=linestyles[ls_idx],
-         marker='x', markevery=me, label="Apertures")
+         marker='x', markevery=me, label="Lateral apertures")
 ax2.plot(times, flowrates_sc, color=flowrate_colors[2], linestyle=linestyles[ls_idx],
-         marker='o', markevery=me, label="Canal")
+         marker='o', markevery=me, label="Median aperture")
 ax2.plot(times, flowrates_rfm, color=flowrate_colors[3], linestyle=linestyles[ls_idx],
          marker='^', markevery=me, label=r"Right LV$\rightarrow$3V foramen")
 ax2.plot(times, flowrates_lfm, color=flowrate_colors[4], linestyle=linestyles[ls_idx],
@@ -111,9 +115,9 @@ ax2.plot(times, flowrates_lfm, color=flowrate_colors[4], linestyle=linestyles[ls
 ax3.plot(times, cumulative_aq*1000, color=flowrate_colors[0], linestyle=linestyles[ls_idx],
          label="Aqueduct "+label_end)
 ax3.plot(times, cumulative_ap*1000, color=flowrate_colors[1], linestyle=linestyles[ls_idx],
-         marker='x', markevery=me, label="Apertures")
+         marker='x', markevery=me, label="Lateral apertures")
 ax3.plot(times, cumulative_sc*1000, color=flowrate_colors[2], linestyle=linestyles[ls_idx],
-         marker='o', markevery=me, label="Canal")
+         marker='o', markevery=me, label="Median aperture")
 ax3.plot(times, cumulative_rfm*1000, color=flowrate_colors[3], linestyle=linestyles[ls_idx],
          marker='^', markevery=me, label=r"Right LV$\rightarrow$3V foramen ")
 ax3.plot(times, cumulative_lfm*1000, color=flowrate_colors[4], linestyle=linestyles[ls_idx],
@@ -128,28 +132,25 @@ ax4.plot(times, pressures_lfm, color=deltap_colors[2], linestyle=linestyles[ls_i
          marker='s', markevery=me, label=r"$\overline{p}$ left LV$\rightarrow$3V foramen ")
 
 # Configure plots
-ax.legend(loc='upper left', frameon=True, fancybox=False, edgecolor='k')
-ax_.legend(loc='upper right', frameon=True, fancybox=False, edgecolor='k')
-ax.set_ylabel('Flowrate [ml/s]', labelpad=0)
-ax_.set_ylabel('Pressure gradient [mmHg/cm]', color=deltap_colors[2], labelpad=0)
+ax.legend(loc='upper right', bbox_to_anchor=(0.75, 1))
+ax_.legend(loc='upper right', bbox_to_anchor=(0.78, 0.90))
+ax.set_ylabel('Aqueductal flowrate [ml/s]', labelpad=0)
+ax_.set_ylabel('Pressure grad. [mmHg/cm]', color=deltap_colors[2], labelpad=0)
 ax_.tick_params(axis='y', colors=deltap_colors[2])
 ax2.set_ylabel('Flowrate [ml/s]')
-ax2.legend(loc='upper right', frameon=True, fancybox=False, edgecolor='k')
+ax2.legend(loc='upper right', bbox_to_anchor=(1, 1.05))
 ax3.set_ylabel(r'Cumulative flow volume [$\mu$l]')
-ax3.legend(loc='upper right', frameon=True, fancybox=False, edgecolor='k')
-ax4.set_ylabel('Mean pressure [mmHg]')
-ax4.legend(loc='upper right', frameon=True, fancybox=False, edgecolor='k')
+ax4.set_ylabel('Mean pressure [mmHg]', labelpad=0)
+ax4.legend(loc='upper right')
 [axes.set_xlabel('Time [s]') for axes in [ax, ax2, ax3, ax4]]
-
-[figure.tight_layout() for figure in [fig, fig2, fig3, fig4]]
 
 save_figs = 1
 fig_dir = "../output/illustrations/flow/"
 if save_figs:
-    fig.savefig(fig_dir+f"aqueduct_flowrate_pressure_gradients_p={p}_k={k}_mesh={mesh_suffix}_solver={solver_type}_model={model_version}")
-    fig2.savefig(fig_dir+f"flowrates_p={p}_k={k}_mesh={mesh_suffix}_solver={solver_type}_model={model_version}")
-    fig3.savefig(fig_dir+f"flow_volumes_p={p}_k={k}_mesh={mesh_suffix}_solver={solver_type}_model={model_version}")
-    fig4.savefig(fig_dir+f"pressures_p={p}_k={k}_mesh={mesh_suffix}_solver={solver_type}_model={model_version}")
+    fig.savefig(fig_dir+f"aqueduct_flowrate_pressure_gradients_p={p}_k={k}_mesh={mesh_suffix}_solver={solver_type}_model={model_version}"+file_extension)
+    fig2.savefig(fig_dir+f"flowrates_p={p}_k={k}_mesh={mesh_suffix}_solver={solver_type}_model={model_version}"+file_extension)
+    fig3.savefig(fig_dir+f"flow_volumes_p={p}_k={k}_mesh={mesh_suffix}_solver={solver_type}_model={model_version}"+file_extension)
+    fig4.savefig(fig_dir+f"pressures_p={p}_k={k}_mesh={mesh_suffix}_solver={solver_type}_model={model_version}"+file_extension)
         
 print("Post processing complete.")
 plt.show()

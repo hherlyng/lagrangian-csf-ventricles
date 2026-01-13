@@ -898,51 +898,72 @@ The software used for the finite element simulations is openly available
 \section{Results}
 \subsection{Pulsatile brain tissue deformation leads to pulsatile CSF flow in the human brain ventricles}
 When solving the tissue deformation equations with the applied
-experimental displacement data, there is an initial contraction and
-caudal displacement of the brain ventricles during systole
-(\Cref{fig:flow_results}A, B). 
-This contraction and caudal displacement leads to a
-rapid increase in caudal CSF flow through the interventricular
-foramina and cerebral aqueduct (\Cref{fig:flow_results}C, D), when solving the
-Navier-Stokes equations (\Cref{eq:navier_stokes_mom_eq}).
+experimental displacement data, during systole there is an immediate expansion
+of the third ventricle (3V) in concert with a cephalic movement of the 3V
+and the corpus callosum that lies superior to the lateral ventricles
+(\Cref{fig:flow_and_deformation_results}A, B).
+This is followed by a contraction of the whole
+ventricular system together with a caudal displacement of
+the brain ventricles. When solving the
+Navier-Stokes equations (\Cref{eq:navier_stokes_mom_eq}) with the
+DSC model (deformations, secretion, cilia), the contraction and
+caudal displacement leads to a rapid increase in caudal CSF flow
+through the cerebral aqueduct and interventricular foramina
+(IVF, \Cref{fig:flow_and_deformation_results}C, D).
 In the aqueduct, the flowrate peaks at
-0.22 ml/s after 26\% of the cardiac cycle (\Cref{fig:flow_results}C).
-This is a little earlier than the largest
-volume displacement of the ventricle; a volume displacement of $-0.16\%$
-that occurs 40\% throughout the cardiac cycle (\Cref{fig:flow_results}A).
-The maximum point displacement peaks
-at \fixme{X} mm at time \fixme{Y}, located in \fixme{Z}.
-When the ventricles relax during diastole (\Cref{fig:flow_results}A, B),
+0.22 ml/s after 26\% of the cardiac cycle (\Cref{fig:flow_and_deformation_results}C).
+This is slightly earlier than the greatest
+volume displacement of the ventricular system
+in terms of magnitude; a volume change of $-0.16\%$ (contraction)
+that occurs 40\% throughout the cardiac cycle (\Cref{fig:flow_and_deformation_results}A).
+The greatest positive volume displacement (expansion) occurs right after
+the onset of the cardiac cycle, constituting 0.01\%.
+The maximum displacement magnitude of 0.046 mm 
+almost coincides with the largest volume displacement ($t=0.41$ s),
+and was observed superior to the lateral ventricles on the right side
+($\xx = (15.7, -11.2, 29.9)$ mm).
+
+When the ventricles relax during diastole (\Cref{fig:flow_and_deformation_results}A, B),
 the CSF flow reverses and flows cephalic to fill the ventricles
 and the aqueduct flowrate goes through a local minimum, increases slightly,
 then decreases again and bottoms out at $-0.17$ ml/s around
-94\% through the cycle (\Cref{fig:flow_results}C, D).
+94\% through the cycle (\Cref{fig:flow_and_deformation_results}C).
+These flowrate dynamics are similar in the IVF,
+and the total flowrate is evenly distributed through both of these foramina
+(\Cref{fig:flow_and_deformation_results}D).
 Finally, flow reverses when transitioning 
 into the next cardiac cycle. Over the cardiac cycle,
 the flow rate magnitudes through the aqueduct,
-both median apertures, and both interventricular foramina
-are all very similar (\Cref{fig:flow_results}E).
+the lateral apertures, and both the IVF
+are all very similar (\Cref{fig:flow_and_deformation_results}D).
 These regions all have an order of magnitude greater
 flow rates than the flowrates through the median aperture.
-
-The pressure gradient in the cerebral aqueduct varies inversely with
-the flowrate behavior (\Cref{fig:flow_results}F),
-with a peak-to-through range of 0.053 mmHg/cm.
 The maximum CSF velocity magnitude of caudally directed flow is 6.8 cm/s,
 which is located in the cerebral aqueduct during systole at 26\% of the cardiac cycle.
 For cephalic flow, the minimum velocity is $-4.4$ cm/s in the aqueduct at the end of diastole
 after 94\% of the cardiac cycle. The maximum velocity magnitude corresponds to
 a Reynolds number of 319, indicating laminar flow.
-The stroke volume in the cerebral aqueduct was 46.1 $\mu$l. Most of the displaced
-CSF volume crossing the domain boundary is through the lateral apertures
-with a stroke volume of 45 $\mu$l (\Cref{fig:flow_results}D, E),
+
+The gradient of the mean pressure (cross-sectional average) $\Delta\overline{p}$
+along the cerebral aqueduct varies inversely with
+the flowrate behavior (\Cref{fig:flow_and_deformation_results}C),
+with a peak-to-through range of 0.053 mmHg/cm. The mean pressure
+at the superior end of the aqueduct oscillates over the cardiac cycle,
+going through three local minima and maxima (\Cref{fig:flow_and_deformation_results}E).
+The mean pressures in the IVF vary inversely with the aqueduct pressure, and the
+mean pressures in the two foramina are similar in magnitude.
+Over a cardiac cycle the stroke volume, which is the maximum of the
+cumulative flow volume, in the cerebral aqueduct was
+46.1 $\mu$l (\Cref{fig:flow_and_deformation_results}F).
+Most of the displaced CSF volume crossing the domain boundary
+is through the lateral apertures with a stroke volume of 45 $\mu$l,
 with less fluid flowing in and out through the median aperture
 (stroke volume 8.6 $\mu$l).
 The flow volumes through the interventricular foramina connecting the lateral and third 
-ventricles are evenly distributed between the two foramina (\Cref{fig:flow_results}D).
+ventricles are evenly distributed between the two foramina (\Cref{fig:flow_and_deformation_results}D).
 \begin{figure}
     \centering
-    \includegraphics[width=\textwidth]{graphics/flow_results.png}
+    \includegraphics[width=\textwidth]{graphics/flow_and_deformation_results.png}
     \caption{\fixme{Reorder panels, cf. text.}
     \textbf{A.} Volume dynamics of the ventricular system, third ventricle (3V)
     and lateral ventricles (LV) over one cardiac cycle.
@@ -955,7 +976,7 @@ ventricles are evenly distributed between the two foramina (\Cref{fig:flow_resul
     Flowrate and pressure gradient in the cerebral aqueduct (\textbf{C}), as
     well as cumulative flow volumes (\textbf{D}), mean pressures (\textbf{E}) and
     flowrates (\textbf{F}) in different parts of the ventricular system.}
-    \label{fig:flow_results}
+    \label{fig:flow_and_deformation_results}
 \end{figure}
 
 \subsection{Flow fields predicted by the Stokes and Navier-Stokes equations 
