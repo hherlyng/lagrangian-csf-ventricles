@@ -6,6 +6,7 @@ import adios4dolfinx     as a4d
 
 from mpi4py    import MPI
 from basix.ufl import element
+from scipy.integrate import simpson
 
 # Facet tags
 CANAL_OUT = 23
@@ -67,7 +68,7 @@ diam = np.sqrt(4*area_top_aq/np.pi)
 print("Length of aqueduct [m]: ", length_aq)
 print("Diameter aqueduct top (circular equivalent) [m]: ", diam)
 
-# Initialize finite elements and functions
+# Initialize finite elements and functions for the fluid variables
 bdm_el = element("BDM", mesh.basix_cell(), k)
 dg_vec_el = element("DG", mesh.basix_cell(), k, shape=(mesh.geometry.dim,))
 dg_el  = element("DG", mesh.basix_cell(), k-1)
@@ -188,7 +189,7 @@ mu  = 7e-4 # Dynamic viscosity [Pa * s]
 Re = u_max * diam * rho / mu # Reynolds number
 
 # Save the data
-data_filename = input_dir+'postprocessed_results.npz'
+data_filename = input_dir+f'postprocessed_results_{model_version}.npz'
 np.savez_compressed(
     data_filename,
     flowrates_aq=flowrates_aq,
@@ -214,8 +215,8 @@ np.savez_compressed(
     Re=Re
 )
 
-print(f"Net flow volume aqueduct = {np.trapezoid(flowrates_aq, dx=dt)*1000:.3g} microliters")
-print(f"Net flow volume boundaries = {np.trapezoid(net_flowrates, dx=dt)*1000:.3g} microliters")
+print(f"Net flow volume aqueduct = {simpson(flowrates_aq, dx=dt)*1000:.3g} microliters")
+print(f"Net flow volume boundaries = {simpson(net_flowrates, dx=dt)*1000:.3g} microliters")
 print(f"Maximum flowrate aqueduct = {np.max(flowrates_aq):.3g} ml/s, at time t = {np.argmax(flowrates_aq)*dt:.4g}")
 print(f"Minimum flowrate aqueduct = {np.min(flowrates_aq):.3g} ml/s, at time t = {np.argmin(flowrates_aq)*dt:.4g}")
 print(f"Maximum velocity magnitude = {max_velocity*100:.3g} cm/s, at time t = {max_velocity_time:.4g}")
@@ -226,5 +227,6 @@ print(f"Stroke volume canal = {np.max(cumulative_sc)*1000:.3g} microliters")
 print(f"Stroke volume right foramina of Monro = {np.max(cumulative_rfm)*1000:.3g} microliters")
 print(f"Stroke volume left  foramina of Monro = {np.max(cumulative_lfm)*1000:.3g} microliters")
 print(f"Max to min pressure gradient difference = {dP:.3g} mmHg/cm")
+print(f"Max Reynolds number = {Re}")
 print("Post processing complete.")
 print(f"Data saved to {data_filename}")

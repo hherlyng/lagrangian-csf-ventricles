@@ -177,7 +177,6 @@ class FluidSolverALE:
         dS = ufl.Measure('dS', domain=mesh, metadata={'quadrature_degree' : self.quadrature_degree}) # Interior facet integral
 
         self.n_hat = n_hat = ufl.FacetNormal(mesh) # Facet normal 
-        h =  2*ufl.Circumradius(mesh)
         hA = ufl.avg(ufl.CellDiameter(mesh)) # Average cell diameter
 
         # Velocity and pressure finite element functions
@@ -250,8 +249,10 @@ class FluidSolverALE:
 
         L1 = inner(dfx.fem.Function(Q), q)*J*dx # Zero block
 
-        # Compile Stokes bilinear form and linear form
-        self.a_stokes = dfx.fem.form([[a00, a01], [a10, a11]], jit_options=self.jit_options)
+        # Stokes convective ALE term
+        a00_s = a00 - rho*inner(dot(self.u_defo, Nabla_Grad(u)), v)*J*dx
+        # Compile linear form
+        self.a_stokes = dfx.fem.form([[a00_s, a01], [a10, a11]], jit_options=self.jit_options)
         self.L = dfx.fem.form([L0, L1], jit_options=self.jit_options)
 
         if self.solver_type=="navier-stokes":
@@ -457,8 +458,8 @@ class FluidSolverALE:
                 if "production" in self.bc_types:
                     # Set choroid plexus flux strongly
                     chp_flux = create_normal_contribution_bc(self.V, 
-                                    (-self.Q_tilde/dot(self.n_hat, self.n)
-                                    + dot(self.u_defo, self.n)/dot(self.n_hat, self.n))*self.n_hat,
+                                    (-self.Q_tilde
+                                    + dot(self.u_defo, self.n_hat))*self.n_hat,
                                     self.chp_facets)
                     self.chp_bc.interpolate(chp_flux)
             

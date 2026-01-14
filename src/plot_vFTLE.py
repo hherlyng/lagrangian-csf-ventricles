@@ -36,13 +36,14 @@ forward_cmap = colormaps.viola
 backward_cmap = colormaps.cet_l_kry
 backward_cmap = colormaps.curl
 n_colors = 16
-times = [125, 250, 375, 500]
+times = [250, 500] #[125, 250, 375, 500] is [0.5s, 1s, 1.5s, 2s]
 directions = ["forward", "backward"]
-if location=="third":
-    pl2_shape = [400, 900]
-else:
-    pl2_shape = [500, 1250]
-pl  = pyvista.Plotter(shape=(len(times), len(directions)), window_size=[750, 2000], border=False, off_screen=True, image_scale=2) # yz plane
+
+# Set plot shapes
+pl1_shape = [750, 1000] if len(times)==2 else [750, 2000]
+pl2_shape = [400, 900] if location=="third" else [500, 1250]
+
+pl  = pyvista.Plotter(shape=(len(times), len(directions)), window_size=pl1_shape, border=False, off_screen=True, image_scale=2) # yz plane
 pl2 = pyvista.Plotter(shape=(len(times), len(directions)), window_size=pl2_shape, border=False, off_screen=True, image_scale=2) # xz plane
 pl3 = pyvista.Plotter(shape=(len(times), len(directions)), window_size=[750, 2500], border=False, off_screen=True, image_scale=2) # xy plane
 

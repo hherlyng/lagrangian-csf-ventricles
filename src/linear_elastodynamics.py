@@ -21,11 +21,12 @@ from utilities.deformation_data import (DisplacementCorpusCallosumCephalocaudal,
                                         DisplacementLateralVentricleHorns,
                                         DisplacementVentricleFloorCephalocaudal)
 
-""" Solve the time-dependent equations of linear elasticity with
+""" Solve the time-dependent equations of (damped) linear elasticity with
     a finite element method based on continuous Lagrange elements.
+
     Time-stepping scheme: Newmark beta-method.
 """
-pprint = print
+
 print = PETSc.Sys.Print # Only print from rank 0
 
 # Form compilation optimization options
@@ -194,7 +195,8 @@ L += -inner(w_normal_LV_lat, dot(t(dw), n))*ds(lateral_tags_lat) \
     + phi/h*inner(w_normal_3V, dot(dw, n))*ds(third_tags)
     
 # Create linear system
-a_cpp, L_cpp = dfx.fem.form(a, jit_options=jit_options), dfx.fem.form(L, jit_options=jit_options)
+a_cpp = dfx.fem.form(a, jit_options=jit_options)
+L_cpp = dfx.fem.form(L, jit_options=jit_options)
 A = create_matrix(a_cpp)
 b = create_vector(L_cpp)
 
@@ -230,23 +232,32 @@ bcs.append(dfx.fem.dirichletbc(zero, outlet_dofs))
 # Assemble the system matrix and the RHS vector
 A, b = assemble_system(A, b, a_cpp, L_cpp, bcs)
 
-
-# Create the solver object
+# Configure linear solver
 solver = PETSc.KSP().create(comm)
 solver.setOperators(A)
-
-# Configure direct linear solver using MUMPS.
-# The system matrix is singular due to rigid body motions
-# not being sufficiently constrained by the BCs, so
-# we set some options that enable MUMPS to handle the nullspace of A
 opts = PETSc.Options()
-opts["ksp_type"] = "preonly"
-opts["pc_type"] = "lu"
-opts["pc_factor_mat_solver_type"] = "mumps"
-opts["mat_mumps_icntl_14"] = 80  # Increase MUMPS working memory
-opts["mat_mumps_icntl_24"] = 1  # Option to support solving a singular matrix (rigid motions nullspace)
-opts["mat_mumps_icntl_25"] = 0  # Option to support solving a singular matrix (rigid motions nullspace)
-opts["ksp_error_if_not_converged"] = 1 # Throw an error if KSP solver does not converge
+
+iterative_solver = True
+if iterative_solver:
+    # Configure iterative solver using conjugate gradient
+    # with hypre boomeramg algebraic multigrid preconditioning
+    opts["ksp_type"] = "fgmres"
+    opts["pc_type"] = "hypre"
+    opts["ksp_rtol"] = 1e-7
+    opts["ksp_atol"] = 1e-7
+    opts["ksp_initial_guess_nonzero"] = True
+else:
+    # Configure direct solver MUMPS with exact preconditioner LU
+    opts["ksp_type"] = "preonly"
+    opts["pc_type"] = "lu"
+    opts["pc_factor_mat_solver_type"] = "mumps"
+    opts["mat_mumps_icntl_14"] = 80  # Increase MUMPS working memory
+    opts["mat_mumps_icntl_24"] = 1  # Option to support solving a singular matrix (pressure nullspace)
+    opts["mat_mumps_icntl_25"] = 0  # Option to support solving a singular matrix (pressure nullspace)
+    opts["ksp_error_if_not_converged"] = 1 # Throw an error if KSP solver does not converge
+
+# Enable convergence monitoring and set options
+solver.setMonitor(lambda _, its, rnorm: print(f"Iteration: {its}, residual: {rnorm}"))
 solver.setFromOptions()
 
 # Prepare output functions and files
@@ -285,11 +296,13 @@ energy = np.zeros((len(times), 2))
 max_disp = np.zeros((len(times), 4))
 point_disp = np.zeros((len(times), 3))
 point_vel  = np.zeros((len(times), 3))
+point_wh_dot = np.zeros((len(times), 3))
 
 # Compute cells for point evaluation of the deformation function wh
 cell = []
 point_on_proc = []
-random_point = np.array([-0.00271071, -0.02997235, -0.04644623])
+# random_point = np.array([-0.00271071, -0.02997235, -0.04644623])
+random_point = np.array([0.0066761 , 0.01322405, 0.01233037])
 bb_tree = dfx.geometry.bb_tree(mesh, mesh.topology.dim)
 cell_candidates = dfx.geometry.compute_collisions_points(bb_tree, random_point)
 colliding_cells = dfx.geometry.compute_colliding_cells(mesh, cell_candidates, random_point)
@@ -355,6 +368,7 @@ for i, t in enumerate(times[1:], 1):
 
     if len(cell)>0:
         point_disp[i, :] = wh.eval(x=random_point, cells=cell)
+        point_wh_dot[i, :] = wh_dot.eval(x=random_point, cells=cell)
 
     max_disp[i, 0] = comm.allreduce(wh.sub(0).collapse().x.array.max(), op=MPI.MAX)
     max_disp[i, 1] = comm.allreduce(wh.sub(1).collapse().x.array.max(), op=MPI.MAX)
@@ -366,7 +380,7 @@ for i, t in enumerate(times[1:], 1):
     print(f"Maximum displacement magnitude: {max_disp[i, 3]:.1e}")
     
     # Store the applied BCs (equal on all processes)
-    applied_bc1.append(cc_disp_expr.amplitude)
+    applied_bc1.append(3/4*cc_disp_expr.amplitude) # Add the mean value of the BC
     applied_bc2.append(tv_disp_expr.amplitude)
     applied_bc3.append(lv_disp_expr.amplitude)
     applied_bc4.append(floor_expr.amplitude)
@@ -415,8 +429,10 @@ if write_output:
 
     # Compute the Fast Fourier Transform of the displacement
     wh_fft = fft(displacements, axis=1)
+
     del displacements # Free memory
     gc.collect()
+
     # Differentiate in frequency space by multiplying by (i * omega)
     # where omega = 2*pi*f and i is the imaginary unit
     wh_dot_fft = (1j*2*np.pi*freqs) * wh_fft
@@ -449,6 +465,7 @@ if write_output:
     # Perform parallell communication
     point_disp = comm.gather(point_disp, root=0)
     point_vel  = comm.gather(point_vel , root=0)
+    point_wh_dot = comm.gather(point_wh_dot, root=0)
 
     if comm.rank==0:
         
@@ -460,6 +477,10 @@ if write_output:
         for array in point_vel:
             if np.sum(np.abs(array)) > 0.0:
                 point_vel = array
+                break
+        for array in point_wh_dot:
+            if np.sum(np.abs(array)) > 0.0:
+                point_wh_dot = array
                 break
         
         # Plot and save data arrays
@@ -509,6 +530,8 @@ if write_output:
         ax4.plot(times, point_vel[:, 0], 'g', label="Point x vel")
         ax4.plot(times, point_vel[:, 1], 'c', label="Point y vel")
         ax4.plot(times, point_vel[:, 2], 'm', label="Point z vel")
+        ax4.plot(times, point_wh_dot[:, 2], 'k', label="Point z vel (Newmark)")
         ax4.legend()
         fig4.savefig(fig_dir+f"MPI={comm.size}_velocities_p={p}_E={E:.0f}_k={k}_T={T}_dt={timestep}.png")
         np.save(data_dir+f"point_velocities_dt={timestep}.npy", point_vel)
+        np.save(data_dir+f"point_wh_dots_dt={timestep}.npy", point_wh_dot)

@@ -4,7 +4,6 @@ import numpy         as np
 import dolfinx       as dfx
 import adios4dolfinx as a4d
 
-from sys               import argv
 from mpi4py            import MPI
 from basix.ufl         import element
 from utilities.parsers import CustomParser
@@ -112,8 +111,6 @@ def generate_data(input_filename: str,
         timestamp = 0
         # Read the velocity data
         a4d.read_function(filename=input_filename, u=u, time=timestamp)
-        from ufl import inner, div, dx
-        print(dfx.fem.assemble_scalar(dfx.fem.form(inner(div(u), div(u))*dx)))
 
         # Cast velocity as numpy.array and prepend timestamp
         velocity = u.x.array
@@ -153,20 +150,30 @@ def main(argv=None):
     opts = parser.add_argument_group("Options", "Options for velocity data to be generated. ")
     opts.add_argument("-s", "--steady_state", type=int, help="Steady state velocity field or not")
     opts.add_argument("-T", "--final_time", type=float, help="Final time of simulation")
+    opts.add_argument("-k", "--element_degree", type=int, help="Velocity finite element degree")
+    opts.add_argument("-p", "--polynomial_degree", type=int, help="Displacement finite element degree")
     opts.add_argument("-dt", "--timestep", type=float, help="Timestep size")
     opts.add_argument("-e", "--element_family", type=str, default="BDM", help="Finite element family")
     opts.add_argument("-g", "--governing_equations", type=str, help="Governing equations (Stokes or Navier-Stokes)")
     opts.add_argument("-o", "--output_prefix", type=str, default="brain", help="Prefix for output binaries")
-    opts.add_argument("-m", "--mesh_prefix", type=str, help="Mesh prefix")
-    opts.add_argument("-v", "--model_variation", type=str, help="Model variation, which flow mechanisms are considered")
+    opts.add_argument("-m", "--mesh_suffix", type=int, help="Mesh suffix, specifies mesh version")
+    opts.add_argument("-v", "--model_variation", type=int, help="Model variation, which flow mechanisms are considered")
 
     args = parser.parse_args(argv)
-    if args.mesh_prefix not in ["coarse", "medium", "fine"]:
-        raise ValueError(f'Unknown mesh prefix, "coarse", "medium", or "fine".')
+    if args.mesh_suffix not in range(3):
+        raise ValueError("Unknown mesh prefix, choose 0, 1, or 2.")
     if args.governing_equations not in ["stokes", "navier-stokes"]:
-        raise ValueError(f'Unknown governing equations, choose "stokes" or "navier-stokes".')
-    if args.model_variation not in ["deformation+cilia+production", "deformation+cilia", "deformation+production"]:
+        raise ValueError("Unknown governing equations, choose 'stokes' or 'navier-stokes'.")
+    if args.model_variation not in range(5):
         raise ValueError("Unknown model variation.")
+
+    # Set model variation name
+    models = {1 : "deformation",
+              2 : "deformation+cilia",
+              3 : "deformation+production",
+              4 : "deformation+cilia+production"
+    }
+    model_variation = models[args.model_variation]
     
     # Set steady state flag
     steady = True if args.steady_state==1 else False
@@ -174,20 +181,24 @@ def main(argv=None):
     # Set temporal parameters
     T = args.final_time
     dt = args.timestep
-    N = int(T / dt)
+    N = int(1 / dt)+1
     print("Number of timestamps: ", N)
 
     # Define output directory
-    if args.output_prefix=="brain":
-        bin_dir = f"{args.output_prefix}/{args.mesh_prefix}-mesh"
-    else:
-        bin_dir = args.output_prefix
-    output_dir = f"/Users/hherlyng/flowVC/bin/{bin_dir}/{args.governing_equations}/"
+    mesh_prefixes = {0 : "medium",
+                     1 : "fine",
+                     2 : "very_fine"
+    }
+    bin_dir = f"{args.output_prefix}/{mesh_prefixes[args.mesh_suffix]}-mesh"
+    
+    flowVC_path = "path/to/flowVC"  # <-- CHANGE THIS TO THE ACTUAL PATH TO flowVC
+    output_dir = f"{flowVC_path}/bin/{bin_dir}/{args.governing_equations}/" \
+        + f"p={args.polynomial_degree}_k={args.element_degree}/{model_variation}/"
 
-    # Define checkpoint filename
-    cpoint_prefix = f"{args.element_family}_{args.model_variation}_velocity"
     velocity_input_filename = \
-        f"../output/{args.mesh_prefix}-mesh/flow/{args.governing_equations}/checkpoints/{cpoint_prefix}_projection"
+        f"../output/mesh_{args.mesh_suffix}/" \
+       +f"flow_p={args.polynomial_degree}_E=1500_k={args.element_degree}_dt={args.timestep}_T={T:.0f}/" \
+       +f"{args.governing_equations}/checkpoints/{args.element_family}_{model_variation}_velocity_projection"
     
     # Generate binary data
     generate_data(input_filename=velocity_input_filename,

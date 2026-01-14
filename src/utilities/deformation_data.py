@@ -21,8 +21,8 @@ class DisplacementCorpusCallosumCephalocaudal:
 
     def set_data(self):
         x = np.linspace(0.0, 1.0, 11)
-        y = [0.0, 0.015, 0.011, -0.050, -0.075, -0.0625, -0.0475, -0.05, -0.0475, -0.03, 0.0]
-        disp_data = 2/5*np.array(y)*1e-3 # Convert from mm to m
+        y = [0.0, 0.015, 0.011, -0.050, -0.075, -0.0625, -0.0575, -0.05, -0.0475, -0.03, 0.0]
+        disp_data = 3/10*np.array(y)*1e-3 # Convert from mm to m
         times = np.array(x)
         disp_interp = interp.CubicSpline(times, disp_data, bc_type="periodic")
         refined_times = np.linspace(times[0], times[-1], self.N)
@@ -165,7 +165,8 @@ class DisplacementThirdVentricleLateral:
         self.amplitude = scale_factor*self.disp_final[self.index]
 
 class DisplacementLateralVentricleHorns:
-    """ UPDATE """
+    """ Displacement curve for the inferior and occipital horns of the
+        lateral ventricles. """
 
     def __init__(self, period: float, timestep: float, final_time: float):
         """ Constructor. Assumes period and final_time are integers. """
@@ -213,7 +214,8 @@ class DisplacementLateralVentricleHorns:
 
 
 class DisplacementVentricleFloorCephalocaudal:
-    """ UPDATE """
+    """ Displacement curve for the floors of the lateral ventricles
+        and the third ventricle."""
 
     def __init__(self, period: float, timestep: float, final_time: float):
         """ Constructor. Assumes period and final_time are integers. """
@@ -228,7 +230,7 @@ class DisplacementVentricleFloorCephalocaudal:
     def set_data(self):
         x = np.linspace(0.0, 1.0, 11)
         y = [0.0, 0.015, 0.011, -0.050, -0.075, -0.0625, -0.0525, -0.05, -0.0475, -0.03, 0.0]
-        disp_data = 2/5*1/2*np.array(y)*1e-3 # Convert from mm to m
+        disp_data = 1/8*np.array(y)*1e-3 # Convert from mm to m
         times = np.array(x)
         disp_interp = interp.CubicSpline(times, disp_data, bc_type="periodic")
         refined_times = np.linspace(times[0], times[-1], self.N)
