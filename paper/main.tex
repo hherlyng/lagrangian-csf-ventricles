@@ -423,7 +423,8 @@ and impose the boundary conditions
     \bsigma_s\nn &= \bm{0} &&\quad\text{on }\Bcal_3, \label{eq:traction_free_displacement_bc}
 \end{alignat}
 where $\bm{g}(\xx, t)$ is determined from experimental
-data. The boundary $\Bcal_1$ and imposed data consist of:
+data (\Cref{fig:mesh_facet_tags}). The boundary $\Bcal_1$
+and imposed data consist of:
 \begin{enumerate}[(i)]
     \item The roof of the lateral ventricles, where corpus callosum displacement data is imposed;
     \item The lateral sides of the frontal horns, where caudate nucleus displacement data is imposed;
@@ -434,6 +435,12 @@ data. The boundary $\Bcal_1$ and imposed data consist of:
 \end{enumerate}
 For (i)--(iv) we impose motion normal to the boundary, while in (v) only motion in the
 $z$ direction (which aligns with the feet-head direction) is imposed.
+\begin{figure}
+    \centering
+    \includegraphics[width=\textwidth]{graphics/mesh_facet_tags.png}
+    \caption{Mesh facet tags.}
+    \label{fig:mesh_facet_tags}
+\end{figure}
 
 The function $\bm{g}(\xx, t)$ was determined by experimental
 data~\cite{Kurtcuoglu2007ComputationalSylvius,

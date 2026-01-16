@@ -4,6 +4,7 @@ channels:
 dependencies:
   - python
   - pip
+  - ipython
   - fenics-dolfinx
   - adios4dolfinx
   - scifem
