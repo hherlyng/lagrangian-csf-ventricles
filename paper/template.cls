@@ -99,16 +99,10 @@
 \newcommand{\avg}[1]{\{#1\}}
 \newcommand{\jump}[1]{\llbracket#1\rrbracket}
 
-% Boundaries
-\newcommand{\Gs}{\Gamma_{\mathrm{s}}} % Slip boundary
-\newcommand{\Gc}{\Gamma_{\mathrm{c}}} % Cilia boundary
-\newcommand{\Gp}{\Gamma_{\mathrm{p}}} % Anterior/Posterior pressure boundary
-\newcommand{\Gnf}{\Gamma_{\mathrm{nf}}} % No-flux boundary
-\newcommand{\Gin}{\Gamma_{\mathrm{in}}} % Inflow boundary
-\newcommand{\Gout}{\Gamma_{\mathrm{out}}} % Outflow boundary
-
 % Integrals
 \newcommand{\dx}{\, \mathrm d\bm{x}}
+\newcommand{\intO}[1]{\int_{\Omega}#1 \, \mathrm d\bm{x}}
+\newcommand{\intG}[1]{\int_{\Gamma}#1 \, \mathrm ds}
 
 % Norms
 \newcommand{\normltwo}[1]{{\vert\vert#1\vert\vert}_{L^2}}

@@ -291,9 +291,10 @@ serve as a fair approximation in this setting.
 For the human brain ventricles, we use displacements of the brain
 ventricles walls as a driving force for CSF flow. The wall displacements are 
 derived from a model of brain tissue deformation that considers the brain
-ventricles as a linear elastic material, with viscoelastic
+ventricles as a linear elastic material with viscoelastic
 behavior modeled by Rayleigh damping. The displacement $\ww(\xx, t)$
-of the brain ventricles is then governed by
+of the brain ventricles is then governed by the linear elastodynamics
+equations
 \begin{equation}
     \rho\ddot{\ww} + \zeta_M\rho\dot{\ww} - \zeta_K\nabla\cdot\TT_t(\dot{\ww})
     - \nabla\cdot\TT_t(\ww) = \bm{0} \quad\text{in }\DD,
@@ -352,8 +353,7 @@ $\DD_{\chi} = \DD(\xx, t_0)$, using an invertible mapping
 $\psi : \DD_{\chi}\mapsto\DD_{\xx}$ between the reference configuration
 and the current (deformed) configuration $\DD_{\xx} = \DD(\xx, t)$. 
 The mapping $\psi$ induces a transformation of the differential operators
-in the strong form of the governing fluid equations. 
-Similarly, integrals of the weak formulation
+in the governing fluid equations. Similarly, integrals of the weak formulation
 must be transformed appropriately to account for the
 domain motion~\cite{Scovazzi2007LectureNotes}.
 %Further details on the ALE method are provided in~\Cref{sec:numerical_methods}.
@@ -790,12 +790,12 @@ The algorithm of the zebrafish model consists of steps 2 to 4.
 The unsteady (damped) linear elasticity equations (\Cref{eq:strong_linear_elasticity_1})
 that govern the brain tissue deformation are discretized in space with a finite element method 
 using fourth-order continuous Lagrange elements. For the displacement boundary conditions,
-we imposed traction-free conditions (\eqref{eq:traction_free_displacement_bc})
+we imposed traction-free conditions (\Cref{eq:traction_free_displacement_bc})
 weakly. For the boundary conditions given by displacements $\bm{g}(\xx, t)$ based on experimental data,
-the feet-head displacements (\eqref{eq:eq:experimental_z_displacement_bc}) were imposed strongly,
-while the normal displacements (\eqref{eq:eq:experimental_normal_displacement_bc})
+the feet-head displacements \eqref{eq:experimental_z_displacement_bc} were imposed strongly,
+while the normal displacements \eqref{eq:experimental_normal_displacement_bc}
 were imposed weakly using Nitsche's method~\cite{Nitsche1971UberSind,
-benzaken2024constructing}. The anchor conditions (\eqref{eq:anchored_displacement_bc})
+benzaken2024constructing}. The anchor conditions \eqref{eq:anchored_displacement_bc}
 were imposed strongly.
 
 In time, the tissue deformation equations are discretized with the Newmark-$\beta$ method,
@@ -827,7 +827,7 @@ of the displacement $\ww$ and differentiation in the frequency space.
 The applied displacement boundary conditions are periodic in time,
 with a period equal to one cardiac cycle (one second).
 To achieve periodicity in $\dot{\ww}$, we do the following.
-The tissue deformation equations (\eqref{eq:strong_linear_elasticity_1})
+The tissue deformation equations \eqref{eq:strong_linear_elasticity_1}
 are solved for four cardiac cycles, and the displacement velocities computed in the fourth cycle
 are used as boundary conditions in the fluid equations.
 Starting the system from rest with initial conditions
@@ -850,44 +850,30 @@ and discontinuous Galerkin (DG)
 elements for the pressure~\cite{Brezzi1985TwoProblems,Nedelec1986AIR3}.
 The $\mathrm{BDM}_k$--$\mathrm{DG}_{k-1}$ elements, with polynomial order $k$,
 yield a spatial discretization that conserves mass exactly pointwise.
-We use $k=2$ for the human model and $k=1$ for the 
-zebrafish model. The velocity component normal to facets is continuous
-for the BDM elements, while tangential continuity is achieved
+For the unsteady Stokes equations, we use a weak formulation
+based on the one developed in
+Herlyng~\emph{et al.}~\cite{Herlyng2025AdvectionDiffusion}.
+This weak form was further developed for the Navier-Stokes equations
+\cite{Schroeder2018Towards,di2011mathematical}.
+% For the complete continuous and discrete weak forms, we refer the reader
+% to~\Cref{app:weak_formulations}.
+
+For the $\mathrm{BDM}_k$--$\mathrm{DG}_{k-1}$ elements, we use
+polynomial order $k=2$ for the human model and $k=1$ for the 
+zebrafish model. The velocity component normal to facets is by definition 
+continuous for the BDM elements, while tangential continuity is achieved
 by a stabilization technique~\cite{Hong2016AEquations}. 
-When solving the Navier-Stokes equations, the convective term
-is linearized as $(\uu^{n+1}\cdot\nabla)\uu^{n+1} \approx (\uu^n\cdot\nabla)\uu^{n+1}$,
-where $n$ denotes timestep. Moreover, the convective fluxes both on facets
+For the Navier-Stokes equations, the convective fluxes both on facets
 internal to the mesh and on open boundaries are stabilized with
 an upwinding technique~\cite{Schroeder2018Towards,
-di2011mathematical}.
-
-% ALE. The mapping $\psi$ induces a transformation of differential operators
-% in the strong form of the governing fluid equations. The
-% ALE form of the Navier-Stokes equations
-% (\eqref{eq:navier_stokes_mom_eq,eq:continuity_eq}) reads
-% \begin{alignat}{2}
-%     \rho\left(\pdifft{\uu}J + (\cc\cdot\hat{\nabla}F^{-1})\uu\right)
-%     &= \hat{\nabla}\cdot\left(\TT J\right) \quad&&\text{in }\hat{\DD}, \label{eq:ALE_momentum_eq} \\
-%     \hat{\nabla}\cdot\uu &= 0 \quad&&\text{in }\hat{\DD}, \label{eq:ALE_continuity_eq}
-% \end{alignat}
-% where $\cc = \uu - \dot{\ww}$ is the convective velocity, namely
-% the difference between the fluid velocity $\uu$ and the domain velocity, 
-% in this case the displacement velocity $\dot{\ww}$.
-% In \Cref{eq:ALE_momentum_eq} and \Cref{eq:ALE_continuity_eq},
-% all variables are evaluated in the reference configuration, 
-% e.g. $\uu = \uu(\chi, t)$.
-% Similarly, the ALE form of the unsteady Stokes momentum equation
-% (\eqref{eq:unsteady_stokes_eq}) reads
-
-The fluid boundary conditions are handled as follows.
-Cilia tangential traction boundary conditions are imposed weakly,
-while the ventricular wall displacement velocity is imposed strongly.
-The choroid plexus flux boundary
-condition is imposed weakly with a Nitsche method
-\cite{Nitsche1971UberSind, benzaken2024constructing}.
-A detailed derivation of the $\mathrm{BDM}_k$--$\mathrm{DG}_{k-1}$
-discretization of the unsteady Stokes equations can be found in
-Herlyng~\emph{et al.}~\cite{Herlyng2025AdvectionDiffusion}.
+di2011mathematical}. The ventricular wall deformations
+are incorporated by formulating the governing fluid equations
+in an Arbitrary Lagrangian Eulerian framework~\cite{Scovazzi2007LectureNotes,Duarte2004ALE}.
+In terms of boundary conditions, the cilia tangential traction
+boundary conditions and traction-free conditions are imposed weakly.
+The ventricular wall displacement velocity is imposed strongly.
+We use a Nitsche method to impose the choroid plexus flux boundary
+condition weakly~\cite{Nitsche1971UberSind, benzaken2024constructing}.
 
 In time, the fluid equations are discretized with the first-order, implicit
 Euler scheme using a timestep $\Delta t = 0.001$ s.
@@ -900,13 +886,17 @@ For the Navier-Stokes equations, we solve the Stokes equations
 (with $\uu_0(\xx)=\bm{0}$) and use the solution
 $\uu_{\mathrm{Stokes}}(\xx)$ as initial condition;
 $\uu_0(\xx)=\uu_{\mathrm{Stokes}}(\xx)$. 
+Moreover, when solving the Navier-Stokes equations the convective term
+is linearized as $(\uu^{n+1}\cdot\nabla)\uu^{n+1} \approx (\uu^n\cdot\nabla)\uu^{n+1}$,
+where $n$ denotes timestep.
 To achieve periodic flow in the unsteady simulations, the fluid equations
 are solved for two cardiac cycles and the velocities $\uu(\xx, t)$
 of the second cycle are used to calculate FTLE fields.
 When reporting results, the start of this second cycle is defined as $t=0$.
 
-\subsubsection{FTLE field computation}
-To compute FTLE fields, we initiate a cartesian grid of fluid particles at a
+\subsubsection{Finite-time Lyapunov exponent field computation}
+To compute finite-time Lyapunov exponent (FTLE) fields,
+we initiate a cartesian grid of fluid particles at a release
 time $t_0$ and compute the flow map $\phi_{t_0}^{t_0+T}$
 by solving \Cref{eq:integrate_dx_dt} with a fourth-order Runge-Kutta 
 time stepping scheme. The timestep size $\Delta t = 0.001$ s
@@ -1032,7 +1022,8 @@ ventricles are evenly distributed between the two foramina (\Cref{fig:flow_and_d
 \subsection{Flow fields predicted by the Stokes and Navier-Stokes equations 
 are similar macroscopically, but differ locally}
 Solving the unsteady Stokes equations (\Cref{eq:unsteady_stokes_eq})
-results in qualitatively similar CSF flow as described above in terms of the systole and
+yields CSF flow that is qualitatively similar to the
+Navier-Stokes flow described in the previous section in terms of the systole and
 diastole trends. The Stokes approximation has the same aqueductal stroke volume (46.1 $\mu$l),
 but the displaced flow volumes through the lateral apertures (47 $\mu$l) and the
 median aperture (4.9 $\mu$l) differ from the Navier-Stokes solution,
@@ -1331,12 +1322,13 @@ greitz1993pulsatile, sweetman2011cerebrospinal}, which is ten times lower than t
 cm/s scale reported here and in several other works
 \cite{kim1999quantitative, nitz1992flow, Kurtcuoglu2007ComputationalSylvius}. 
 This ten-fold reduction in maximal velocity would reduce the Reynolds number
-by a factor ten. Although inertial forces would still dominate viscous forces at 
+by a factor ten, yielding for our model Reynolds numbers in the tens instead of the hundreds.
+Although inertial forces would still dominate viscous forces at 
 these numbers, investigating the effects on the discrepancy in the advective transport
 between the Stokes and Navier-Stokes solutions would be interesting to address in future work.
 
-\subsection{Motile cilia and CSF secretion do not significantly
-affect Lagrangian structures in the brain ventricles}
+\subsection{Tissue deformations alter Lagrangian structures more significantly
+than motile cilia and CSF secretion}
 Disregarding motile cilia (DS model) did not alter the flow in the human brain ventricles significantly
 in terms of macroscopic flow quantities like stroke volume. 
 There were however minor differences in the FTLE field structures computed with the DS model compared
@@ -1535,6 +1527,134 @@ the Simula Berkeley Education and Research Collaboration
 
 \newpage
 \appendix
+% \section{Weak formulations}
+% \label{app:weak_formulations}
+% \subsection{Weak formulation of the unsteady Stokes equations}
+% The weak formulation of the unsteady Stokes equations
+% (\Cref{eq:unsteady_stokes_eq,eq:continuity_eq}) presented here was
+% developed in Herlyng~\emph{et al.}~\cite{Herlyng2025AdvectionDiffusion},
+% to which we refer the reader for any details supplementary to
+% what is presented here.
+
+% Let the fluid velocity $\uu\in\VV=\bm{H}^k$ and pressure $p\in Q=H^{k-1}$
+% for an integer $k \geq 1$. The continuous weak form of the unsteady Stokes
+% equations (\Cref{eq:continuity_eq,eq:unsteady_stokes_eq}) reads:
+% find $\uu\in\VV$ and $p\in Q$ such that
+% \begin{subequations}
+%     \begin{alignat}{2}
+%         \mathcal{A}(\uu, \vv) + \mathcal{B}(\vv, p) &= \mathcal{L}(\vv),
+%         &&\quad\forall\vv\in\VV, \\
+%         \mathcal{B}(\uu, q) &= 0, &&\quad\forall q\in Q,
+%     \end{alignat}%
+%     \label{eq:abstract_continuous_weak_form_unsteady_stokes}
+% \end{subequations}%
+% where $\vv\in\VV$ and $q\in Q$ are test functions and
+% \begin{align}
+%     \mathcal{A}(\uu, \vv) &= \intO{\rho\pdifft{\uu}\cdot\vv}
+%                           + \intO{2\mu\beps(\uu) : \beps(\vv)}
+%                           -\intG{\mu(\nabla\uu)^T\nn\cdot\vv},\label{eq:stokes_bilinear_form}\\
+%     \mathcal{B}(\uu, q) &= -\intO{q\nabla\cdot\uu}, \label{eq:stokes_skew_form}\\
+%     \mathcal{L}(\vv) &= \intG{\btau\cdot\vv} + \intG{\Tilde{p}(t)(\vv\cdot\nn)}.\label{eq:stokes_linear_form}
+% \end{align}
+
+% To discretize \eqref{eq:abstract_continuous_weak_form_unsteady_stokes},
+% we reformulate the weak form in terms of discrete variables,
+% denoted with the subscript $h$, on the discrete domain $\Omega_h$:
+% \begin{subequations}
+%     \begin{alignat}{2}
+%         \mathcal{A}(\uu_h, \vv_h) + \mathcal{B}(\vv_h, p_h)
+%         &= \mathcal{L}(\vv_h), &&\quad\forall\vv_h\in\VV_h, \\
+%         \mathcal{B}(\uu_h, q_h) &= 0, &&\quad\forall q_h\in Q_h.
+%     \end{alignat}%
+%     \label{eq:discrete_weak_form_unsteady_stokes_no_stabilization}%
+% \end{subequations}%
+% The discrete function spaces $\VV_h$ and $Q_h$ are represented
+% by Brezzi-Douglas-Marini elements~\cite{Brezzi1985TwoProblems,Nedelec1986AIR3}
+% for the velocity $\uu_h$ and discontinuous Lagrange (DG) elements
+% for the pressure $p_h$. For all cells $K$ of the computational mesh $\Omega_h$,
+% we define
+% \begin{align*}
+%     \VV_h &= \Big\{\vv_h : \vv_h\in\mathbf{H}(\mathrm{div});
+%     \vv_h\vert_K\in\big[P_k(K)\big]^d;
+%     \forall K\in\Omega_h;
+%     \vv_h\cdot\nn=0 \ \text{on } \Gamma_h\setminus\Gamma_{h, \mathrm{p}}\Big\},\\
+%     Q_h &= \Big\{q_h : q_h\in L^2;  q_h\vert_K\in P_{k-1}(K); \forall K\in\Omega_h\Big\},
+% \end{align*}
+% where $P_k$ is the space of polynomials of degree less than or equal to $k$.
+% The elements of $\VV_h$ only ensure continuity of components of $\uu_h$
+% normal to facets of $\Omega_h$. We enforce tangential continuity
+% of $\uu_h$ on interior mesh facets by incorporating the following
+% stabilization terms~\cite{Hong2016AEquations}:
+% \begin{alignat}{1}
+%     \mathcal{A}_{\mathrm{stab}}(\uu_h, \vv_h) &=
+%     \sum_{f\in \mathcal{F}}\int_f{2\mu\frac{\gamma}{\avg{h}}\jump{P_{\nn}(\uu_h)}
+%     \cdot\jump{P_{\nn}(\vv_h)}}\,\mathrm ds\\
+%     &-\sum_{f\in \mathcal{F}}\int_f{2\mu\avg{\beps(\uu_h)}\cdot\jump{\vv_h}}\,\mathrm ds
+%     -\sum_{f\in \mathcal{F}}\int_f{2\mu\avg{\beps(\vv_h)}\cdot\jump{\uu_h}}\,\mathrm ds
+%     \label{eq:hong_stabilization_bilinear_form}
+% \end{alignat}
+% Here $\mathcal{F}$ is the set of all interior facets of the computational mesh and
+% $h$ is the maximal distance between two points in a mesh cell.
+% The penalty parameter $\gamma=150$ was chosen large enough
+% to achieve stability~\cite{Nitsche1971UberSind}. Furthermore, the average and jump operators,
+% respectively, are for interior facets defined as
+% \begin{equation}
+%     \avg{\uu} = \frac{\uu^+\cdot\nn^+ - \uu^-\cdot\nn^-}{2}
+%     \qquad\mathrm{and}\qquad \jump{\uu} = \uu^+ - \uu^-,
+%     \label{eq:operators_BDM}
+% \end{equation}
+% where $\uu$ is a first-order tensor and 
+% $\nn$ is the normal vector on a facet separating two cells,
+% chosen such that $\nn$ points towards the exterior of a cell.
+% The plus and minus signs denote variables in each of two neigboring cells.
+% On the boundary, we define $\avg{\uu} = \uu\cdot\nn$ and $\jump{\uu} = \uu$.
+
+% By including \Cref{eq:hong_stabilization_bilinear_form} in the
+% weak form \eqref{eq:discrete_weak_form_unsteady_stokes_no_stabilization},
+% we get the following semi-discrete weak formulation of
+% the Stokes equations reads:
+% find ($\uu_h, p_h$)$\in$($\VV_h, Q_h$) such that
+% \begin{subequations}
+%     \begin{alignat}{2}
+%         \mathcal{A}(\uu_h, \vv_h)
+%         + \mathcal{A}_{\mathrm{stab}}(\uu_h, \vv_h)
+%         + \mathcal{B}(\vv_h, p_h)
+%         &= \mathcal{L}(\vv_h), &&\quad\forall\vv_h\in\VV_h, \\
+%         \mathcal{B}(\uu_h, q_h) &= 0, &&\quad\forall q_h\in Q_h.
+%     \end{alignat}%
+%     \label{eq:abstract_semi_discrete_weak_form_stokes}%
+% \end{subequations}%
+% The weak formulation (\Cref{eq:abstract_semi_discrete_weak_form_stokes})
+% is discretized in time using the first-order implicit Euler method,
+% with time derivatives approximated as
+% \begin{equation*}
+%     \pdifft{\uu} \approx \frac{\uu^{n+1} - \uu^n}{\Delta t},
+% \end{equation*}
+% where $n$ denotes the timestep index. All of the other terms
+% in~\Cref{eq:abstract_semi_discrete_weak_form_stokes} are evaluated at timestep $n+1$.
+% The method is implicit and of first order in time~\cite{butcher2016numerical}. 
+
+% \subsection{Weak formulation of the Navier-Stokes equations}
+% The weak form of the Navier-Stokes equations additionally
+% includes the trilinear form originating in the convective
+% acceleration term. The Navier-Stokes weak form reads:
+% find $\uu\in\VV$ and $p\in Q$ such that
+% \begin{subequations}
+%     \begin{alignat}{2}
+%         \mathcal{A}(\uu, \vv) + \mathcal{B}(\vv, p) + \mathcal{C}(\vv, p) &= \mathcal{L}(\vv),
+%         &&\quad\forall\vv\in\VV, \\
+%         \mathcal{B}(\uu, q) &= 0, &&\quad\forall q\in Q,
+%     \end{alignat}%
+%     \label{eq:abstract_weak_form_unsteady_stokes}
+% \end{subequations}%
+% where
+% \begin{equation}
+%     \mathcal{C}(\uu, \vv, \ww) = \intO{(\uu\cdot\nabla)\vv\cdot\ww}.
+%     \label{eq:navier_stokes_trilinear_form}
+% \end{equation}
+
+% \subsection{Weak formulation of the linear elastodynamics equations}
+
 \section{Model verification}
 Correctness of the zebrafish CSF flow model implementation
 was verified in previous work~\cite{Herlyng2025AdvectionDiffusion},
