@@ -9,8 +9,8 @@ Install the required packages using `conda` with
 ```
 conda env create -f environment.yml
 ```
-This installs the packages in an environment `lagrangian-csf-env`, which
-is activated with the command
+This installs the packages in a `conda` environment named
+`lagrangian-csf-env`, which can be activated with the command
 ```
 conda activate lagrangian-csf-env
 ```

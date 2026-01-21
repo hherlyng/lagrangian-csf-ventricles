@@ -34,7 +34,7 @@ dx = ufl.Measure('dx', domain=mesh) # Volume integral measure
 eps = lambda arg: sym(grad(arg)) # The symmetric gradient
 
 # Material parameters
-E = 1500 #3156 # Modulus of elasticity [Pa]
+E = 1500 # Modulus of elasticity [Pa]
 nu = 0.479 # Poisson's ratio [-]
 eta_value = 2*E/(1+nu) # First Lamé parameter value
 lam_value = nu*E/((1+nu)*(1-2*nu)) # Second Lamé parameter value
@@ -156,10 +156,6 @@ if iterative_solver:
     opts["pc_type"] = "hypre"
     opts["ksp_rtol"] = 1e-10
     opts["ksp_initial_guess_nonzero"] = True
-    a_p = dfx.fem.form(rho/(beta*dt**2)*inner(w, dw)*dx + inner(sigma(w), eps(dw)) * dx)
-    P = assemble_matrix(a_p, bcs=bcs)
-    P.assemble()
-    # solver.setOperators(A, P)
     solver.setOperators(A)
 else:
     # Configure direct solver MUMPS with exact preconditioner LU
@@ -259,6 +255,8 @@ for t in times:
     H1_error = np.sqrt(comm.allreduce(dfx.fem.assemble_scalar(H1_error_form), op=MPI.SUM))
     print(f"L2 error: {L2_error:.2e}")
     print(f"H1 error: {H1_error:.2e}")
+
+# Finalize
 print("Time elapsed: ", time.perf_counter() - tic)
 xdmf.close()
 xdmf_vel.close()
