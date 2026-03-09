@@ -18,11 +18,11 @@ Jump = lambda arg: arg('+') - arg('-')
 Avg = lambda arg, n: .5*(dot(arg('+'), n('+')) - dot(arg('-'), n('-')))
 
 # Symmetric gradient
-def eps(u: dfx.fem.Function | ufl.Coefficient):
+def eps(u: dfx.fem.Function | ufl.Coefficient) -> ufl.Coefficient:
     """ Return the symmetric gradient of u. """
     return sym(grad(u)) 
-
-def tangent(v: dfx.fem.Function | ufl.Coefficient, n: ufl.FacetNormal):
+    
+def tangent(v: dfx.fem.Function | ufl.Coefficient, n: ufl.FacetNormal) -> ufl.Coefficient:
     """ Action of (1 - n x n) on a vector yields the tangential component.
 
     Parameters
@@ -82,7 +82,7 @@ def assemble_system(A: PETSc.Mat,
                     b: PETSc.Vec,
                     lhs_form: dfx.fem.form,
                     rhs_form: dfx.fem.form,
-                    bcs: list[dfx.fem.dirichletbc]):
+                    bcs: list[dfx.fem.dirichletbc]) -> tuple[PETSc.Mat, PETSc.Vec]:
     A.zeroEntries()
     assemble_matrix_mat(A, lhs_form, bcs=bcs)
     A.assemble()
@@ -96,7 +96,7 @@ def assemble_system(A: PETSc.Mat,
 
 def assemble_nested_system(lhs_form: dfx.fem.form,
                            rhs_form: dfx.fem.form,
-                           bcs: list[dfx.fem.dirichletbc]) -> tuple((PETSc.Mat, PETSc.Vec)):
+                           bcs: list[dfx.fem.dirichletbc]) -> tuple[PETSc.Mat, PETSc.Vec]:
     A = dfx.fem.petsc.assemble_matrix_nest(lhs_form, bcs=bcs)
     A.assemble()
 
@@ -109,23 +109,6 @@ def assemble_nested_system(lhs_form: dfx.fem.form,
     dfx.fem.petsc.set_bc_nest(b, bcs0)
 
     return A, b
-
-def calculate_norm_L2(comm: MPI.Comm, v: dfx.fem.Function, dX: ufl.Measure):
-    """ Compute the L2-norm of v with the integration measure dX. """
-    return np.sqrt(
-              comm.allreduce(dfx.fem.assemble_scalar(dfx.fem.form(inner(v, v) * dX)),
-              op=MPI.SUM)
-              )
-
-def calculate_mean(mesh: dfx.mesh.Mesh, v: dfx.fem.Function, dX: ufl.Measure):
-    """ Calculate the average of a function over the domain defined by mesh,
-        using the integration measure dX. """
-    vol = mesh.comm.allreduce(
-        dfx.fem.assemble_scalar(dfx.fem.form(
-                                dfx.fem.Constant(mesh, dfx.default_real_type(1.0)) * dX)
-                                ), op=MPI.SUM
-    )
-    return (1/vol) * mesh.comm.allreduce(dfx.fem.assemble_scalar(dfx.fem.form(v * dX)), op=MPI.SUM)
 
 def compute_exterior_facet_entities(mesh: dfx.mesh.Mesh, facets: np.ndarray[np.int32]):
     """ Helper function to compute (cell, local_facet_index) pairs for exterior facets. 
@@ -215,3 +198,40 @@ def create_normal_contribution_bc(Q: dfx.fem.FunctionSpace, expr: ufl.core.expr.
     qh.x.scatter_forward()
     
     return qh
+
+def compute_cell_boundary_integration_entities(mesh: dfx.mesh.Mesh) -> np.typing.NDArray[np.int32]:
+    """Compute the integration entities for integrals around the
+    boundaries of all cells in mesh.
+
+    Parameters:
+        mesh: The mesh.
+
+    Returns:
+        Facets to integrate over, identified by ``(cell, local facet
+        index)`` pairs.
+
+    Copyright (C) Joe Dean 2025.
+    """
+    tdim = mesh.topology.dim
+    fdim = tdim-1
+    n_f = dfx.cpp.mesh.cell_num_entities(mesh.topology.cell_type, fdim)
+    n_c = mesh.topology.index_map(tdim).size_local
+
+    return np.vstack((np.repeat(np.arange(n_c), n_f), np.tile(np.arange(n_f), n_c))).T.flatten()
+
+def calculate_norm_L2(comm: MPI.Comm, v: dfx.fem.Function, dX: ufl.Measure) -> float:
+    """ Compute the L2-norm of v with the integration measure dX. """
+    return np.sqrt(
+              comm.allreduce(dfx.fem.assemble_scalar(dfx.fem.form(inner(v, v) * dX)),
+              op=MPI.SUM)
+              )
+
+def calculate_mean(mesh: dfx.mesh.Mesh, v: dfx.fem.Function, dX: ufl.Measure) -> float:
+    """ Calculate the average of a function over the domain defined by mesh,
+        using the integration measure dX. """
+    vol = mesh.comm.allreduce(
+        dfx.fem.assemble_scalar(dfx.fem.form(
+                                dfx.fem.Constant(mesh, dfx.default_real_type(1.0)) * dX)
+                                ), op=MPI.SUM
+    )
+    return (1/vol) * mesh.comm.allreduce(dfx.fem.assemble_scalar(dfx.fem.form(v * dX)), op=MPI.SUM)

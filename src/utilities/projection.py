@@ -1,6 +1,4 @@
 import ufl
-import gmsh
-import numpy as np
 import dolfinx as dfx
 import adios4dolfinx as a4d
 
@@ -8,16 +6,27 @@ from mpi4py    import MPI
 from basix.ufl import element
 from dolfinx.fem.petsc import LinearProblem
 
+petsc_options = {
+     "ksp_type" : "preonly",
+     "pc_type"  : "lu",
+     "pc_factor_mat_solver_type" : "mumps",
+     # "mat_mumps_icntl_14" : 80,  # Increase MUMPS working memory
+     # "mat_mumps_icntl_24" : 1,   # Option to support solving a singular matrix
+     # "mat_mumps_icntl_25" : 0    # Option to support solving a singular matrix
+}
+
 def projection_problem_CG_to_BDM(vh_cg: dfx.fem.Function,
-                                   vh_bdm: dfx.fem.Function,
-                                   dx: ufl.Measure) -> LinearProblem:
+                                 vh_bdm: dfx.fem.Function,
+                                 dx: ufl.Measure,
+                                 jit_options: dict={}) -> LinearProblem:
      V = vh_bdm.function_space
      eta, zeta = ufl.TrialFunction(V), ufl.TestFunction(V)
      a = ufl.inner(eta, zeta)*dx
      L = ufl.inner(vh_cg, zeta)*dx
 
-     return LinearProblem(a, L, bcs=[], u=vh_bdm)
-
+     return LinearProblem(a, L, bcs=[], u=vh_bdm,
+                          petsc_options=petsc_options,
+                          jit_options=jit_options)
 if __name__=='__main__':
 
      comm = MPI.COMM_WORLD
