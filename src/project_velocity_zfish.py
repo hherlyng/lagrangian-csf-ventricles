@@ -13,7 +13,7 @@ def project_velocity_field(k: int,
                            element_family: str):
     # Velocity data
     velocity_input_filename = \
-        "/global/D1/homes/hherlyng/lagrangian-csf-ventricles/output/" \
+        "../output/" \
      + f"zfish-mesh/flow/checkpoints/{element_family}_velocity"
     mesh = a4d.read_mesh(filename=velocity_input_filename,
                         comm=MPI.COMM_WORLD,
