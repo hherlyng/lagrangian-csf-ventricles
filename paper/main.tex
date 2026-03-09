@@ -918,8 +918,7 @@ and finally evaluated in a $\mathrm{CG}_1$ space.
 
 \subsubsection{Software implementation}
 The FTLE field computations are performed with a 
-framework that is implemented in C and openly available at
-\href{https://github.com/FlowPhysics/flowVC}{https://github.com/FlowPhysics/flowVC}.
+framework that is implemented in C.
 The finite element methods for the fluid and tissue deformation equations
 are implemented and solved with DOLFINx~\cite{baratta2023dolfinx}.
 A direct solver using MUMPS~\cite{Amestoy2011Mumps} is used to solve the fluid equations.
@@ -927,8 +926,8 @@ We solve the tissue equations iteratively with a
 Flexible Generalized Minimal Residual (GMRES) method~\cite{fgmres} 
 preconditioned with the algebraic multigrid method
 BoomerAMG~\cite{yang2002boomeramg} from the hypre library~\cite{hypre}. 
-The software used for the finite element simulations is openly available
-\fixme{Add Zenodo link.}. 
+Both the FTLE computation software and the finite element method software
+are openly available and archived on Zenodo~\cite{zenodoArchive}.
 
 \section{Results}
 \subsection{Pulsatile brain tissue deformation leads to pulsatile CSF flow in the human brain ventricles}
