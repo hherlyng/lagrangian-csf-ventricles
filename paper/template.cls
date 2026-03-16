@@ -59,10 +59,6 @@
 
 %% -----  Some custom commands  ----- %%
 
-%% EDITING: REMOVE THESE BEFORE SUBMISSION
-\newcommand{\lyng}[1]{\textcolor{blue}{HH: #1}}
-\newcommand{\fixme}[1]{\textcolor{red}{#1}}
-
 % Math
 \newcommand{\pdifft}[1]{\frac{\partial  #1}{\partial t}} % Time derivative
 \newcommand{\pdiffdifft}[1]{\frac{\partial^2 #1}{\partial t^2}}  % Second derivate
