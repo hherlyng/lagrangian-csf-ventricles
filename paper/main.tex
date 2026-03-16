@@ -25,7 +25,7 @@
     Here, we analyze brain ventricular CSF flow both in a Eulerian
     sense and from the Lagrangian perspective -- a time-integrated view of the flow.
     With geometries generated from imaging data, we model CSF flow
-    in adult human and embroynic zebrafish brain ventricles. 
+    in adult human and embryonic zebrafish brain ventricles. 
     In the human brain we model flow governed by cardiovascular pulsations,
     CSF secretion and motile cilia. 
     The flow driven by cardiovascular pulsations is derived from a damped linear elastic model
@@ -76,7 +76,7 @@ Olstad2019CiliaryDevelopment, Faubel2016CiliaVentricles,
 Kurtcuoglu2007ComputationalSylvius, Czosnyka2004CerebrospinalDynamics,
 Vinje2019RespiratoryMeasurements, Liu2024UsingBreathing,
 baledent2001cerebrospinal}.
-With these physical processes occuring
+With these physical processes occurring
 over various time and length scales, CSF flow
 also consists of motions on different
 scales~\cite{kelley2023cerebrospinal}.
@@ -235,7 +235,7 @@ $\rho=1000 \ \mathrm{kg/m^3}$ and dynamic viscosity
 $\mu=0.7 \ \mathrm{mPa\cdot s}$~\cite{Bloomfield1998EffectsFluid}
 in a domain $\DD\subset\mathbb{R}^d$
 with boundary $\partial\DD\subset\mathbb{R}^{d-1}$.
-Neglecting the graviational acceleration, no body forces are acting on the fluid.
+Neglecting the gravitational acceleration, no body forces are acting on the fluid.
 The flow is governed by the Navier-Stokes equations, which determine the
 fluid velocity $\uu(\xx, t)$ and pressure $p(\xx, t)$ for times $t > 0$:
 \begin{alignat}{2}
@@ -477,7 +477,7 @@ greitz1992pulsatile, almudayni2023magnetic, pahlavian2018regional},
 and we remark that the function is periodic in time with a period of
 one second (assumed to be one cardiac cycle).
 For some of the experimental data, directly applying the data produced
-deformations that resulted in unphysically large amounts of CSF flow.
+deformations that resulted in physically unrealistic large amounts of CSF flow.
 Therefore, we reduced the magnitudes of some of the displacements,
 while retaining the qualitative behavior
 of a downward and contractile motion during systole and an upward
@@ -575,8 +575,9 @@ $\TT_{\parallel} = P_{\nn}(\TT\nn)$ is the
 tangential traction vector. The friction coefficient $\alpha=\mu/L$ 
 is determined by the dynamic viscosity $\mu$ and a slip length $L$.
 We model the cilia layer lining the ventricular walls
-as a slip layer, such that the velocity slips at the cilia, but becomes
-noslip at the underlying wall. We choose $L=15$ $\mu$m
+as a slip layer, such that the fluid slips at the cilia while
+approaching a no-slip boundary condition at the underlying
+ventricular wall. We choose $L=15$ $\mu$m
 which is a typical length of a cilium in human brain ventricles
 \cite{Siyahhan2014FlowVentricles,Afzelius2004CiliaRelatedDiseases}
 as the slip length, resulting in $\alpha=47 \ \mathrm{Pa\cdot s/m}$.
@@ -881,8 +882,8 @@ We use a Nitsche method to impose the choroid plexus flux boundary
 condition weakly~\cite{Nitsche1971UberSind, benzaken2024constructing}.
 
 In time, the fluid equations are discretized with the first-order, implicit
-Euler scheme using a timestep $\Delta t = 0.001$ s.
-Since we use an implicit time discretization and solve the fluid euquations
+Euler scheme using a time step $\Delta t = 0.001$ s.
+Since we use an implicit time discretization and solve the fluid equations
 directly, an initial condition is only needed
 for the velocity field, and not the pressure.
 When solving the Stokes equations, the fluid is 
@@ -893,7 +894,7 @@ $\uu_{\mathrm{Stokes}}(\xx)$ as initial condition;
 $\uu_0(\xx)=\uu_{\mathrm{Stokes}}(\xx)$. 
 Moreover, when solving the Navier-Stokes equations the convective term
 is linearized as $(\uu^{n+1}\cdot\nabla)\uu^{n+1} \approx (\uu^n\cdot\nabla)\uu^{n+1}$,
-where $n$ denotes timestep.
+where $n$ denotes time step.
 To achieve periodic flow in the unsteady simulations, the fluid equations
 are solved for two cardiac cycles and the velocities $\uu(\xx, t)$
 of the second cycle are used to calculate FTLE fields.
@@ -901,11 +902,11 @@ When reporting results, the start of this second cycle is defined as $t=0$.
 
 \subsubsection{Finite-time Lyapunov exponent field computation}
 To compute finite-time Lyapunov exponent (FTLE) fields,
-we initiate a cartesian grid of fluid particles at a release
+we initiate a Cartesian grid of fluid particles at a release
 time $t_0$ and compute the flow map $\phi_{t_0}^{t_0+T}$
 by solving \Cref{eq:integrate_dx_dt} with a fourth-order Runge-Kutta 
-time stepping scheme. The timestep size $\Delta t = 0.001$ s
-was chosen to satisfy the CFL condition
+time stepping scheme. The time step size $\Delta t = 0.001$ s
+was chosen to satisfy the Courant-Friedrichs-Lewy condition
 $\Delta t \leq C h_{\mathrm{min}}/u_{\mathrm{max}}$,
 where $C=0.5$, $h_{\mathrm{min}}$ is the minimal edge length
 of the mesh, and $u_{\mathrm{max}}$ is
@@ -945,7 +946,7 @@ DSC model (deformations, secretion, cilia), the contraction and
 caudal displacement leads to a rapid increase in caudal CSF flow
 through the cerebral aqueduct and interventricular foramina
 (IVF, \Cref{fig:flow_and_deformation_results}C, D).
-In the aqueduct, the flowrate peaks at
+In the aqueduct, the flow rate peaks at
 0.22 ml/s after 26\% of the cardiac cycle (\Cref{fig:flow_and_deformation_results}C).
 This is slightly earlier than the greatest
 volume displacement of the ventricular system
@@ -963,11 +964,11 @@ and was observed superior to the lateral ventricles on the right side
 
 When the ventricles relax during diastole (\Cref{fig:flow_and_deformation_results}A, B),
 the CSF flow reverses and flows cephalic to fill the ventricles
-and the aqueduct flowrate goes through a local minimum, increases slightly,
+and the aqueduct flow rate goes through a local minimum, increases slightly,
 then decreases again and bottoms out at $-0.17$ ml/s around
 94\% through the cycle (\Cref{fig:flow_and_deformation_results}C).
-These flowrate dynamics are similar in the IVF,
-and the total flowrate is evenly distributed through both of these foramina
+These flow rate dynamics are similar in the IVF,
+and the total flow rate is evenly distributed through both of these foramina
 (\Cref{fig:flow_and_deformation_results}D).
 Finally, flow reverses when transitioning 
 into the next cardiac cycle. Over the cardiac cycle,
@@ -975,7 +976,7 @@ the flow rate magnitudes through the aqueduct,
 the lateral apertures, and both the IVF
 are all very similar (\Cref{fig:flow_and_deformation_results}D).
 These regions all have an order of magnitude greater
-flow rates than the flowrates through the median aperture.
+flow rates than the flow rates through the median aperture.
 The maximum CSF velocity magnitude of caudally directed flow is 6.8 cm/s,
 which is located in the cerebral aqueduct during systole at 26\% of the cardiac cycle.
 For cephalic flow, the minimum velocity is $-4.4$ cm/s in the aqueduct at the end of diastole
@@ -984,7 +985,7 @@ a Reynolds number of 319, indicating laminar flow.
 
 The gradient of the mean pressure (cross-sectional average) $\Delta\overline{p}$
 along the cerebral aqueduct varies inversely with
-the flowrate behavior (\Cref{fig:flow_and_deformation_results}C),
+the flow rate behavior (\Cref{fig:flow_and_deformation_results}C),
 with a peak-to-through range of 0.053 mmHg/cm. The mean pressure
 at the superior end of the aqueduct oscillates over the cardiac cycle,
 going through three local minima and maxima (\Cref{fig:flow_and_deformation_results}E).
@@ -1013,8 +1014,8 @@ ventricles are evenly distributed between the two foramina (\Cref{fig:flow_and_d
     third ventricle medial and lateral walls (3V walls medial/lateral);
     the inferior and occipital horns of the lateral ventricles (LV inf./occ. horns).
     \textbf{C--F.} Quantities of interest computed over one cardiac cycle:
-    Flowrate $Q_{\mathrm{aq}}(t)$ and mean pressure gradient $\Delta\overline{p}(t)$
-    in the cerebral aqueduct (\textbf{C}); flowrates $Q(t)$ across cross sections
+    Flow rate $Q_{\mathrm{aq}}(t)$ and mean pressure gradient $\Delta\overline{p}(t)$
+    in the cerebral aqueduct (\textbf{C}); flow rates $Q(t)$ across cross sections
     in different parts of the ventricular system (\textbf{D});
     mean pressures $\overline{p}(t)$ (\textbf{E}); 
     cumulative flow volumes $V(t)$ (\textbf{F}).
@@ -1032,7 +1033,7 @@ diastole trends. The Stokes approximation has the same aqueductal stroke volume 
 but the displaced flow volumes through the lateral apertures (47 $\mu$l) and the
 median aperture (4.9 $\mu$l) differ from the Navier-Stokes solution,
 especially the median aperture stroke volume, which is 43\%
-lower for the Stokes approximation. Although predicted maximum and minimum flowrates and
+lower for the Stokes approximation. Although predicted maximum and minimum flow rates and
 velocities occur at virtually the same time instants,
 the Stokes equations predict lower maximum and minimum velocity magnitudes
 (6.0 and $-4.6$ cm/s, respectively). The 12\% lower maximum velocity
@@ -1046,7 +1047,7 @@ by the Navier-Stokes equations.
     \caption{\textbf{A.} Forward-in-time integrated streamlines of particles seeded
     in the interventricular foramina at times $t=0.25, 0.50, 0.75$ s, corresponding
     to systole, mid-cardiac cycle, and diastole, for the Navier-Stokes velocity
-    approximation. Note the distinct colorbar limit in each plot. 
+    approximation. Note the distinct color bar limit in each plot. 
     \textbf{B.} Navier-Stokes velocity vectors at times $t=0.25, 0.50, 0.75$ s in
     the human brain ventricles with zoomed-in view of  (bottom row).
     \textbf{C.} Zoomed-in view (of the box region shown in the left-most
@@ -1082,7 +1083,7 @@ Removing secretion while keeping cilia (DC model), there is slightly less flow w
 and lateral aperture stroke volumes when compared to DSC, with a similar decrease in the interventricular foramina stroke volumes.
 The median aperture stroke volume is less for both DS and DC compared to DSC, with 11\% and 12\% decreases for DS and DC,
 respectively. The pressure gradient peak-to-nadir is unaltered for both DC and DS.
-The maximal and minimal velocity magnitudes and flowrates change
+The maximal and minimal velocity magnitudes and flow rates change
 by less than 4\% and 3\% for DC and DS, respectively.
 
 \subsection{Motile cilia generate rotational flow in embryonic zebrafish brain ventricles}
@@ -1106,7 +1107,7 @@ to the anterior ventricle, with only few particles crossing through the interven
     \textbf{B.} Streamlines of particles integrated forward in time,
     with particles seeded in the anterior,
     middle and posterior ventricles.
-    Common colorbar for \textbf{A} and \textbf{B}.
+    Common color bar for \textbf{A} and \textbf{B}.
     }
     \label{fig:zfish_flow_results}
 \end{figure}
@@ -1154,8 +1155,8 @@ smeared out with diminishing FTLE values.
     of these FTLE fields are displayed. Within each slice-specific column,
     the left and right columns display forward- and backward-time FTLE
     fields, respectively.    
-    The lower colorbar limit is zero in all slices,
-    while the higher colorbar limit is
+    The lower color bar limit is zero in all slices,
+    while the higher color bar limit is
     an FTLE value of 2.5 and 5.0 for the IVF and 3V slices, respectively.}
     \label{fig:FTLE_human1}
 \end{figure}
@@ -1205,7 +1206,7 @@ extensive in the Navier-Stokes FTLE fields.
     with initial particle release time $t_0=0$ and integration times 
     $T = \pm\{1.0, 2.0\}$ s. 
     In both subpanels, forward-time FTLE are displayed in the left
-    column while backward-time FTLE are displayed in the right columnn.
+    column while backward-time FTLE are displayed in the right column.
     }
     \label{fig:FTLE_human3}
 \end{figure}
@@ -1228,7 +1229,7 @@ less attached to the ventricular walls close to the aqueductal entrance
     with initial particle release time $t_0=0$ and integration times 
     $T = \pm\{1.0, 2.0\}$ s. 
     In both subpanels, forward-time FTLE are displayed in the left
-    column while backward-time FTLE are displayed in the right columnn.
+    column while backward-time FTLE are displayed in the right column.
     }
     \label{fig:FTLE_human4}
 \end{figure}
@@ -1273,7 +1274,7 @@ the third ventricle (\Cref{fig:FTLE_human1}) is consistent with previous computa
 studies~\cite{Kurtcuoglu2007ComputationalSylvius}. The unsteady FTLE
 fields (\Cref{fig:FTLE_human2}) indicate that the jet creates a vortex ring every cardiac cycle.
 As characterized in previous studies, this vortex ring indicates
-strong streching and folding of the CSF,
+strong stretching and folding of the CSF,
 contributing to mixing and stirring~\cite{shadden2006lagrangian, shadden2007transport}. 
 The vortex ring also traps fluid, thus the presence
 of the ring suggests some CSF may occupy the third ventricle for
@@ -1306,7 +1307,7 @@ Herlyng2025AdvectionDiffusion}.
 but less important for macroscopic flow analysis}
 The results we present indicate that when simulating CSF flow
 in human ventricles at Reynolds numbers in the lower hundreds,
-accounting for intertial effects through
+accounting for inertial effects through
 solving the full Navier-Stokes equations is important when investigating
 advective transport by the CSF flow and analyzing local flow features.
 We draw this conclusion based on the significant differences in the structures
@@ -1403,11 +1404,11 @@ deformations in the third and lateral ventricles~\cite{abderezaei2021development
 We imposed medial-lateral displacements on the third and lateral 
 ventricles based on these reported findings, and the fact that our model
 was unable to produce physiological CSF flow without these displacements;
-when imposing only cephalocaudal displacements, the CSF flowrates were less than
+when imposing only cephalocaudal displacements, the CSF flow rates were less than
 10\% of experimentally reported values. This resonates well with the conclusion of
 Kurtcuoglu~\emph{et al.}~\cite{Kurtcuoglu2007ComputationalSylvius},
 namely that medial-lateral displacement of the third ventricle is
-required to fully explain the observed flowrates of ventricular CSF flow.
+required to fully explain the observed flow rates of ventricular CSF flow.
 
 We considered the beating direction of cilia to align with the direction of 
 CSF production velocities, similar to Siyahhan~\emph{et al.}, who considered
@@ -1431,7 +1432,7 @@ uncertainty in the material parameters
 of brain tissue~\cite{smillie2005hydroelastic}.
 Biological soft tissues rarely exhibit Hookean material behavior,
 and nonlinear models are presumably most appropriate to
-model deformations over longer timespans
+model deformations over longer time spans
 \cite{Cheng2010ComputationalModel, Cheng2007UnconfinedCompression,
 smillie2005hydroelastic, tully2009coupling, kaczmarek1997hydromechanics}.
 We justify our choice of deformation model by the fact that
@@ -1444,7 +1445,7 @@ where nonlinear damping effects are negligible.
 
 In terms of the flow model, there are mechanisms of CSF flow that we disregarded.
 For example, respiration has an influence~\cite{Vinje2019RespiratoryMeasurements},
-while we only modeled pulsatile deformations driven by a cardiac freqeuncy.
+while we only modeled pulsatile deformations driven by a cardiac frequency.
 We disregarded the respiration partly because cardiovascular pulsations
 have been found to be the dominant pulsatile mechanisms
 in driving CSF flow~\cite{Soderstrom2025}. Other mechanisms like 
@@ -1459,7 +1460,7 @@ a choice made based on our focus on ventricular flow.
 We model CSF secretion as constant in time and evenly distributed
 across the choroid plexuses. These assumptions may not perfectly reflect
 reality, as there are still debates whether CSF may be produced
-elsewhere in the brian~\cite{miyajima2015evaluation}.
+elsewhere in the brain~\cite{miyajima2015evaluation}.
 For example, Brodal~\cite{Brodal2016TheSystem}
 report that in reality 10--30\% of the CSF production
 may come from interstitial fluid transported through the ependymal cell
@@ -1486,7 +1487,7 @@ On the other hand, a far higher value $\alpha=1000 \ \mathrm{Pa\cdot s/m}$
 was used by Causemann~\emph{et al.}~\cite{Causemann2022HumanFramework}
 who modeled the ventricular walls as porous with transport into the neighboring
 parenchyma. However, $\alpha=1000 \ \mathrm{Pa\cdot s/m}$
-is approaching a noslip regime. The resulting
+is approaching a no-slip regime. The resulting
 particle paths generated would thus likely not compare well with
 in vivo data~\cite{stadlbauer2010insight}. We therefore
 chose the value of $\alpha=47 \ \mathrm{Pa\cdot s/m}$ as a 
@@ -1701,14 +1702,14 @@ We look at convergence in the maximum displacement magnitude, the
 displacement in a point on the traction-free boundary, and
 the kinetic and elastic energies.
 
-Cardiac cycle independecy was assessed. We simulated flow for
+Cardiac cycle independency was assessed. We simulated flow for
 2 cardiac cycles and deformation for 4 cardiac cycles. Simulating flow for 4
 instead of 2 cardiac cycles showed made virtually no change to most of the computed flow
 quantities, with the biggest discrepancy being a 1.5\% change in the max-to-min pressure
 gradient, verifying periodicity. The displacement results were also unchanged when simulating
 for more than 4 cardiac cycles. These results justify our choice.
 
-We verified the implementation of the linear elasiticty equations
+We verified the implementation of the linear elasticity equations
 by numerically solving the equations with quadratic basis functions. The errors of the displacement
 approximation measured in the $\bm{L}^2$ norm and
 $\bm{H}^1$ semi-norm converged at the optimal rates of three
