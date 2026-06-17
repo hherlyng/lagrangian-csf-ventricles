@@ -58,8 +58,8 @@ neural activity. This brain motion is a key contributor to
 cerebrospinal fluid (CSF) flow~\citep{Enzmann1992BrainImaging,
 baledent2001cerebrospinal, sweetman2011cerebrospinal}.
 CSF is produced by choroid plexus in the brain ventricles~\citep{Damkier2013},
-from where the fluid flows into the spinal cord or
-to the subarachnoid space~\citep{rasmussen2018glymphatic}.
+from where the fluid flows into the subarachnoid
+space~\citep{rasmussen2018glymphatic}.
 The flow of CSF maintains brain homeostasis,
 delivers nutrients and removes waste, and
 serves as a cushion for the brain~\citep{fame2020emergence,
@@ -67,7 +67,8 @@ kelley2023cerebrospinal, linninger2016cerebrospinal}.
 Meanwhile, several pathologies afflicting the brain
 are related to disruption of CSF flow,
 such as hydrocephalus, where ventricular enlargement
-results from blockage of CSF flow~\citep{linninger2016cerebrospinal}.
+results from an imbalance of CSF production and efflux,
+e.g. by blockage of CSF flow~\citep{linninger2016cerebrospinal}.
 The nature of CSF flow has been studied extensively
 in recent decades, both experimentally and computationally.
 Among the physiological processes that affect CSF flow are:
@@ -166,7 +167,8 @@ In this work, we characterize LCS in brain ventricular CSF flow
 using two computational models generated with imaging data.
 One geometry represents the brain ventricles of an adult human. The other
 geometry represents the brain ventricles of embryonic zebrafish, an animal whose
-ventricular system shares many similarities with the human brain ventricles.
+ventricular system, despite being simpler, shares particular conserved
+developmental and functional features with the human brain ventricles.
 Using finite element methods, we simulate CSF flow
 in these two geometries. The CSF velocity fields are used to
 compute particle trajectories. These trajectories are used to
@@ -343,9 +345,9 @@ and one related to stiffness ($\zeta_K$), and is given by
 $\zeta = \zeta_M / (2\omega) + \zeta_K\omega / 2$
 for some eigenfrequency $\omega$~\citep{ChopraAnilK2007Dynamics}.
 The mass and stiffness damping factors
-$\eta_M = 0.20$ and $\eta_K = 0.10$ were set to dampen the motion
+$\zeta_M = 0.20$ and $\zeta_K = 0.10$ were set to dampen the motion
 such as to control vibrations around the cardiac cycle frequency 1 Hz,
-which is close to some of the eiqenfrequencies of the geometry.
+which is close to some of the eigenfrequencies of the geometry.
 
 \subsection{Modeling CSF flow in deforming brain ventricles}
 The tissue displacements modeled by \Cref{eq:strong_linear_elasticity_1}
@@ -1150,10 +1152,11 @@ smeared out with diminishing FTLE values.
     \caption{Slices of FTLE fields computed with initial release time
     $t_0=0$ and integration times $T = \pm\{0.5, 1.0, 1.5, 2.0\}$ s
     in the human brain ventricles. The FTLE fields
-    were computed in two box regions: (i) the posterior end of the third
+    were computed in two 3D box-formed regions: (i) the posterior end of the third
     ventricle, including the superior most part of the aqueduct, and
     (ii) the anterior part of the lateral ventricles, including
-    the interventricular foramina. Sagittal slices in the 3V (\textbf{A})
+    the interventricular foramina. We present 2D slices extracted from
+    the 3D FTLE field computations: Sagittal slices in the 3V (\textbf{A})
     and coronal slices in the 3V (\textbf{B}) and the IVF (\textbf{C})
     of these FTLE fields are displayed. Within each slice-specific column,
     the left and right columns display forward- and backward-time FTLE
@@ -1186,6 +1189,9 @@ and a new vortex clearly forms during the transition to the next cardiac cycle.
     forward- and backward-time FTLE fields, respectively.
     The bottom two rows are sagittal slices taken in the 3V (forward- and 
     backward-time FTLE displayed at the top and bottom).
+    The FTLE fields were computed in 3D box-formed regions
+    (see~\Cref{fig:FTLE_human1}), and the slices
+    presented here are 2D slices extracted from the 3D FTLE field computations.
     }
     \label{fig:FTLE_human2}
 \end{figure}
@@ -1210,6 +1216,9 @@ extensive in the Navier-Stokes FTLE fields.
     $T = \pm\{1.0, 2.0\}$ s. 
     In both subpanels, forward-time FTLE are displayed in the left
     column while backward-time FTLE are displayed in the right column.
+    The FTLE fields were computed in 3D box-formed regions
+    (see~\Cref{fig:FTLE_human1}), and the slices
+    presented here are 2D slices extracted from the 3D FTLE field computations.
     }
     \label{fig:FTLE_human3}
 \end{figure}
@@ -1233,6 +1242,9 @@ less attached to the ventricular walls close to the aqueductal entrance
     $T = \pm\{1.0, 2.0\}$ s. 
     In both subpanels, forward-time FTLE are displayed in the left
     column while backward-time FTLE are displayed in the right column.
+    The FTLE fields were computed in 3D box-formed regions
+    (see~\Cref{fig:FTLE_human1}), and the slices
+    presented here are 2D slices extracted from the 3D FTLE field computations.
     }
     \label{fig:FTLE_human4}
 \end{figure}
