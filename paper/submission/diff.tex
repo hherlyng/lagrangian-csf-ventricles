@@ -1,7 +1,7 @@
 \documentclass{template}
 %DIF LATEXDIFF DIFFERENCE FILE
 %DIF DEL main_v0.tex   Sun Jun 21 18:44:29 2026
-%DIF ADD main.tex      Sun Jun 21 19:38:52 2026
+%DIF ADD main.tex      Sun Jun 21 19:49:05 2026
 \usepackage[mathlines]{lineno}
 \usepackage{natbib}
 \bibliographystyle{apalike}
@@ -1839,6 +1839,13 @@ was verified in previous work~\citep{Herlyng2025AdvectionDiffusion},
 thus we only present verification analysis of the human brain model here.
 Mesh and polynomial order refinement studies for the human
 model were performed both for the fluid and the tissue deformation equations.
+\DIFaddbegin \DIFadd{For the mesh refinement studies on the human brain ventricles geometry,
+we consider three versions of the ventricles mesh: Mesh 0 (coarse),
+mesh 1 (standard), and mesh 2 (fine). These consist of, respectively,
+a total of 51 016 (maximal edge length 0.73 cm, minimal edge length 0.049 cm),
+408 128 (maximal 0.40 cm, minimal 0.023 cm),
+and 3 265 024 (maximal 0.22 cm, minimal 0.010 cm) tetrahedral cells.
+}\DIFaddend 
 
 \subsection{Finite element methods for the fluid equations}\DIFaddbegin \label{sec:flow_model_verification}
 \DIFaddend Correctness of the discretization schemes on the human brain ventricles geometry
@@ -1855,14 +1862,19 @@ accuracy of the backward Euler scheme was confirmed.
 On the human brain ventricles mesh, convergence was assessed for computed quantities
 of interest like stroke volumes and maximum and minimum velocity
 magnitudes, by computing these with three different finite element
-polynomial orders. Comparison of these computations was also carried out on the coarse and
-the standard human mesh, where consistency in results was observed.
-We also assessed cardiac cycle independency, and observed a negligible error
+polynomial orders. Comparison of these computations was also
+carried out on the coarse and the standard human mesh,
+where consistency in results was observed.
+We also assessed cardiac cycle independency\DIFdelbegin \DIFdel{, and observed a negligible error
 between simulating for 2 or 3 cardiac cycles, justifying our choice of 2 cycles
-in the main body of the text. 
+in }\DIFdelend \DIFaddbegin \DIFadd{. In }\DIFaddend the main body of the text\DIFdelbegin \DIFdel{. 
+}%DIFDELCMD < 
 
-\subsection{Finite element method for the elasticity equations}\DIFaddbegin \label{sec:tissue_model_verification}
-\DIFaddend We refine element polynomial degree on a single mesh.
+%DIFDELCMD < %%%
+\subsection{\DIFdel{Finite element method for the elasticity equations}}
+%DIFAUXCMD
+\addtocounter{subsection}{-1}%DIFAUXCMD
+\DIFdel{We refine element polynomial degree on a single mesh.
 We also refine mesh with a single element degree.
 We consider three versions of the ventricles mesh,
 with a total of 51 016 (maximal 0.73 cm, minimal 0.049 cm), 408 128 (maximal 0.40 cm, minimal 0.023 cm),
@@ -1870,35 +1882,91 @@ and 3 265 024 (maximal 0.22 cm, minimal 0.010 cm) tetrahedral cells.
 We look at convergence in the maximum displacement magnitude, the
 displacement in a point on the traction-free boundary, and
 the kinetic and elastic energies.
+}%DIFDELCMD < 
 
-Cardiac cycle independency was assessed. We simulated flow for
-2 cardiac cycles and deformation for 4 cardiac cycles. Simulating flow for 4
-instead of 2 cardiac cycles showed made virtually no change to most of the computed flow
+%DIFDELCMD < %%%
+\DIFdel{Cardiac cycle independency was assessed. We }\DIFdelend \DIFaddbegin \DIFadd{,
+we }\DIFaddend simulated flow for \DIFdelbegin \DIFdel{2 cardiac cyclesand deformation for 4 cardiac cycles}\DIFdelend \DIFaddbegin \DIFadd{two cardiac cycles}\DIFaddend . Simulating flow for \DIFdelbegin \DIFdel{4
+instead of 2 }\DIFdelend \DIFaddbegin \DIFadd{four instead of two
+}\DIFaddend cardiac cycles showed \DIFdelbegin \DIFdel{made }\DIFdelend virtually no change \DIFdelbegin \DIFdel{to }\DIFdelend \DIFaddbegin \DIFadd{in }\DIFaddend most of the computed flow
 quantities, with the biggest discrepancy being a 1.5\% change in the max-to-min pressure
-gradient, verifying periodicity. The displacement results were also unchanged when simulating
-for more than 4 cardiac cycles. These results justify our choice.
+gradient\DIFdelbegin \DIFdel{, verifying periodicity. The displacement results were also unchanged when simulating for more than 4 }\DIFdelend \DIFaddbegin \DIFadd{. This verified approximate periodicity,
+justifying our choice of simulating flow for two }\DIFaddend cardiac cycles.
+\DIFdelbegin \DIFdel{These results justify our choice.
+}\DIFdelend 
 
-We verified the implementation of the linear elasticity equations
-by numerically solving the equations with quadratic basis functions. The errors of the displacement
-approximation measured in the $\bm{L}^2$ norm and
+\DIFdelbegin \DIFdel{We }\DIFdelend \DIFaddbegin \subsection{\DIFadd{Finite element method for the elasticity equations}}\label{sec:tissue_model_verification}
+\DIFadd{For the tissue deformation equations, }\DIFaddend verified the implementation of the
+\DIFaddbegin \DIFadd{discretized (damped) }\DIFaddend linear elasticity equations by
+numerically solving the equations with quadratic basis functions \DIFaddbegin \DIFadd{on a unit square mesh}\DIFaddend .
+The errors of the displacement approximation measured in the $\bm{L}^2$ norm and
 $\bm{H}^1$ semi-norm converged at the optimal rates of three
 and two, respectively. In time, second-order accuracy of the 
 Newmark-$\beta$ method was confirmed.
 
-\begin{figure}
+\DIFaddbegin \DIFadd{To assess convergence of the numerical method on the brain ventricles geometry,
+we performed two refinement studies using the three meshes of increasing
+mesh resolution mentioned above (mesh 0, 1 and 2). 
+In one study, we refine element polynomial degree on a single mesh,
+and in the other study we consider a single polynomial degree ($p=2$) for the three 
+meshes of increasing mesh resolution.
+We look at convergence in the displacements
+$\ww(\xx, t) = (w_x(\xx, t), w_y(\xx, t), w_z(\xx, t))$
+in a point on the traction-free boundary,
+the global maximum displacement magnitude $||w(\xx, t)||_{L^{\infty}}$
+where $w(\xx, t) = \sqrt{\ww\cdot\ww}$, and the total kinetic and elastic energies.
+}
+
+\DIFadd{For both the refinement studies, we observe convergence in the energies and in the
+point displacements $w_x,$ $w_y,$ and $w_z.$
+For the maximum displacement magnitude $||w(\xx, t)||_{L^{\infty}}$, however,
+we only observe convergence during basis function polynomial degree refinement,
+not during mesh refinement. Presumably, this is due to the convergence
+in the $L^{\infty}$ norm requiring strong assumptions on regularity.
+Indeed, for linear elasticity equations with 
+mixed displacement and traction boundary conditions, quasi-uniform sequences of
+triangulations (i.e. refinement) may fail to produce optimal convergence rates
+for Galerkin approximations~\mbox{%DIFAUXCMD
+\citep{mazzucato2010well, wahlbin1984sharpness}}\hskip0pt%DIFAUXCMD
+, and
+one might need to resort to graded mesh refinement to remedy this problem~\mbox{%DIFAUXCMD
+\citep{apel1998finite}}\hskip0pt%DIFAUXCMD
+.
+This limited regularity is possibly not satisfied for the complex brain
+ventricles geometry. However, as discussed in the main body of the text,
+there is a large discrepancy in brain tissue displacement magnitudes 
+reported in the literature, and we therefore do not believe that this lack of
+convergence in the $L^{\infty}$ norm during mesh refinement 
+has great influence on the characteristics of the resulting
+brain ventricular CSF flow in our simulations, as long as the displacement
+magnitudes in the simulations are within the range of reported experimental
+displacement data that we compared our tissue deformation simulations with
+during model calibration.
+}
+
+\DIFadd{In addition to the refinement studies, we also assessed cardiac cycle independency 
+for the tissue deformation model. We simulated tissue deformation for four cardiac cycles
+in the main body of the text. The displacement results did not change when simulating
+for more than four cardiac cycles, hence justifying our choice.
+}
+
+\DIFaddend \begin{figure}
     \centering
-    \includegraphics[width=0.8\textwidth]{graphics/verification_deformation_p.png}
-    \caption{Convergence under element degree ($p$) refinement for the linear elastodynamics model
+    \DIFdelbeginFL %DIFDELCMD < \includegraphics[width=0.8\textwidth]{graphics/verification_deformation_p.png}
+%DIFDELCMD <     %%%
+\DIFdelendFL \DIFaddbeginFL \includegraphics[width=\textwidth]{graphics/verification_deformation_p.png}
+    \DIFaddendFL \caption{\DIFdelbeginFL \DIFdelFL{Convergence under }\DIFdelendFL \DIFaddbeginFL \DIFaddFL{Refinement study when refining }\DIFaddendFL element degree ($p$) \DIFdelbeginFL \DIFdelFL{refinement }\DIFdelendFL for the \DIFdelbeginFL \DIFdelFL{linear elastodynamics }\DIFdelendFL \DIFaddbeginFL \DIFaddFL{tissue deformation }\DIFaddendFL model
     on the standard mesh (mesh 1).}
     \label{fig:verification_deformation_p}
 \end{figure}
 \begin{figure}
     \centering
-    \includegraphics[width=0.8\textwidth]{graphics/verification_deformation_mesh.png}
-    \caption{Convergence under mesh refinement for the linear elastodynamics model
+    \DIFdelbeginFL %DIFDELCMD < \includegraphics[width=0.8\textwidth]{graphics/verification_deformation_mesh.png}
+%DIFDELCMD <     %%%
+\DIFdelendFL \DIFaddbeginFL \includegraphics[width=\textwidth]{graphics/verification_deformation_mesh.png}
+    \DIFaddendFL \caption{\DIFdelbeginFL \DIFdelFL{Convergence under }\DIFdelendFL \DIFaddbeginFL \DIFaddFL{Refinement study when refining the }\DIFaddendFL mesh \DIFdelbeginFL \DIFdelFL{refinement }\DIFdelendFL for the \DIFdelbeginFL \DIFdelFL{linear elastodynamics }\DIFdelendFL \DIFaddbeginFL \DIFaddFL{tissue deformation }\DIFaddendFL model
     using quadratic polynomial basis functions ($p=2$). The standard mesh is mesh 1.}
     \label{fig:verification_deformation_mesh}
 \end{figure}
-
 
 \end{document}
