@@ -933,7 +933,7 @@ Both the FTLE computation software and the finite element method software
 are openly available and archived on Zenodo~\citep{zenodoArchive}.
 
 \section{Results}
-\subsection{Pulsatile brain tissue deformation leads to pulsatile CSF flow in the human brain ventricles}
+\subsection{Pulsatile brain tissue deformation leads to pulsatile CSF flow in the human brain ventricles}\label{subsec:results_general}
 When solving the tissue deformation equations with the applied
 experimental displacement data, during systole there is an immediate expansion
 of the third ventricle (3V) in concert with a cephalic movement of the 3V
@@ -1393,11 +1393,12 @@ and we are of the opinion that any further insights on the effect of cilia in
 brain ventricular flow and transport would heavily benefit from more experimental data
 on cilia parameters in the human brain ventricles.
 This contrasts the case for the embryonic zebrafish brain, where the model parameters
-are more comprehensively resolved, and previous work strongly suggests cilia are
-the main drivers of flow~\citep{Olstad2019CiliaryDevelopment, Herlyng2025AdvectionDiffusion}.
-The greater effect of cilia in zebrafish ventricles is a direct result of the smaller
-length scale of the ventricular system of embryonic zebrafish
-as compared to adult humans. Cilia may play a similarly important
+are more comprehensively resolved, and previous work suggests cilia are
+the main drivers of flow, although cardiovascular-related pulsations and
+spontaneuous muscles also have an impact on flow~\citep{Olstad2019CiliaryDevelopment, Herlyng2025AdvectionDiffusion, Thouvenin2020OriginCanal}.
+The greater effect of cilia in embryonic zebrafish ventricles compared to human brain ventricles is presumably a direct result of the smaller
+length scale of the ventricular system of zebrafish as compared to humans. Both our results and
+those of Siyahhan~\emph{et al.}~\citep{Siyahhan2014FlowVentricles} may indicate that cilia could potentially play a 
 role in smaller confined spaces of the human ventricular system,
 such as in the inferior and occipital horns of the lateral ventricles.
 
@@ -1477,7 +1478,7 @@ model deformations over longer time spans
 smillie2005hydroelastic, tully2009coupling, kaczmarek1997hydromechanics}.
 We justify our choice of deformation model by the fact that
 we seek simply a smooth extension to the rest of the domain boundary
-for the displacement measurement boundary condition $\bm{g}(\xx, t)$,
+for the displacement boundary condition function $\bm{g}(\xx, t)$,
 while the ventricles are in reality fluid-filled cavities.
 The choice of linear elasticity with linear damping is considered
 adequate since we consider deformations on the timescale of a cardiac cycle,
@@ -1486,16 +1487,21 @@ where nonlinear damping effects are negligible.
 In terms of the flow model, there are mechanisms of CSF flow that we disregarded.
 For example, respiration has an influence~\citep{Vinje2019RespiratoryMeasurements},
 while we only modeled pulsatile deformations driven by a cardiac frequency.
-We disregarded the respiration partly because cardiovascular pulsations
-have been found to be the dominant pulsatile mechanisms
-in driving CSF flow~\citep{Soderstrom2025}. Other mechanisms like 
-absorption of CSF and neural activity were not modeled because 
-of our focus on the impact of cilia and CSF secretion on the
-ventricular flow and transport.
-Additionally, we comment that our model lacks other
-parts of the CSF flow system such
-as the spinal canal and the subarachnoid spaces,
-a choice made based on our focus on ventricular flow. 
+We did not directly include respiration as a mechanism partly because cardiovascular pulsations
+have in some studies been found to be the dominant pulsatile mechanisms
+in driving CSF flow~\citep{Soderstrom2025}. Meanwhile, since the experimental displacement data
+used to define the displacement boundary condition function $\bm{g}(\xx, t)$ is data from
+in vivo imaging where any mechanism that possibly deforms the brain 
+(except body motion, since the imaged subjects were at rest), brain tissue deformations
+linked to respiration is to some extent indirectly included in our model.
+
+Other mechanisms like absorption of CSF and neural activity were not modeled because 
+of our focus on the impact of cilia and CSF secretion on the ventricular flow and transport.
+Additionally, we comment that our model lacks other parts of the CSF flow system such
+as the subarachnoid spaces downstream of the ventricular system, a choice made based on our focus on ventricular flow.
+As we noted in~\Cref{subsec:results_general}, application of traction-free fluid boundary conditions on the outlets of our model
+and the position of these outlets directly influences the flow volumes crossing these boundaries. Therefore, the lack of
+downstream CSF spaces combined with our boundary condition choice is a part of our model that could be improved.
 
 We model CSF secretion as constant in time and evenly distributed
 across the choroid plexuses. These assumptions may not perfectly reflect
