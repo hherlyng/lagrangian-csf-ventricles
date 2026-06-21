@@ -448,17 +448,17 @@ This projection thus yields a vector tangential to the boundary.
 
 The boundaries $\Bcal_1\cup\Bcal_2$ and imposed data consist of:
 \begin{enumerate}[(i)]
-    \item The roof of the lateral ventricles, where corpus callosum displacement data is imposed;
-    \item The lateral sides of the frontal horns, where caudate nucleus displacement data is imposed;
+    \item The roof of the lateral ventricles, where corpus callosum displacement data is imposed~\cite{Kurtcuoglu2007ComputationalSylvius, soellinger2007assessment, soellinger20093d};
+    \item The lateral sides of the frontal horns, where caudate nucleus displacement data is imposed~\cite{soellinger20093d, Enzmann1992BrainImaging};
     \item The occipital and posterior horns, where we impose a systolic contraction followed by a
-    diastolic expansion;
-    \item The walls of the third ventricle, where thalamus displacement data is imposed;
-    \item The floors of the lateral and third ventricles, where we impose cephalocaudal motion.
+    diastolic expansion~\cite{Enzmann1992BrainImaging, soellinger2007assessment, pahlavian2018regional};
+    \item The walls of the third ventricle, where thalamus displacement data is imposed~\cite{greitz1992pulsatile, soellinger20093d};
+    \item The floors of the lateral and third ventricles, where we impose cephalocaudal motion~\cite{pahlavian2018regional}.
 \end{enumerate}
 For (i)--(iv) we impose motion normal to the boundary (\Cref{eq:experimental_normal_displacement_bc},
 green facets in \Cref{fig:mesh_facet_tags}A),
-while for (v) only motion in the $z$ direction---which aligns with the feet-head direction---
-is imposed (\Cref{eq:experimental_z_displacement_bc},
+while for (v) only motion in the $z$ direction---which aligns with the feet-head direction---is
+imposed (\Cref{eq:experimental_z_displacement_bc},
 pink facets in \Cref{fig:mesh_facet_tags}A).
 \begin{figure}
     \centering
@@ -487,26 +487,11 @@ Therefore, we reduced the magnitudes of some of the displacements,
 while retaining the qualitative behavior
 of a downward and contractile motion during systole and an upward
 and dilated motion during diastole. Namely, reduction of the magnitudes was 
-calibrated by comparing the CSF flow results with experimental values
-of aqueductal stroke volume, with a target value of ~\citep{eide2021direction, wagshul2011pulsating}. 
-% To ensure a physiological magnitude of the CSF flow resulting
-% from brain deformations related to cardiovascular pulsatility,
-% the stroke volume (maximum cumulative flow volume) in the cerebral aqueduct was used to
-% calibrate the deformation boundary conditions in our model such that
-% the deformations yielded flow volumes (when solving the
-% Navier-Stokes equations) similar to those
-% reported by Eide~\emph{et al.}~\citep{eide2021direction}.
-% This choice was made based on the fact that the 
-% ventricular volume displacement directly determines
-% the volume of displaced CSF. We also compared other
-% quantities like the peak-to-nadir pressure
-% gradient with previously reported values.
-% We note that some of these quantities vary widely
-% in terms of values reported in research literature
-% \citep{eide2021direction, baledent2004relationship,
-% Liu2024UsingBreathing, kim1999quantitative,
-% wagshul2011pulsating, nitz1992flow, greitz1994mr,
-% greitz1993pulsatile}.
+calibrated by comparing the CSF flow results (when solving the Navier-Stokes equations) with experimental values
+of aqueductal stroke volume, with a target value for the aqueductal stroke
+volume in the range of 30--70 $\mu$l~\citep{eide2021direction, wagshul2011pulsating}. 
+Referring to the above list of imposed data, we adapted the experimental data by multiplying
+the experimental displacement values with the scaling factors (i) 3/10, (ii) 1/5, (iii) 1/10, (iv) 1/5 and (v) 1/8.
 
 The boundary $\Bcal_3$ consists of the median aperture outlet
 and the lateral apertures (yellow facets in \Cref{fig:mesh_facet_tags}A).
@@ -1012,7 +997,8 @@ Over a cardiac cycle the stroke volume, which is the maximum of the
 cumulative flow volume, in the cerebral aqueduct was
 46.1 $\mu$l (\Cref{fig:flow_and_deformation_results}F). We remind the reader that
 this value was used as a calibration target when calibrating the tissue deformation
-model boundary conditions (see \Cref{subsubsec:deformation}).
+model boundary conditions, and is therefore a
+tuned outcome (see \Cref{subsubsec:deformation}).
 Most of the displaced CSF volume crossing the domain boundary
 is through the lateral apertures with a stroke volume of 45 $\mu$l,
 with less fluid flowing in and out through the median aperture
@@ -1186,7 +1172,7 @@ smeared out with diminishing FTLE values.
 
 For an integration time of one cardiac cycle ($T=1.0$ s), FTLE fields computed
 with varying initial release times $t_0$ show how the FTLE fields vary
-in time (\Cref{fig:FTLE_human2}). In the IVF,
+with release time (\Cref{fig:FTLE_human2}). In the IVF,
 the attracting structures reverse their orientation over the course of
 one cardiac cycle (one second, \Cref{fig:FTLE_human2}A).
 In the 3V, the vortex formed by the
