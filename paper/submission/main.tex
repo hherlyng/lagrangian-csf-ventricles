@@ -1125,7 +1125,7 @@ flow structures in the human brain ventricles}
 Distinct flow features (such as jets) have in previous computational studies
 been observed in the third ventricle at the cerebral aqueduct
 entrance~\citep{Kurtcuoglu2007ComputationalSylvius}.
-We therefore investigate structures in the Finite-time Lyapunov exponent
+We therefore investigate structures in the finite-time Lyapunov exponent
 (FTLE) fields near this entrance and in the interventricular foramina.
 The cerebral aqueduct and the interventricular foramina
 are among the narrowest sections of the ventricular system, where flow
@@ -1226,7 +1226,8 @@ extensive in the Navier-Stokes FTLE fields.
     \label{fig:FTLE_human3}
 \end{figure}
 
-\subsection{Brain tissue deformations are the main contributor to establishing Lagrangian structures}
+\subsection{Among brain tissue deformations, CSF secretion and motile cilia, deformation are the
+main contributor to establishing Lagrangian structures in the human brain ventricles}
 The FTLE fields computed in the third ventricle with the DC and DS models
 are generally comparable to the DSC results, with the formation of
 a vortex ring (\Cref{fig:FTLE_human4}).
@@ -1252,7 +1253,7 @@ less attached to the ventricular walls close to the aqueductal entrance
     \label{fig:FTLE_human4}
 \end{figure}
 
-\subsection{FTLE fields demonstrate brain ventricular flow compartmentalization in zebrafish embryos}
+\subsection{In solely cilia-driven CSF flow in embryonic zebrafish brain ventricles, FTLE fields demonstrate flow compartmentalization}
 Experimental and computational studies have demonstrated compartmentalization of
 brain ventricular flow in embryonic zebrafish ventricles~\citep{Olstad2019CiliaryDevelopment,
 Herlyng2025AdvectionDiffusion}. We therefore investigate structures in the FTLE fields
@@ -1284,7 +1285,7 @@ a result of the lower velocities in the zebrafish brain ventricles.
 
 \section{Discussion}
 
-\subsection{Lagrangian structures are present in the ventricular system}
+\subsection{Lagrangian structures appear to be present in the ventricular system}
 Both in the zebrafish and the human model, we find ridges in the finite-time
 Lyapunov exponent fields (FTLE) that indicate the presence
 of Lagrangian coherent structures (LCS), demonstrating organization
@@ -1315,12 +1316,25 @@ indicating regions of high stretching that partition flow
 with different advective transport times. The lobes that develop
 have a structure that could trap fluid close to the ventricular walls.
 
+An interesting feature of the unsteady FTLE fields we computed is the
+qualitatively different behavior of the ridges in the different
+intervals of the cardiac cycle. After an initial emergence of ridges
+at the beginning of the cardiac cycle when CSF flows from inferior to superior
+parts of the ventricular system, the ridges are pushed back as the ventricular flow
+reverses and flows towards the median and lateral apertures. Then, as flow reverses again,
+new ridges emerge that will be carried over into the next cardiac cycle. This succession of 
+events leads to a breakdown of the vortex structure we observe superior to the aqueduct entrance,
+a breakdown that did not appear in the vortex studies of \citep{shadden2006lagrangian}
+and \citep{shadden2007transport}, in which the direction of the flow creating the vortex
+was the same over the whole experiment.
+
 In the zebrafish ventricles FTLE fields (\Cref{fig:FTLE_zfish}),
 there are clearly defined LCS, both attracting and repelling,
 in the interventricular duct separating the anterior and middle ventricles.
 Combining the backward- and forward-in-time FTLE fields,
 the prominent attracting and repelling structures form a hyperbolic separation point. 
-This confines flow to separate parts of the ventricular system.
+In a purely advective transport regime, such a separation point would confine
+flow to separate parts of the ventricular system.
 This finding aligns well with previous studies that have demonstrated flow
 compartmentalization in embryonic zebrafish
 brain ventricles~\citep{Olstad2019CiliaryDevelopment,
@@ -1329,11 +1343,11 @@ Herlyng2025AdvectionDiffusion}.
 \subsection{Accounting for fluid inertia is important to resolve Lagrangian structures,
 but less important for macroscopic flow analysis}
 The results we present indicate that when simulating CSF flow
-in human ventricles at Reynolds numbers in the lower hundreds,
+in human brain ventricles at Reynolds numbers in the lower hundreds,
 accounting for inertial effects through
 solving the full Navier-Stokes equations is important when investigating
 advective transport by the CSF flow and analyzing local flow features.
-We draw this conclusion based on the significant differences in the structures
+This is indicated by the significant differences in the structures
 present in the FTLE fields (\Cref{fig:FTLE_human3}) and the
 differences observed in local flow features (\Cref{fig:3d_flow_results})
 between the Navier-Stokes and Stokes solutions. The lobe structures and
@@ -1341,7 +1355,7 @@ vortex rings that form in the Navier-Stokes FTLE fields
 indicate stronger stirring and mixing of
 CSF than in the CSF flow approximated with the unsteady Stokes equations.
 
-In terms of computing macroscopic or integrated quantities like stroke volume,
+In terms of computing macroscopic or integrated quantities like peak-to-trough pressure (cross-sectional averaged),
 however, the unsteady Stokes equations seem sufficiently accurate, showing little discrepancy with
 the Navier-Stokes solution. As such, the Stokes equations can be
 utilized as a low-cost alternative for fast predictions
@@ -1354,14 +1368,17 @@ cm/s scale reported here and in several other works
 \citep{kim1999quantitative, nitz1992flow, Kurtcuoglu2007ComputationalSylvius}. 
 This ten-fold reduction in maximal velocity would reduce the Reynolds number
 by a factor ten, yielding for our model Reynolds numbers in the tens instead of the hundreds.
-Although inertial forces would still dominate viscous forces at 
-these numbers, investigating the effects on the discrepancy in the advective transport
+Additionally, since we compare the Navier-Stokes equations solution with a solution to the unsteady
+Stokes equations, which includes local acceleration, the importance of convective inertia
+relative to the local acceleration, which scales inversely with the Strouhal number,
+would also determine whether our findings still apply at mm/s scale velocities.
+In conclusion, investigating the effects on the discrepancy in the advective transport
 between the Stokes and Navier-Stokes solutions would be interesting to address in future work.
 
 \subsection{Tissue deformations alter Lagrangian structures more significantly
 than motile cilia and CSF secretion}
 Disregarding motile cilia (DS model) did not alter the flow in the human brain ventricles significantly
-in terms of macroscopic flow quantities like stroke volume. 
+in terms of macroscopic flow quantities like peak-to-trough pressure and stroke volumes. 
 There were however minor differences in the FTLE field structures computed with the DS model compared
 to both DC and DSC, with the lobe structures near the aqueduct
 entrance more attached to the 3V wall when including cilia (DC/DSC),
