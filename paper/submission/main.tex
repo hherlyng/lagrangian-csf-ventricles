@@ -1122,8 +1122,8 @@ flow structures in the human brain ventricles}
 Distinct flow features (such as jets) have in previous computational studies
 been observed in the third ventricle at the cerebral aqueduct
 entrance~\citep{Kurtcuoglu2007ComputationalSylvius}.
-We therefore investigate structures in the finite-time Lyapunov exponent
-(FTLE) fields near this entrance and in the interventricular foramina.
+We therefore investigate structures in the FTLE fields
+near this entrance and in the interventricular foramina.
 The cerebral aqueduct and the interventricular foramina
 are among the narrowest sections of the ventricular system, where flow
 gradients increase as a result of the principle of mass conservation.
@@ -1154,8 +1154,8 @@ smeared out with diminishing FTLE values.
     \caption{Slices of FTLE fields computed with initial release time
     $t_0=0$ and integration times $T = \pm\{0.5, 1.0, 1.5, 2.0\}$ s
     in the human brain ventricles. The FTLE fields
-    were computed in two 3D box-formed regions: (i) the posterior end of the third
-    ventricle, including the superior most part of the aqueduct, and
+    were computed in two 3D box-shaped regions: (i) the posterior end of the third
+    ventricle, including the superior-most part of the aqueduct, and
     (ii) the anterior part of the lateral ventricles, including
     the interventricular foramina. We present 2D slices extracted from
     the 3D FTLE field computations: Sagittal slices in the 3V (\textbf{A})
@@ -1172,12 +1172,14 @@ smeared out with diminishing FTLE values.
 For an integration time of one cardiac cycle ($T=1.0$ s), FTLE fields computed
 with varying initial release times $t_0$ show how the FTLE fields vary
 with release time (\Cref{fig:FTLE_human2}). Attracting structures in the IVF start emerging,
-before being set back during the initial CSF flow reversal, then after the second flow reversal
-develop in the same direction as at the beginning of the cardiac cycle (\Cref{fig:FTLE_human2}A).
+move inferiorly during the initial CSF flow reversal, then 
+move superiorly as the flow returns in that direction around $t=0.4$ s,
+as at the beginning of the cardiac cycle (\Cref{fig:FTLE_human2}A).
 In the 3V, the vortex formed by the jet near the aqueduct entrance detaches from the entrance 
 during early systole, before the inferior part of the vortex core is
-elongated down towards the aqueductal entrance as a result of the flow reversal (\Cref{fig:FTLE_human2}B).
-Towards the end of diastole, a new vortex ring emerges from the aqueduct in the cephalic direction,
+elongated down towards the aqueductal entrance as the flow reverses to move inferiorly (\Cref{fig:FTLE_human2}B).
+Towards the end of diastole, as seen in the forward-time FTLE field, 
+a new vortex ring emerges from the aqueduct in the cephalic direction,
 with the leading edge of the previous vortex still present superior to the new vortex ring.
 \begin{figure}
     \centering
@@ -1186,28 +1188,27 @@ with the leading edge of the previous vortex still present superior to the new v
     computed with integration times $T = \pm 1.0$ s
     (one cardiac cycle). The FTLE fields are computed with varying
     initial release times $t_0$.
+    The FTLE fields were computed in 3D box-shaped regions, and the slices
+    presented here are 2D slices extracted from the 3D FTLE field computations.
     The top two rows are slices taken in
     the IVF, and of these two rows the top and bottom display
     forward- and backward-time FTLE fields, respectively.
-    The bottom two rows are sagittal slices taken in the 3V (forward- and 
+    The bottom two rows are coronal slices taken in the 3V (forward- and 
     backward-time FTLE displayed at the top and bottom).
-    The FTLE fields were computed in 3D box-formed regions
-    (see~\Cref{fig:FTLE_human1}), and the slices
-    presented here are 2D slices extracted from the 3D FTLE field computations.
     }
     \label{fig:FTLE_human2}
 \end{figure}
 
 \subsection{When neglecting fluid inertia, the model fails to resolve important Lagrangian structures}
 When computing FTLE fields with the unsteady Stokes equations (\Cref{eq:unsteady_stokes_eq}),
-the jet structure in the third ventricle vanishes (\Cref{fig:FTLE_human3}A).
+the vortex structure that propagates into the 3V vanishes (\Cref{fig:FTLE_human3}A).
 This differs greatly from the structure
 observed in the Navier-Stokes solution (\Cref{fig:FTLE_human3}B).
 In the backward FTLE fields, the lobes and the vortex ring that form and over time
 propagate away from the aqueduct entrance in the Navier-Stokes solution are not 
 present in the Stokes solution's FTLE fields. This indicates a stronger stirring effect
-in the Navier-Stokes solution. Similarly, the repelling structures are more
-extensive in the Navier-Stokes FTLE fields.
+in the Navier-Stokes solution. Similarly, the repelling structures, whose lobes also can
+contribute to stirring, are more extensive in the Navier-Stokes FTLE fields.
 \begin{figure}
     \centering
     \includegraphics[width=0.75\textwidth]{graphics/FTLE_human3.png}
@@ -1216,11 +1217,10 @@ extensive in the Navier-Stokes FTLE fields.
     and the Navier-Stokes equations (\textbf{B})
     with initial particle release time $t_0=0$ and integration times 
     $T = \pm\{1.0, 2.0\}$ s. 
+    The FTLE fields were computed in 3D box-shaped regions, and the slices
+    presented here are 2D slices extracted from the 3D FTLE field computations.
     In both subpanels, forward-time FTLE are displayed in the left
     column while backward-time FTLE are displayed in the right column.
-    The FTLE fields were computed in 3D box-formed regions
-    (see~\Cref{fig:FTLE_human1}), and the slices
-    presented here are 2D slices extracted from the 3D FTLE field computations.
     }
     \label{fig:FTLE_human3}
 \end{figure}
@@ -1243,11 +1243,10 @@ less attached to the ventricular walls close to the aqueductal entrance
     and DS model (\textbf{B}, no cilia)
     with initial particle release time $t_0=0$ and integration times 
     $T = \pm\{1.0, 2.0\}$ s. 
+    The FTLE fields were computed in 3D box-shaped regions, and the slices
+    presented here are 2D slices extracted from the 3D FTLE field computations.
     In both subpanels, forward-time FTLE are displayed in the left
     column while backward-time FTLE are displayed in the right column.
-    The FTLE fields were computed in 3D box-formed regions
-    (see~\Cref{fig:FTLE_human1}), and the slices
-    presented here are 2D slices extracted from the 3D FTLE field computations.
     }
     \label{fig:FTLE_human4}
 \end{figure}
@@ -1285,49 +1284,42 @@ a result of the lower velocities in the zebrafish brain ventricles.
 \section{Discussion}
 
 \subsection{Lagrangian structures appear to be present in the ventricular system}
-Both in the zebrafish model and the human model, we find ridges in the finite-time
-Lyapunov exponent fields (FTLE) that indicate the presence
+Both in the zebrafish brain ventricles model and the human brain ventricles model,
+we find ridges in the finite-time Lyapunov exponent fields (FTLE) that indicate the presence
 of Lagrangian coherent structures (LCS), demonstrating organization
-of the CSF flow. In the human ventricular system, the jet observed in 
+of the CSF flow. In the human model the jet observed in 
 the third ventricle (\Cref{fig:FTLE_human1}) is consistent with previous computational
 studies~\citep{Kurtcuoglu2007ComputationalSylvius}. The unsteady FTLE
 fields (\Cref{fig:FTLE_human2}) indicate that the jet creates a vortex ring every cardiac cycle.
-As characterized in previous studies, this vortex ring indicates
-strong stretching and folding of the CSF,
-contributing to mixing and stirring~\citep{shadden2006lagrangian, shadden2007transport}. 
-The vortex ring also traps fluid, thus the presence
-of the ring suggests some CSF may occupy the third ventricle for
-relatively longer times.
-A general point for the discussion that we want to remark is the fact that
-the LCS only act as advective transport barriers; diffusion would also play
+As characterized in previous studies~\citep{shadden2006lagrangian, shadden2007transport},
+the leading and trailing edges of the vortex ring are defined by attracting and repelling LCS,
+respectively. While these LCS "confine" recirculating fluid, their entanglement also
+generally leads to the entrainment and detrainment of fluid and concomitant stirring.
+However, flow reversal subsequent to vortex formation disturbs the LCS from the
+more classic pattern observed in the prior references. 
+Also, as a general point in regards to mixing,
+the LCS, as computed herein, only act as advective
+transport barriers; diffusion would also play
 a role in terms of net solute transport,
 mixing and residence times in the brain ventricles.
 
-For $T=1.0$ s (one cardiac cycle) we identified a repelling structure 
-in the third ventricle. This repelling structure separates the third
-ventricle from the aqueduct, which means
-that once fluid has reached the entrance to the aqueduct, it is quickly
-expelled through the aqueduct. Meanwhile, fluid inside the third ventricle
-can stay there for a longer time without exiting through the aqueduct.
 In the interventricular foramina, there are also
-clear ridges in the FTLE field with $T=1.0$ s (\Cref{fig:FTLE_human1}),
+clear LCS with $T=1.0$ s (\Cref{fig:FTLE_human1}),
 indicating regions of high stretching that partition flow
 with different advective transport times. The lobes that develop
 have a structure that could trap fluid close to the ventricular walls.
 
-An interesting feature of the unsteady FTLE fields we computed is the
-qualitatively different behavior of the ridges in the different
-intervals of the cardiac cycle. After an initial emergence of ridges
+An interesting feature of the unsteady FTLE fields we computed
+are changes to the LCS over the cardiac cycle. After an initial emergence of LCS
 at the beginning of the cardiac cycle when CSF flows from inferior to superior
-parts of the ventricular system, the ridges are pushed back as the ventricular flow
-reverses and flows towards the median and lateral apertures. Then, as flow reverses again,
-new ridges emerge that will be carried over into the next cardiac cycle. This succession of 
-events leads to a breakdown of the vortex structure we observe superior to the aqueduct entrance,
-a breakdown that did not appear in the vortex studies of \citep{shadden2006lagrangian}
-and \citep{shadden2007transport}, in which the direction of the flow creating the vortex
-was the same over the whole experiment.
+parts of the ventricular system, the LCS appear to be pulled back inferiorly as the ventricular flow
+reverses and flows towards the median and lateral apertures. Notably, this flow reversal
+leads to a partial breakdown of the vortex structure we observe superior to the aqueduct entrance,
+as opposed to the simpler organization of the LCS in the vortex studies of
+Shadden~\emph{et al.}~\citep{shadden2006lagrangian,shadden2007transport},
+in which the flow is unidirectional.
 
-In the zebrafish ventricles FTLE fields (\Cref{fig:FTLE_zfish}),
+In the FTLE fields in the ventricles of the zebrafish model (\Cref{fig:FTLE_zfish}),
 there are clearly defined LCS, both attracting and repelling,
 in the interventricular duct separating the anterior and middle ventricles.
 Combining the backward- and forward-in-time FTLE fields,
@@ -1337,10 +1329,10 @@ flow to separate parts of the ventricular system.
 This finding aligns well with previous studies that have demonstrated flow
 compartmentalization in embryonic zebrafish
 brain ventricles~\citep{Olstad2019CiliaryDevelopment,
-Herlyng2025AdvectionDiffusion}. We do however want to point out that
-in vivo CSF flow in embryonic zebrafish brain ventricles is also impacted
+Herlyng2025AdvectionDiffusion}. We note that
+in vivo CSF flow in embryonic zebrafish brain ventricles may also be impacted
 by cardiovascular pulsations and muscle contractions, and that our cilia-only model
-as such represents a snapshot of in vivo flow.
+as such represents an aspect of in vivo flow.
 
 \subsection{Accounting for fluid inertia is important to resolve Lagrangian structures,
 but less important for macroscopic flow analysis}
@@ -1375,7 +1367,7 @@ Stokes equations, which includes local acceleration, the importance of convectiv
 relative to the local acceleration, which scales inversely with the Strouhal number,
 would also determine whether our findings still apply at mm/s scale velocities.
 In conclusion, investigating the effects on the discrepancy in the advective transport
-between the Stokes and Navier-Stokes solutions would be interesting to address in future work.
+between the Stokes and Navier-Stokes solutions would be interesting to address further in future work.
 
 \subsection{Tissue deformations alter Lagrangian structures more significantly
 than motile cilia and CSF secretion}
@@ -1397,7 +1389,7 @@ on cilia parameters in the human brain ventricles.
 This contrasts the case for the embryonic zebrafish brain, where the model parameters
 are more comprehensively resolved, and previous work suggests cilia are
 the main drivers of flow, although cardiovascular-related pulsations and
-spontaneuous muscles also have an impact on flow~\citep{Olstad2019CiliaryDevelopment, Herlyng2025AdvectionDiffusion, Thouvenin2020OriginCanal}.
+spontaneous muscles also have an impact on flow~\citep{Olstad2019CiliaryDevelopment, Herlyng2025AdvectionDiffusion, Thouvenin2020OriginCanal}.
 The greater effect of cilia in embryonic zebrafish ventricles compared to human brain ventricles is presumably a direct result of the smaller
 length scale of the ventricular system of zebrafish as compared to humans. Both our results and
 those of Siyahhan~\emph{et al.}~\citep{Siyahhan2014FlowVentricles} may indicate that cilia could potentially play a 
@@ -1498,15 +1490,16 @@ in vivo imaging that incorporate any mechanism that possibly deforms the brain
 linked to respiration is to some extent indirectly included in our model. However, since
 the displacement data used in the simulations were modeled as being periodic with a
 period of 1 second (a cardiac cycle), we do in some sense neglect
-lower-order harmonics that may be associated with respiratory dynamics.
+longer timescale harmonics that may be associated with respiratory dynamics.
 
 Other mechanisms like absorption of CSF and neural activity were not modeled because 
 of our focus on the impact of cilia and CSF secretion on the ventricular flow and transport.
 Additionally, we comment that our model lacks other parts of the CSF flow system such
 as the subarachnoid spaces downstream of the ventricular system, a choice made based on our focus on ventricular flow.
 As we noted in~\Cref{subsec:results_general}, application of traction-free fluid boundary conditions on the outlets of our model
-and the position of these outlets directly influences the flow volumes crossing these boundaries. Therefore, the lack of
-downstream CSF spaces combined with our boundary condition choice is a part of our model that could be improved.
+and the position of these outlets directly influences the flow volumes crossing these boundaries.
+Therefore, the lack of direct modeling of the downstream CSF spaces
+combined with our boundary condition choice is a part of our model that could be improved.
 
 We model CSF secretion as constant in time and evenly distributed
 across the choroid plexuses. These assumptions may not perfectly reflect

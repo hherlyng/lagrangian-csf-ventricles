@@ -27,11 +27,11 @@
 \RequirePackage{silence}
 \RequirePackage{physics}
 \RequirePackage{stmaryrd} % Double brackets for jump operator
-\RequirePackage[pdftex, bookmarks, colorlinks, breaklinks, allcolors=blue]{hyperref} % Links
+\RequirePackage[pdftex, bookmarks, colorlinks, breaklinks]{hyperref} % Links
 \RequirePackage{soul}
 \RequirePackage{color}
 \RequirePackage{xcolor,colortbl}
-\hypersetup{colorlinks, citecolor=blue}
+\hypersetup{colorlinks, allcolors=[HTML]{551A8B}}
 \RequirePackage[nameinlink, capitalise]{cleveref} % Cross referencing
 \RequirePackage[superscript,ref]{cite} % Citation
 \RequirePackage{csquotes} % Bibliography tools
