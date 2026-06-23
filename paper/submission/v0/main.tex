@@ -58,8 +58,8 @@ neural activity. This brain motion is a key contributor to
 cerebrospinal fluid (CSF) flow~\citep{Enzmann1992BrainImaging,
 baledent2001cerebrospinal, sweetman2011cerebrospinal}.
 CSF is produced by choroid plexus in the brain ventricles~\citep{Damkier2013},
-from where the fluid flows into the subarachnoid
-space~\citep{rasmussen2018glymphatic}.
+from where the fluid flows into the spinal cord or
+to the subarachnoid space~\citep{rasmussen2018glymphatic}.
 The flow of CSF maintains brain homeostasis,
 delivers nutrients and removes waste, and
 serves as a cushion for the brain~\citep{fame2020emergence,
@@ -67,8 +67,7 @@ kelley2023cerebrospinal, linninger2016cerebrospinal}.
 Meanwhile, several pathologies afflicting the brain
 are related to disruption of CSF flow,
 such as hydrocephalus, where ventricular enlargement
-results from an imbalance of CSF production and efflux,
-e.g. by blockage of CSF flow~\citep{linninger2016cerebrospinal}.
+results from blockage of CSF flow~\citep{linninger2016cerebrospinal}.
 The nature of CSF flow has been studied extensively
 in recent decades, both experimentally and computationally.
 Among the physiological processes that affect CSF flow are:
@@ -148,7 +147,7 @@ in which flow variables such as velocity and volumetric flux
 are measured at a fixed point in space and time.
 Instantaneous flow variables may however deceive
 interpretation of time-dependence in the flow~\citep{shadden2005definition},
-especially in flows that contain motion at multiple time and length scales,
+especially in flows that contain motion at multiple scales,
 such as ventricular CSF flow. Therefore,
 further knowledge of flow and transport in brain ventricles,
 and the precise contributions of specific
@@ -167,8 +166,7 @@ In this work, we characterize LCS in brain ventricular CSF flow
 using two computational models generated with imaging data.
 One geometry represents the brain ventricles of an adult human. The other
 geometry represents the brain ventricles of embryonic zebrafish, an animal whose
-ventricular system, despite being simpler, shares particular conserved
-developmental and functional features with the human brain ventricles.
+ventricular system shares many similarities with the human brain ventricles.
 Using finite element methods, we simulate CSF flow
 in these two geometries. The CSF velocity fields are used to
 compute particle trajectories. These trajectories are used to
@@ -188,7 +186,7 @@ Lagrangian analysis in furthering our understanding of CSF flow.
 To study brain ventricular CSF flow and characterize coherent flow structures,
 we consider two brain ventricular geometries generated with imaging data
 (\Cref{fig:model_sketch}). One is the brain ventricular system of an adult human,
-which includes the lateral, third and fourth ventricles (\Cref{fig:model_sketch}A).
+which includes of the lateral, third and fourth ventricles (\Cref{fig:model_sketch}A).
 The interventricular foramina connect the lateral ventricles to the third ventricle,
 while the cerebral aqueduct connects the third and fourth ventricles (\Cref{fig:model_sketch}A, B).
 In the lateral, third and fourth ventricles there are regions covered by choroid plexus tissue
@@ -219,7 +217,7 @@ length of 14.9 $\mu$m (4.7 $\mu$m).
         in the adult human brain, with indication of the
         choroid plexus tissue (red structures) locations
         in the lateral, third and fourth ventricles. 
-        \textbf{B.} Computational mesh of human brain ventricles, sagittal view.
+        \textbf{B.} Computational mesh of human brain ventricles, sagittal view..
         \textbf{C.} Illustration of the brain ventricular system
         in the embryonic zebrafish brain, indicating the location
         of the anterior, middle and posterior ventricles.
@@ -327,7 +325,7 @@ we expect the precise choice of $\nu$ and $E$ not to
 influence the general trends of the results, but rather
 only the required magnitude of the applied displacements $\bm{g}(\xx, t)$.
 Additionally, there is in general an uncertainty
-in these material parameters. This is especially true of $E$, 
+in these material parameters. Especially $E$, 
 for which values reported in the literature span several orders of magnitude
 \citep{Budday2015Mechanical, Cheng2010ComputationalModel,
 Cheng2007UnconfinedCompression, Sweetman2011ThreeDimensional}.
@@ -345,9 +343,9 @@ and one related to stiffness ($\zeta_K$), and is given by
 $\zeta = \zeta_M / (2\omega) + \zeta_K\omega / 2$
 for some eigenfrequency $\omega$~\citep{ChopraAnilK2007Dynamics}.
 The mass and stiffness damping factors
-$\zeta_M = 0.20$ and $\zeta_K = 0.10$ were set to dampen the motion
+$\eta_M = 0.20$ and $\eta_K = 0.10$ were set to dampen the motion
 such as to control vibrations around the cardiac cycle frequency 1 Hz,
-which is close to some of the eigenfrequencies of the geometry.
+which is close to some of the eiqenfrequencies of the geometry.
 
 \subsection{Modeling CSF flow in deforming brain ventricles}
 The tissue displacements modeled by \Cref{eq:strong_linear_elasticity_1}
@@ -448,17 +446,17 @@ This projection thus yields a vector tangential to the boundary.
 
 The boundaries $\Bcal_1\cup\Bcal_2$ and imposed data consist of:
 \begin{enumerate}[(i)]
-    \item The roof of the lateral ventricles, where corpus callosum displacement data is imposed~\citep{Kurtcuoglu2007ComputationalSylvius, soellinger2007assessment, soellinger20093d};
-    \item The lateral sides of the frontal horns, where caudate nucleus displacement data is imposed~\citep{soellinger20093d, Enzmann1992BrainImaging};
+    \item The roof of the lateral ventricles, where corpus callosum displacement data is imposed;
+    \item The lateral sides of the frontal horns, where caudate nucleus displacement data is imposed;
     \item The occipital and posterior horns, where we impose a systolic contraction followed by a
-    diastolic expansion~\citep{Enzmann1992BrainImaging, soellinger2007assessment, pahlavian2018regional};
-    \item The walls of the third ventricle, where thalamus displacement data is imposed~\citep{greitz1992pulsatile, soellinger20093d};
-    \item The floors of the lateral and third ventricles, where we impose cephalocaudal motion~\citep{pahlavian2018regional}.
+    diastolic expansion;
+    \item The walls of the third ventricle, where thalamus displacement data is imposed;
+    \item The floors of the lateral and third ventricles, where we impose cephalocaudal motion.
 \end{enumerate}
 For (i)--(iv) we impose motion normal to the boundary (\Cref{eq:experimental_normal_displacement_bc},
 green facets in \Cref{fig:mesh_facet_tags}A),
-while for (v) only motion in the $z$ direction---which aligns with the feet-head direction---is
-imposed (\Cref{eq:experimental_z_displacement_bc},
+while for (v) only motion in the $z$ direction---which aligns with the feet-head direction---
+is imposed (\Cref{eq:experimental_z_displacement_bc},
 pink facets in \Cref{fig:mesh_facet_tags}A).
 \begin{figure}
     \centering
@@ -487,11 +485,26 @@ Therefore, we reduced the magnitudes of some of the displacements,
 while retaining the qualitative behavior
 of a downward and contractile motion during systole and an upward
 and dilated motion during diastole. Namely, reduction of the magnitudes was 
-calibrated by comparing the CSF flow results (when solving the Navier-Stokes equations) with experimental values
-of aqueductal stroke volume, with a target value for the aqueductal stroke
-volume in the range of 30--70 $\mu$l~\citep{eide2021direction, wagshul2011pulsating}. 
-Referring to the above list of imposed data, we adapted the experimental data by multiplying
-the experimental displacement values with the scaling factors (i) 3/10, (ii) 1/5, (iii) 1/10, (iv) 1/5 and (v) 1/8.
+calibrated by comparing the CSF flow results with experimental values
+of aqueductal stroke volume\citep{eide2021direction, wagshul2011pulsating}. 
+% To ensure a physiological magnitude of the CSF flow resulting
+% from brain deformations related to cardiovascular pulsatility,
+% the stroke volume (maximum cumulative flow volume) in the cerebral aqueduct was used to
+% calibrate the deformation boundary conditions in our model such that
+% the deformations yielded flow volumes (when solving the
+% Navier-Stokes equations) similar to those
+% reported by Eide~\emph{et al.}~\citep{eide2021direction}.
+% This choice was made based on the fact that the 
+% ventricular volume displacement directly determines
+% the volume of displaced CSF. We also compared other
+% quantities like the peak-to-nadir pressure
+% gradient with previously reported values.
+% We note that some of these quantities vary widely
+% in terms of values reported in research literature
+% \citep{eide2021direction, baledent2004relationship,
+% Liu2024UsingBreathing, kim1999quantitative,
+% wagshul2011pulsating, nitz1992flow, greitz1994mr,
+% greitz1993pulsatile}.
 
 The boundary $\Bcal_3$ consists of the median aperture outlet
 and the lateral apertures (yellow facets in \Cref{fig:mesh_facet_tags}A).
@@ -824,8 +837,7 @@ The applied displacement boundary conditions are periodic in time,
 with a period equal to one cardiac cycle (one second).
 To achieve periodicity in $\dot{\ww}$, we do the following.
 The tissue deformation equations \eqref{eq:strong_linear_elasticity_1}
-are solved for four cardiac cycles,
-and the displacement velocities computed in the fourth cycle
+are solved for four cardiac cycles, and the displacement velocities computed in the fourth cycle
 are used as boundary conditions in the fluid equations.
 Starting the system from rest with initial conditions
 $\ww(\xx, 0) = \dot{\ww}(\xx, 0) = \ddot{\ww}(\xx, 0) = \bm{0}$
@@ -836,12 +848,6 @@ To ensure this smooth start, a cosine window is applied
 to the boundary condition magnitudes during the first half of
 the initial cardiac cycle. Additionally, we perform a ramp-up
 of the magnitudes over the first two cardiac cycles.
-
-To ensure that the simulations were adequately converged, we performed
-a convergence study for the tissue deformation model implementation. We 
-carried out a mesh refinement study and a finite element polynomial degree 
-convergence study, as well as assessing cardiac cycle periodicity. The results
-are reported in the Appendix (\Cref{sec:tissue_model_verification}).
 
 \subsubsection{Finite element methods for the fluid equations}
 We discretize the governing equations of fluid motion,
@@ -857,7 +863,9 @@ For the unsteady Stokes equations, we use a weak formulation
 based on the one developed in
 Herlyng~\emph{et al.}~\citep{Herlyng2025AdvectionDiffusion}.
 This weak form was further developed for the Navier-Stokes equations
-using techniques employed in~\citep{Schroeder2018Towards,di2011mathematical}.
+\citep{Schroeder2018Towards,di2011mathematical}.
+% For the complete continuous and discrete weak forms, we refer the reader
+% to~\Cref{app:weak_formulations}.
 
 For the $\mathrm{BDM}_k$--$\mathrm{DG}_{k-1}$ elements, we use
 polynomial order $k=2$ for the human model and $k=1$ for the 
@@ -894,10 +902,6 @@ To achieve periodic flow in the unsteady simulations, the fluid equations
 are solved for two cardiac cycles and the velocities $\uu(\xx, t)$
 of the second cycle are used to calculate FTLE fields.
 When reporting results, the start of this second cycle is defined as $t=0$.
-The CSF flow model implementation was verified by convergence studies, and we
-assessed periodicity of the flow by comparing simulation results when simulating
-for a various number of cardiac cycles. We refer the reader to the Appendix for
-further details (\Cref{sec:flow_model_verification}).
 
 \subsubsection{Finite-time Lyapunov exponent field computation}
 To compute finite-time Lyapunov exponent (FTLE) fields,
@@ -931,7 +935,7 @@ Both the FTLE computation software and the finite element method software
 are openly available and archived on Zenodo~\citep{zenodoArchive}.
 
 \section{Results}
-\subsection{Pulsatile brain tissue deformation leads to pulsatile CSF flow in the human brain ventricles}\label{subsec:results_general}
+\subsection{Pulsatile brain tissue deformation leads to pulsatile CSF flow in the human brain ventricles}
 When solving the tissue deformation equations with the applied
 experimental displacement data, during systole there is an immediate expansion
 of the third ventricle (3V) in concert with a cephalic movement of the 3V
@@ -985,24 +989,18 @@ a Reynolds number of 319, indicating laminar flow.
 The gradient of the mean pressure (cross-sectional average) $\Delta\overline{p}$
 along the cerebral aqueduct varies inversely with
 the flow rate behavior (\Cref{fig:flow_and_deformation_results}C),
-with a peak-to-nadir range of 0.053 mmHg/cm. The mean pressure
+with a peak-to-through range of 0.053 mmHg/cm. The mean pressure
 at the superior end of the aqueduct oscillates over the cardiac cycle,
 going through three local minima and maxima (\Cref{fig:flow_and_deformation_results}E).
 The mean pressures in the IVF vary inversely with the aqueduct pressure, and the
 mean pressures in the two foramina are similar in magnitude.
-
 Over a cardiac cycle the stroke volume, which is the maximum of the
 cumulative flow volume, in the cerebral aqueduct was
-46.1 $\mu$l (\Cref{fig:flow_and_deformation_results}F). We remind the reader that
-the aqueductal stroke volume was used as a calibration target when calibrating the tissue deformation
-model boundary conditions, and is therefore a tuned outcome (see \Cref{subsubsec:deformation}).
+46.1 $\mu$l (\Cref{fig:flow_and_deformation_results}F).
 Most of the displaced CSF volume crossing the domain boundary
 is through the lateral apertures with a stroke volume of 45 $\mu$l,
 with less fluid flowing in and out through the median aperture
-(stroke volume 8.6 $\mu$l). This distribution with most of the CSF flow volume
-crossing the lateral apertures boundaries is presumably a result of the traction-free
-boundary conditions used on these boundaries, since in this case the cross-sectional
-areas of the boundaries and their position in the geometry determine where CSF flows.
+(stroke volume 8.6 $\mu$l).
 The flow volumes through the interventricular foramina connecting the lateral and third 
 ventricles are evenly distributed between the two foramina (\Cref{fig:flow_and_deformation_results}D).
 \begin{figure}
@@ -1122,7 +1120,7 @@ flow structures in the human brain ventricles}
 Distinct flow features (such as jets) have in previous computational studies
 been observed in the third ventricle at the cerebral aqueduct
 entrance~\citep{Kurtcuoglu2007ComputationalSylvius}.
-We therefore investigate structures in the finite-time Lyapunov exponent
+We therefore investigate structures in the Finite-time Lyapunov exponent
 (FTLE) fields near this entrance and in the interventricular foramina.
 The cerebral aqueduct and the interventricular foramina
 are among the narrowest sections of the ventricular system, where flow
@@ -1130,20 +1128,18 @@ gradients increase as a result of the principle of mass conservation.
 
 FTLE fields computed using the solution to the Navier-Stokes
 equations (\Cref{eq:navier_stokes_mom_eq}) with varying integration time $T$
-and an initial release time $t_0 = 0$, i.e. the beginning of the cardiac cycle,
-when CSF flows from the aqueduct into the third ventricle (3V), 
 show the emergence of a jet and the generation of a vortex ring
 at the cephalic entrance to the aqueduct (\Cref{fig:FTLE_human1}A, B).
 The leading edge of the vortex ring is identified by ridges in the backward-in-time
 FTLE fields, ridges that develop with increasing $T$.
 In the forward-in-time FTLE field, there is a well-defined ridge
 for $T=1.0$ s (one cardiac cycle) across the entrance to
-the cerebral aqueduct (\Cref{fig:FTLE_human1}A, B).
+and the cerebral aqueduct (\Cref{fig:FTLE_human1}A, B).
 
-There are also clearly visible ridges in the FTLE fields in the
-interventricular foramina (IVF) (\Cref{fig:FTLE_human1}C).
-In the backward-time FTLE fields in the IVF, lobe-like structures develop
-both in cephalic and caudal directions. In the bulk of the lateral and third ventricles,
+There are also clearly visible ridges that define lobe-like structures
+in the FTLE fields in the interventricular foramina (IVF) (\Cref{fig:FTLE_human1}C).
+In the backward FTLE fields there develops a vortex ring that is ejected
+caudally. In the bulk of the lateral and third ventricles,
 there are no clear structures in the FTLE fields.
 We observe clearer structures as the integration time increases through
 a couple of cardiac cycles. For higher integration times, the structures become
@@ -1154,11 +1150,10 @@ smeared out with diminishing FTLE values.
     \caption{Slices of FTLE fields computed with initial release time
     $t_0=0$ and integration times $T = \pm\{0.5, 1.0, 1.5, 2.0\}$ s
     in the human brain ventricles. The FTLE fields
-    were computed in two 3D box-formed regions: (i) the posterior end of the third
+    were computed in two box regions: (i) the posterior end of the third
     ventricle, including the superior most part of the aqueduct, and
     (ii) the anterior part of the lateral ventricles, including
-    the interventricular foramina. We present 2D slices extracted from
-    the 3D FTLE field computations: Sagittal slices in the 3V (\textbf{A})
+    the interventricular foramina. Sagittal slices in the 3V (\textbf{A})
     and coronal slices in the 3V (\textbf{B}) and the IVF (\textbf{C})
     of these FTLE fields are displayed. Within each slice-specific column,
     the left and right columns display forward- and backward-time FTLE
@@ -1171,14 +1166,14 @@ smeared out with diminishing FTLE values.
 
 For an integration time of one cardiac cycle ($T=1.0$ s), FTLE fields computed
 with varying initial release times $t_0$ show how the FTLE fields vary
-with release time (\Cref{fig:FTLE_human2}). Attracting structures in the IVF start emerging,
-before being set back during the initial CSF flow reversal, then after the second flow reversal
-develop in the same direction as at the beginning of the cardiac cycle (\Cref{fig:FTLE_human2}A).
-In the 3V, the vortex formed by the jet near the aqueduct entrance detaches from the entrance 
-during early systole, before the inferior part of the vortex core is
-elongated down towards the aqueductal entrance as a result of the flow reversal (\Cref{fig:FTLE_human2}B).
-Towards the end of diastole, a new vortex ring emerges from the aqueduct in the cephalic direction,
-with the leading edge of the previous vortex still present superior to the new vortex ring.
+in time (\Cref{fig:FTLE_human2}). In the IVF,
+the attracting structures reverse their orientation over the course of
+one cardiac cycle (one second, \Cref{fig:FTLE_human2}A).
+In the 3V, the vortex formed by the
+jet near the aqueduct entrance detaches from the entrance 
+during early systole (\Cref{fig:FTLE_human2}B).
+A new vortex is forming during the transition to diastole,
+and a new vortex clearly forms during the transition to the next cardiac cycle.
 \begin{figure}
     \centering
     \includegraphics[width=\textwidth]{graphics/FTLE_human2.png}
@@ -1191,9 +1186,6 @@ with the leading edge of the previous vortex still present superior to the new v
     forward- and backward-time FTLE fields, respectively.
     The bottom two rows are sagittal slices taken in the 3V (forward- and 
     backward-time FTLE displayed at the top and bottom).
-    The FTLE fields were computed in 3D box-formed regions
-    (see~\Cref{fig:FTLE_human1}), and the slices
-    presented here are 2D slices extracted from the 3D FTLE field computations.
     }
     \label{fig:FTLE_human2}
 \end{figure}
@@ -1203,7 +1195,7 @@ When computing FTLE fields with the unsteady Stokes equations (\Cref{eq:unsteady
 the jet structure in the third ventricle vanishes (\Cref{fig:FTLE_human3}A).
 This differs greatly from the structure
 observed in the Navier-Stokes solution (\Cref{fig:FTLE_human3}B).
-In the backward FTLE fields, the lobes and the vortex ring that form and over time
+In the backward FTLE fields, the lobes that form and over time
 propagate away from the aqueduct entrance in the Navier-Stokes solution are not 
 present in the Stokes solution's FTLE fields. This indicates a stronger stirring effect
 in the Navier-Stokes solution. Similarly, the repelling structures are more
@@ -1218,15 +1210,11 @@ extensive in the Navier-Stokes FTLE fields.
     $T = \pm\{1.0, 2.0\}$ s. 
     In both subpanels, forward-time FTLE are displayed in the left
     column while backward-time FTLE are displayed in the right column.
-    The FTLE fields were computed in 3D box-formed regions
-    (see~\Cref{fig:FTLE_human1}), and the slices
-    presented here are 2D slices extracted from the 3D FTLE field computations.
     }
     \label{fig:FTLE_human3}
 \end{figure}
 
-\subsection{Of the considered flow mechanisms, deformations are the
-main contributor to establishing Lagrangian structures in the human brain ventricles}
+\subsection{Brain tissue deformations are the main contributor to establishing Lagrangian structures}
 The FTLE fields computed in the third ventricle with the DC and DS models
 are generally comparable to the DSC results, with the formation of
 a vortex ring (\Cref{fig:FTLE_human4}).
@@ -1245,14 +1233,11 @@ less attached to the ventricular walls close to the aqueductal entrance
     $T = \pm\{1.0, 2.0\}$ s. 
     In both subpanels, forward-time FTLE are displayed in the left
     column while backward-time FTLE are displayed in the right column.
-    The FTLE fields were computed in 3D box-formed regions
-    (see~\Cref{fig:FTLE_human1}), and the slices
-    presented here are 2D slices extracted from the 3D FTLE field computations.
     }
     \label{fig:FTLE_human4}
 \end{figure}
 
-\subsection{In solely cilia-driven CSF flow in embryonic zebrafish brain ventricles, FTLE fields demonstrate flow compartmentalization}
+\subsection{FTLE fields demonstrate brain ventricular flow compartmentalization in zebrafish embryos}
 Experimental and computational studies have demonstrated compartmentalization of
 brain ventricular flow in embryonic zebrafish ventricles~\citep{Olstad2019CiliaryDevelopment,
 Herlyng2025AdvectionDiffusion}. We therefore investigate structures in the FTLE fields
@@ -1272,20 +1257,19 @@ a result of the lower velocities in the zebrafish brain ventricles.
     \includegraphics[width=\textwidth]{graphics/FTLE_zfish.png}
     \caption{FTLE fields for integration times $T = \pm\{34, 68, 101\}$ s
     in embryonic zebrafish brain ventricles. The FTLE fields
-    were computed in a 3D box-formed section of the interventricular duct
+    were computed in a box section of the interventricular duct
     connecting the anterior and middle ventricles.
-    We present 2D slices extracted from the 3D FTLE field computations:
     Sagittal (\textbf{A}), coronal (\textbf{B})
-    and horizontal slices (\textbf{C}) in the center of the 3D box used for
-    computation are displayed. Common legends for all forward-in-time
+    and horizontal slices (\textbf{C}) in the center of the box
+    are displayed. Common legends for all forward-in-time
     and all backward-in-time fields.}
     \label{fig:FTLE_zfish}
 \end{figure}
 
 \section{Discussion}
 
-\subsection{Lagrangian structures appear to be present in the ventricular system}
-Both in the zebrafish model and the human model, we find ridges in the finite-time
+\subsection{Lagrangian structures are present in the ventricular system}
+Both in the zebrafish and the human model, we find ridges in the finite-time
 Lyapunov exponent fields (FTLE) that indicate the presence
 of Lagrangian coherent structures (LCS), demonstrating organization
 of the CSF flow. In the human ventricular system, the jet observed in 
@@ -1298,10 +1282,6 @@ contributing to mixing and stirring~\citep{shadden2006lagrangian, shadden2007tra
 The vortex ring also traps fluid, thus the presence
 of the ring suggests some CSF may occupy the third ventricle for
 relatively longer times.
-A general point for the discussion that we want to remark is the fact that
-the LCS only act as advective transport barriers; diffusion would also play
-a role in terms of net solute transport,
-mixing and residence times in the brain ventricles.
 
 For $T=1.0$ s (one cardiac cycle) we identified a repelling structure 
 in the third ventricle. This repelling structure separates the third
@@ -1315,41 +1295,25 @@ indicating regions of high stretching that partition flow
 with different advective transport times. The lobes that develop
 have a structure that could trap fluid close to the ventricular walls.
 
-An interesting feature of the unsteady FTLE fields we computed is the
-qualitatively different behavior of the ridges in the different
-intervals of the cardiac cycle. After an initial emergence of ridges
-at the beginning of the cardiac cycle when CSF flows from inferior to superior
-parts of the ventricular system, the ridges are pushed back as the ventricular flow
-reverses and flows towards the median and lateral apertures. Then, as flow reverses again,
-new ridges emerge that will be carried over into the next cardiac cycle. This succession of 
-events leads to a breakdown of the vortex structure we observe superior to the aqueduct entrance,
-a breakdown that did not appear in the vortex studies of \citep{shadden2006lagrangian}
-and \citep{shadden2007transport}, in which the direction of the flow creating the vortex
-was the same over the whole experiment.
-
 In the zebrafish ventricles FTLE fields (\Cref{fig:FTLE_zfish}),
 there are clearly defined LCS, both attracting and repelling,
 in the interventricular duct separating the anterior and middle ventricles.
 Combining the backward- and forward-in-time FTLE fields,
 the prominent attracting and repelling structures form a hyperbolic separation point. 
-In a purely advective transport regime, such a separation point would confine
-flow to separate parts of the ventricular system.
+This confines flow to separate parts of the ventricular system.
 This finding aligns well with previous studies that have demonstrated flow
 compartmentalization in embryonic zebrafish
 brain ventricles~\citep{Olstad2019CiliaryDevelopment,
-Herlyng2025AdvectionDiffusion}. We do however want to point out that
-in vivo CSF flow in embryonic zebrafish brain ventricles is also impacted
-by cardiovascular pulsations and muscle contractions, and that our cilia-only model
-as such represents a snapshot of in vivo flow.
+Herlyng2025AdvectionDiffusion}.
 
 \subsection{Accounting for fluid inertia is important to resolve Lagrangian structures,
 but less important for macroscopic flow analysis}
 The results we present indicate that when simulating CSF flow
-in human brain ventricles at Reynolds numbers in the lower hundreds,
+in human ventricles at Reynolds numbers in the lower hundreds,
 accounting for inertial effects through
 solving the full Navier-Stokes equations is important when investigating
 advective transport by the CSF flow and analyzing local flow features.
-This is indicated by the significant differences in the structures
+We draw this conclusion based on the significant differences in the structures
 present in the FTLE fields (\Cref{fig:FTLE_human3}) and the
 differences observed in local flow features (\Cref{fig:3d_flow_results})
 between the Navier-Stokes and Stokes solutions. The lobe structures and
@@ -1357,7 +1321,7 @@ vortex rings that form in the Navier-Stokes FTLE fields
 indicate stronger stirring and mixing of
 CSF than in the CSF flow approximated with the unsteady Stokes equations.
 
-In terms of computing macroscopic or integrated quantities like peak-to-nadir pressure (cross-sectional averaged),
+In terms of computing macroscopic or integrated quantities like stroke volume,
 however, the unsteady Stokes equations seem sufficiently accurate, showing little discrepancy with
 the Navier-Stokes solution. As such, the Stokes equations can be
 utilized as a low-cost alternative for fast predictions
@@ -1370,17 +1334,14 @@ cm/s scale reported here and in several other works
 \citep{kim1999quantitative, nitz1992flow, Kurtcuoglu2007ComputationalSylvius}. 
 This ten-fold reduction in maximal velocity would reduce the Reynolds number
 by a factor ten, yielding for our model Reynolds numbers in the tens instead of the hundreds.
-Additionally, since we compare the Navier-Stokes equations solution with a solution to the unsteady
-Stokes equations, which includes local acceleration, the importance of convective inertia
-relative to the local acceleration, which scales inversely with the Strouhal number,
-would also determine whether our findings still apply at mm/s scale velocities.
-In conclusion, investigating the effects on the discrepancy in the advective transport
+Although inertial forces would still dominate viscous forces at 
+these numbers, investigating the effects on the discrepancy in the advective transport
 between the Stokes and Navier-Stokes solutions would be interesting to address in future work.
 
 \subsection{Tissue deformations alter Lagrangian structures more significantly
 than motile cilia and CSF secretion}
 Disregarding motile cilia (DS model) did not alter the flow in the human brain ventricles significantly
-in terms of macroscopic flow quantities like peak-to-nadir pressure and stroke volumes. 
+in terms of macroscopic flow quantities like stroke volume. 
 There were however minor differences in the FTLE field structures computed with the DS model compared
 to both DC and DSC, with the lobe structures near the aqueduct
 entrance more attached to the 3V wall when including cilia (DC/DSC),
@@ -1395,12 +1356,11 @@ and we are of the opinion that any further insights on the effect of cilia in
 brain ventricular flow and transport would heavily benefit from more experimental data
 on cilia parameters in the human brain ventricles.
 This contrasts the case for the embryonic zebrafish brain, where the model parameters
-are more comprehensively resolved, and previous work suggests cilia are
-the main drivers of flow, although cardiovascular-related pulsations and
-spontaneuous muscles also have an impact on flow~\citep{Olstad2019CiliaryDevelopment, Herlyng2025AdvectionDiffusion, Thouvenin2020OriginCanal}.
-The greater effect of cilia in embryonic zebrafish ventricles compared to human brain ventricles is presumably a direct result of the smaller
-length scale of the ventricular system of zebrafish as compared to humans. Both our results and
-those of Siyahhan~\emph{et al.}~\citep{Siyahhan2014FlowVentricles} may indicate that cilia could potentially play a 
+are more comprehensively resolved, and previous work strongly suggests cilia are
+the main drivers of flow~\citep{Olstad2019CiliaryDevelopment, Herlyng2025AdvectionDiffusion}.
+The greater effect of cilia in zebrafish ventricles is a direct result of the smaller
+length scale of the ventricular system of embryonic zebrafish
+as compared to adult humans. Cilia may play a similarly important
 role in smaller confined spaces of the human ventricular system,
 such as in the inferior and occipital horns of the lateral ventricles.
 
@@ -1461,7 +1421,7 @@ production-only setup~\citep{Siyahhan2014FlowVentricles}.
 In our setup, with the only free boundaries of the geometry located
 in the caudal end of the geometry, the production velocity and thus
 the ciliary beating is generally caudally directed. Assessing the impact
-of this directionality, and whether e.g. a more cephalic-directed beating
+of this directionality, and whether e.g. a more cephalic directed beating
 influences the results, could be investigated in future work.
 
 \subsection{Limitations}
@@ -1480,7 +1440,7 @@ model deformations over longer time spans
 smillie2005hydroelastic, tully2009coupling, kaczmarek1997hydromechanics}.
 We justify our choice of deformation model by the fact that
 we seek simply a smooth extension to the rest of the domain boundary
-for the displacement boundary condition function $\bm{g}(\xx, t)$,
+for the displacement measurement boundary condition $\bm{g}(\xx, t)$,
 while the ventricles are in reality fluid-filled cavities.
 The choice of linear elasticity with linear damping is considered
 adequate since we consider deformations on the timescale of a cardiac cycle,
@@ -1489,24 +1449,16 @@ where nonlinear damping effects are negligible.
 In terms of the flow model, there are mechanisms of CSF flow that we disregarded.
 For example, respiration has an influence~\citep{Vinje2019RespiratoryMeasurements},
 while we only modeled pulsatile deformations driven by a cardiac frequency.
-We did not directly include respiration as a mechanism partly because cardiovascular pulsations
-have in some studies been found to be the dominant pulsatile mechanisms
-in driving CSF flow~\citep{Soderstrom2025}. Meanwhile, since the experimental displacement data
-used to define the displacement boundary condition function $\bm{g}(\xx, t)$ is data from
-in vivo imaging that incorporate any mechanism that possibly deforms the brain 
-(except body motion, since the imaged subjects were at rest), brain tissue deformations
-linked to respiration is to some extent indirectly included in our model. However, since
-the displacement data used in the simulations were modeled as being periodic with a
-period of 1 second (a cardiac cycle), we do in some sense neglect
-lower-order harmonics that may be associated with respiratory dynamics.
-
-Other mechanisms like absorption of CSF and neural activity were not modeled because 
-of our focus on the impact of cilia and CSF secretion on the ventricular flow and transport.
-Additionally, we comment that our model lacks other parts of the CSF flow system such
-as the subarachnoid spaces downstream of the ventricular system, a choice made based on our focus on ventricular flow.
-As we noted in~\Cref{subsec:results_general}, application of traction-free fluid boundary conditions on the outlets of our model
-and the position of these outlets directly influences the flow volumes crossing these boundaries. Therefore, the lack of
-downstream CSF spaces combined with our boundary condition choice is a part of our model that could be improved.
+We disregarded the respiration partly because cardiovascular pulsations
+have been found to be the dominant pulsatile mechanisms
+in driving CSF flow~\citep{Soderstrom2025}. Other mechanisms like 
+absorption of CSF and neural activity were not modeled because 
+of our focus on the impact of cilia and CSF secretion on the
+ventricular flow and transport.
+Additionally, we comment that our model lacks other
+parts of the CSF flow system such
+as the spinal canal and the subarachnoid spaces,
+a choice made based on our focus on ventricular flow. 
 
 We model CSF secretion as constant in time and evenly distributed
 across the choroid plexuses. These assumptions may not perfectly reflect
@@ -1520,7 +1472,7 @@ A variable-in-time production of CSF and a different distribution of the product
 magnitudes between the different choroid plexuses could impact our results. 
 
 As already mentioned, there is also uncertainty around our choice
-of Navier slip boundary condition to model cilia forces and the associated parameter values.
+of Navier slip boundary condition and the associated parameter values.
 First, the force per surface area parameter $\tau$ is based on the value used by
 Siyahhan~\emph{et al.}~\citep{Siyahhan2014FlowVentricles}, which they obtained by
 calibrating CSF flow simulations with rodent CSF velocity data. Because the
@@ -1556,7 +1508,7 @@ we demonstrated that accounting for fluid inertia
 in flow field predictions has little importance when computing integrated flow quantities,
 but fluid inertial effects are crucial for capturing Lagrangian coherent structures and thus crucial when
 modeling transport and mixing in the (human) brain ventricles. Through comparison with
-Eulerian-based flow analysis of cilia-driven CSF flow in embryonic zebrafish brain ventricles, our results further
+Eulerian-based flow analysis of CSF flow in embryonic zebrafish brain ventricles, our results further
 demonstrate how FTLE fields can be used to characterize prominent flow structures in brain ventricles
 and partitioning of the flow.
 An interesting path for future work would be to assess how these structures change
@@ -1586,6 +1538,133 @@ the Simula Berkeley Education and Research Collaboration
 
 \newpage
 \appendix
+% \section{Weak formulations}
+% \label{app:weak_formulations}
+% \subsection{Weak formulation of the unsteady Stokes equations}
+% The weak formulation of the unsteady Stokes equations
+% (\Cref{eq:unsteady_stokes_eq,eq:continuity_eq}) presented here was
+% developed in Herlyng~\emph{et al.}~\citep{Herlyng2025AdvectionDiffusion},
+% to which we refer the reader for any details supplementary to
+% what is presented here.
+
+% Let the fluid velocity $\uu\in\VV=\bm{H}^k$ and pressure $p\in Q=H^{k-1}$
+% for an integer $k \geq 1$. The continuous weak form of the unsteady Stokes
+% equations (\Cref{eq:continuity_eq,eq:unsteady_stokes_eq}) reads:
+% find $\uu\in\VV$ and $p\in Q$ such that
+% \begin{subequations}
+%     \begin{alignat}{2}
+%         \mathcal{A}(\uu, \vv) + \mathcal{B}(\vv, p) &= \mathcal{L}(\vv),
+%         &&\quad\forall\vv\in\VV, \\
+%         \mathcal{B}(\uu, q) &= 0, &&\quad\forall q\in Q,
+%     \end{alignat}%
+%     \label{eq:abstract_continuous_weak_form_unsteady_stokes}
+% \end{subequations}%
+% where $\vv\in\VV$ and $q\in Q$ are test functions and
+% \begin{align}
+%     \mathcal{A}(\uu, \vv) &= \intO{\rho\pdifft{\uu}\cdot\vv}
+%                           + \intO{2\mu\beps(\uu) : \beps(\vv)}
+%                           -\intG{\mu(\nabla\uu)^T\nn\cdot\vv},\label{eq:stokes_bilinear_form}\\
+%     \mathcal{B}(\uu, q) &= -\intO{q\nabla\cdot\uu}, \label{eq:stokes_skew_form}\\
+%     \mathcal{L}(\vv) &= \intG{\btau\cdot\vv} + \intG{\Tilde{p}(t)(\vv\cdot\nn)}.\label{eq:stokes_linear_form}
+% \end{align}
+
+% To discretize \eqref{eq:abstract_continuous_weak_form_unsteady_stokes},
+% we reformulate the weak form in terms of discrete variables,
+% denoted with the subscript $h$, on the discrete domain $\Omega_h$:
+% \begin{subequations}
+%     \begin{alignat}{2}
+%         \mathcal{A}(\uu_h, \vv_h) + \mathcal{B}(\vv_h, p_h)
+%         &= \mathcal{L}(\vv_h), &&\quad\forall\vv_h\in\VV_h, \\
+%         \mathcal{B}(\uu_h, q_h) &= 0, &&\quad\forall q_h\in Q_h.
+%     \end{alignat}%
+%     \label{eq:discrete_weak_form_unsteady_stokes_no_stabilization}%
+% \end{subequations}%
+% The discrete function spaces $\VV_h$ and $Q_h$ are represented
+% by Brezzi-Douglas-Marini elements~\citep{Brezzi1985TwoProblems,Nedelec1986AIR3}
+% for the velocity $\uu_h$ and discontinuous Lagrange (DG) elements
+% for the pressure $p_h$. For all cells $K$ of the computational mesh $\Omega_h$,
+% we define
+% \begin{align*}
+%     \VV_h &= \Big\{\vv_h : \vv_h\in\mathbf{H}(\mathrm{div});
+%     \vv_h\vert_K\in\big[P_k(K)\big]^d;
+%     \forall K\in\Omega_h;
+%     \vv_h\cdot\nn=0 \ \text{on } \Gamma_h\setminus\Gamma_{h, \mathrm{p}}\Big\},\\
+%     Q_h &= \Big\{q_h : q_h\in L^2;  q_h\vert_K\in P_{k-1}(K); \forall K\in\Omega_h\Big\},
+% \end{align*}
+% where $P_k$ is the space of polynomials of degree less than or equal to $k$.
+% The elements of $\VV_h$ only ensure continuity of components of $\uu_h$
+% normal to facets of $\Omega_h$. We enforce tangential continuity
+% of $\uu_h$ on interior mesh facets by incorporating the following
+% stabilization terms~\citep{Hong2016AEquations}:
+% \begin{alignat}{1}
+%     \mathcal{A}_{\mathrm{stab}}(\uu_h, \vv_h) &=
+%     \sum_{f\in \mathcal{F}}\int_f{2\mu\frac{\gamma}{\avg{h}}\jump{P_{\nn}(\uu_h)}
+%     \cdot\jump{P_{\nn}(\vv_h)}}\,\mathrm ds\\
+%     &-\sum_{f\in \mathcal{F}}\int_f{2\mu\avg{\beps(\uu_h)}\cdot\jump{\vv_h}}\,\mathrm ds
+%     -\sum_{f\in \mathcal{F}}\int_f{2\mu\avg{\beps(\vv_h)}\cdot\jump{\uu_h}}\,\mathrm ds
+%     \label{eq:hong_stabilization_bilinear_form}
+% \end{alignat}
+% Here $\mathcal{F}$ is the set of all interior facets of the computational mesh and
+% $h$ is the maximal distance between two points in a mesh cell.
+% The penalty parameter $\gamma=150$ was chosen large enough
+% to achieve stability~\citep{Nitsche1971UberSind}. Furthermore, the average and jump operators,
+% respectively, are for interior facets defined as
+% \begin{equation}
+%     \avg{\uu} = \frac{\uu^+\cdot\nn^+ - \uu^-\cdot\nn^-}{2}
+%     \qquad\mathrm{and}\qquad \jump{\uu} = \uu^+ - \uu^-,
+%     \label{eq:operators_BDM}
+% \end{equation}
+% where $\uu$ is a first-order tensor and 
+% $\nn$ is the normal vector on a facet separating two cells,
+% chosen such that $\nn$ points towards the exterior of a cell.
+% The plus and minus signs denote variables in each of two neigboring cells.
+% On the boundary, we define $\avg{\uu} = \uu\cdot\nn$ and $\jump{\uu} = \uu$.
+
+% By including \Cref{eq:hong_stabilization_bilinear_form} in the
+% weak form \eqref{eq:discrete_weak_form_unsteady_stokes_no_stabilization},
+% we get the following semi-discrete weak formulation of
+% the Stokes equations reads:
+% find ($\uu_h, p_h$)$\in$($\VV_h, Q_h$) such that
+% \begin{subequations}
+%     \begin{alignat}{2}
+%         \mathcal{A}(\uu_h, \vv_h)
+%         + \mathcal{A}_{\mathrm{stab}}(\uu_h, \vv_h)
+%         + \mathcal{B}(\vv_h, p_h)
+%         &= \mathcal{L}(\vv_h), &&\quad\forall\vv_h\in\VV_h, \\
+%         \mathcal{B}(\uu_h, q_h) &= 0, &&\quad\forall q_h\in Q_h.
+%     \end{alignat}%
+%     \label{eq:abstract_semi_discrete_weak_form_stokes}%
+% \end{subequations}%
+% The weak formulation (\Cref{eq:abstract_semi_discrete_weak_form_stokes})
+% is discretized in time using the first-order implicit Euler method,
+% with time derivatives approximated as
+% \begin{equation*}
+%     \pdifft{\uu} \approx \frac{\uu^{n+1} - \uu^n}{\Delta t},
+% \end{equation*}
+% where $n$ denotes the timestep index. All of the other terms
+% in~\Cref{eq:abstract_semi_discrete_weak_form_stokes} are evaluated at timestep $n+1$.
+% The method is implicit and of first order in time~\citep{butcher2016numerical}. 
+
+% \subsection{Weak formulation of the Navier-Stokes equations}
+% The weak form of the Navier-Stokes equations additionally
+% includes the trilinear form originating in the convective
+% acceleration term. The Navier-Stokes weak form reads:
+% find $\uu\in\VV$ and $p\in Q$ such that
+% \begin{subequations}
+%     \begin{alignat}{2}
+%         \mathcal{A}(\uu, \vv) + \mathcal{B}(\vv, p) + \mathcal{C}(\vv, p) &= \mathcal{L}(\vv),
+%         &&\quad\forall\vv\in\VV, \\
+%         \mathcal{B}(\uu, q) &= 0, &&\quad\forall q\in Q,
+%     \end{alignat}%
+%     \label{eq:abstract_weak_form_unsteady_stokes}
+% \end{subequations}%
+% where
+% \begin{equation}
+%     \mathcal{C}(\uu, \vv, \ww) = \intO{(\uu\cdot\nabla)\vv\cdot\ww}.
+%     \label{eq:navier_stokes_trilinear_form}
+% \end{equation}
+
+% \subsection{Weak formulation of the linear elastodynamics equations}
 
 \section{Model verification}
 Correctness of the zebrafish CSF flow model implementation
@@ -1593,14 +1672,8 @@ was verified in previous work~\citep{Herlyng2025AdvectionDiffusion},
 thus we only present verification analysis of the human brain model here.
 Mesh and polynomial order refinement studies for the human
 model were performed both for the fluid and the tissue deformation equations.
-For the mesh refinement studies on the human brain ventricles geometry,
-we consider three versions of the ventricles mesh: Mesh 0 (coarse),
-mesh 1 (standard), and mesh 2 (fine). These consist of, respectively,
-a total of 51 016 (maximal edge length 0.73 cm, minimal edge length 0.049 cm),
-408 128 (maximal 0.40 cm, minimal 0.023 cm),
-and 3 265 024 (maximal 0.22 cm, minimal 0.010 cm) tetrahedral cells.
 
-\subsection{Finite element methods for the fluid equations}\label{sec:flow_model_verification}
+\subsection{Finite element methods for the fluid equations}
 Correctness of the discretization schemes on the human brain ventricles geometry
 were verified using the Method of Manufactured Solutions~\citep{Roache2001CodeSolutions}.
 Convergence properties of the fluid discretization scheme were assessed with two
@@ -1615,77 +1688,50 @@ accuracy of the backward Euler scheme was confirmed.
 On the human brain ventricles mesh, convergence was assessed for computed quantities
 of interest like stroke volumes and maximum and minimum velocity
 magnitudes, by computing these with three different finite element
-polynomial orders. Comparison of these computations was also
-carried out on the coarse and the standard human mesh,
-where consistency in results was observed.
-We also assessed cardiac cycle independency. In the main body of the text,
-we simulated flow for two cardiac cycles. Simulating flow for four instead of two
-cardiac cycles showed virtually no change in most of the computed flow
-quantities, with the biggest discrepancy being a 1.5\% change in the max-to-min pressure
-gradient. This verified approximate periodicity,
-justifying our choice of simulating flow for two cardiac cycles.
+polynomial orders. Comparison of these computations was also carried out on the coarse and
+the standard human mesh, where consistency in results was observed.
+We also assessed cardiac cycle independency, and observed a negligible error
+between simulating for 2 or 3 cardiac cycles, justifying our choice of 2 cycles
+in the main body of the text. 
 
-\subsection{Finite element method for the elasticity equations}\label{sec:tissue_model_verification}
-For the tissue deformation equations, verified the implementation of the
-discretized (damped) linear elasticity equations by
-numerically solving the equations with quadratic basis functions on a unit square mesh.
-The errors of the displacement approximation measured in the $\bm{L}^2$ norm and
+\subsection{Finite element method for the elasticity equations}
+We refine element polynomial degree on a single mesh.
+We also refine mesh with a single element degree.
+We consider three versions of the ventricles mesh,
+with a total of 51 016 (maximal 0.73 cm, minimal 0.049 cm), 408 128 (maximal 0.40 cm, minimal 0.023 cm),
+and 3 265 024 (maximal 0.22 cm, minimal 0.010 cm) tetrahedral cells.
+We look at convergence in the maximum displacement magnitude, the
+displacement in a point on the traction-free boundary, and
+the kinetic and elastic energies.
+
+Cardiac cycle independency was assessed. We simulated flow for
+2 cardiac cycles and deformation for 4 cardiac cycles. Simulating flow for 4
+instead of 2 cardiac cycles showed made virtually no change to most of the computed flow
+quantities, with the biggest discrepancy being a 1.5\% change in the max-to-min pressure
+gradient, verifying periodicity. The displacement results were also unchanged when simulating
+for more than 4 cardiac cycles. These results justify our choice.
+
+We verified the implementation of the linear elasticity equations
+by numerically solving the equations with quadratic basis functions. The errors of the displacement
+approximation measured in the $\bm{L}^2$ norm and
 $\bm{H}^1$ semi-norm converged at the optimal rates of three
 and two, respectively. In time, second-order accuracy of the 
 Newmark-$\beta$ method was confirmed.
 
-To assess convergence of the numerical method on the brain ventricles geometry,
-we performed two refinement studies using the three meshes of increasing
-mesh resolution mentioned above (mesh 0, 1 and 2). 
-In one study, we refine element polynomial degree on a single mesh,
-and in the other study we consider a single polynomial degree ($p=2$) for the three 
-meshes of increasing mesh resolution.
-We look at convergence in the displacements
-$\ww(\xx, t) = (w_x(\xx, t), w_y(\xx, t), w_z(\xx, t))$
-in a point on the traction-free boundary,
-the global maximum displacement magnitude $||w(\xx, t)||_{L^{\infty}}$
-where $w(\xx, t) = \sqrt{\ww\cdot\ww}$, and the total kinetic and elastic energies.
-
-For both the refinement studies, we observe convergence in the energies and in the
-point displacements $w_x,$ $w_y,$ and $w_z.$
-For the maximum displacement magnitude $||w(\xx, t)||_{L^{\infty}}$, however,
-we only observe convergence during basis function polynomial degree refinement,
-not during mesh refinement. Presumably, this is due to the convergence
-in the $L^{\infty}$ norm requiring strong assumptions on regularity.
-Indeed, for linear elasticity equations with 
-mixed displacement and traction boundary conditions, quasi-uniform sequences of
-triangulations (i.e. refinement) may fail to produce optimal convergence rates
-for Galerkin approximations~\citep{mazzucato2010well, wahlbin1984sharpness}, and
-one might need to resort to graded mesh refinement to remedy this problem~\citep{apel1998finite}.
-This limited regularity is possibly not satisfied for the complex brain
-ventricles geometry. However, as discussed in the main body of the text,
-there is a large discrepancy in brain tissue displacement magnitudes 
-reported in the literature, and we therefore do not believe that this lack of
-convergence in the $L^{\infty}$ norm during mesh refinement 
-has great influence on the characteristics of the resulting
-brain ventricular CSF flow in our simulations, as long as the displacement
-magnitudes in the simulations are within the range of reported experimental
-displacement data that we compared our tissue deformation simulations with
-during model calibration.
-
-In addition to the refinement studies, we also assessed cardiac cycle independency 
-for the tissue deformation model. We simulated tissue deformation for four cardiac cycles
-in the main body of the text. The displacement results did not change when simulating
-for more than four cardiac cycles, hence justifying our choice.
-
 \begin{figure}
     \centering
-    \includegraphics[width=\textwidth]{graphics/verification_deformation_p.png}
-    \caption{Refinement study when refining element degree ($p$) for the tissue deformation model
+    \includegraphics[width=0.8\textwidth]{graphics/verification_deformation_p.png}
+    \caption{Convergence under element degree ($p$) refinement for the linear elastodynamics model
     on the standard mesh (mesh 1).}
     \label{fig:verification_deformation_p}
 \end{figure}
 \begin{figure}
     \centering
-    \includegraphics[width=\textwidth]{graphics/verification_deformation_mesh.png}
-    \caption{Refinement study when refining the mesh for the tissue deformation model
+    \includegraphics[width=0.8\textwidth]{graphics/verification_deformation_mesh.png}
+    \caption{Convergence under mesh refinement for the linear elastodynamics model
     using quadratic polynomial basis functions ($p=2$). The standard mesh is mesh 1.}
     \label{fig:verification_deformation_mesh}
 \end{figure}
+
 
 \end{document}
