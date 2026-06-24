@@ -1,7 +1,7 @@
 \documentclass{template}
 %DIF LATEXDIFF DIFFERENCE FILE
 %DIF DEL main_v0.tex   Tue Jun 23 22:36:28 2026
-%DIF ADD main.tex      Tue Jun 23 23:48:45 2026
+%DIF ADD main.tex      Wed Jun 24 09:25:05 2026
 \usepackage[mathlines]{lineno}
 \usepackage{natbib}
 \bibliographystyle{apalike}
@@ -10,12 +10,22 @@
 
 % Title
 \title{\textbf{Characterization of coherent flow structures in brain ventricles}}
-\author[1,2,*]{Halvor Herlyng}
-\author[3]{Shawn C.~Shadden}
+%DIF 10-11c10-11
+%DIF < \author[1,2,*]{Halvor Herlyng}
+%DIF < \author[3]{Shawn C.~Shadden}
+%DIF -------
+\author[1,*,\textdagger]{Halvor Herlyng} %DIF > 
+\author[2]{Shawn C.~Shadden} %DIF > 
+%DIF -------
 \affil[1]{Department of Numerical Analysis and Scientific Computing, Simula Research Laboratory, Oslo, Norway}
-\affil[2]{Expert Analytics AS, Akersgata 32, 0180 Oslo, Norway}
-\affil[3]{Department of Mechanical Engineering, University of California, 6149 Etcheverry Hall, CA 94720-1740 Berkeley, USA}
-\affil[*]{\href{mailto:halvor@xal.no}{halvor@xal.no}}
+%DIF 13-15c13-14
+%DIF < \affil[2]{Expert Analytics AS, Akersgata 32, 0180 Oslo, Norway}
+%DIF < \affil[3]{Department of Mechanical Engineering, University of California, 6149 Etcheverry Hall, CA 94720-1740 Berkeley, USA}
+%DIF < \affil[*]{\href{mailto:halvor@xal.no}{halvor@xal.no}}
+%DIF -------
+\affil[2]{Department of Mechanical Engineering, University of California, 6149 Etcheverry Hall, CA 94720-1740 Berkeley, USA} %DIF > 
+\affil[*]{Corresponding author} %DIF > 
+%DIF -------
 \date{\vspace{-2em}} % Remove space between affiliations and abstract
 %DIF PREAMBLE EXTENSION ADDED BY LATEXDIFF
 %DIF UNDERLINE PREAMBLE %DIF PREAMBLE
@@ -91,7 +101,14 @@
     are present in the solution to the Navier-Stokes equations,
     features that could be important to elucidating transport.
 \end{abstract}
-\newpage
+\DIFaddbegin 
+
+\begingroup
+  \renewcommand{\thefootnote}{\textdagger}
+  \footnotetext{\DIFadd{Present address: Expert Analytics AS, Akersgata 32, 0180 Oslo, Norway. E-mail: }\href{mailto:halvor@xal.no}{\DIFadd{halvor@xal.no}}}
+\endgroup
+
+\DIFaddend \newpage
 \section{Introduction}
 % I1: What is the problem - from big picture to our precise topic - why is it interesting?
 Brains are constantly in motion. These motions are tightly coupled
@@ -1419,9 +1436,10 @@ expelled through the aqueduct. Meanwhile, fluid inside the third ventricle
 can stay there for a longer time without exiting through the aqueduct.
 }\DIFdelend In the interventricular foramina, there are also
 clear \DIFdelbegin \DIFdel{ridges in the FTLE field }\DIFdelend \DIFaddbegin \DIFadd{LCS }\DIFaddend with $T=1.0$ s (\Cref{fig:FTLE_human1}),
-indicating regions of high stretching that partition flow
+indicating regions of high stretching \DIFdelbegin \DIFdel{that partition }\DIFdelend \DIFaddbegin \DIFadd{and apparent partitioning of }\DIFaddend flow
 with different advective transport times. The lobes that develop
-have a structure that could trap fluid close to the ventricular walls.
+have a structure that could \DIFaddbegin \DIFadd{appear to potentially }\DIFaddend trap fluid
+close to the ventricular \DIFdelbegin \DIFdel{walls}\DIFdelend \DIFaddbegin \DIFadd{wall at this location}\DIFaddend .
 
 \DIFdelbegin \DIFdel{In the zebrafish ventricles FTLE fields }\DIFdelend \DIFaddbegin \DIFadd{An interesting feature of the unsteady FTLE fields we computed
 are changes to the LCS over the cardiac cycle. After an initial emergence of LCS
@@ -1907,9 +1925,11 @@ justifying our choice of simulating flow for two }\DIFaddend cardiac cycles.
 }\DIFdelend 
 
 \DIFdelbegin \DIFdel{We }\DIFdelend \DIFaddbegin \subsection{\DIFadd{Finite element method for the elasticity equations}}\label{sec:tissue_model_verification}
-\DIFadd{For the tissue deformation equations, }\DIFaddend verified the implementation of the
-\DIFaddbegin \DIFadd{discretized (damped) }\DIFaddend linear elasticity equations by
-numerically solving the equations with quadratic basis functions \DIFaddbegin \DIFadd{on a unit square mesh}\DIFaddend .
+\DIFadd{For the tissue deformation equations, we }\DIFaddend verified the implementation of the
+\DIFaddbegin \DIFadd{discretized (damped) }\DIFaddend linear elasticity equations by \DIFaddbegin \DIFadd{using the Method of Manufactured Solutions~\mbox{%DIFAUXCMD
+\citep{Roache2001CodeSolutions}
+}\hskip0pt%DIFAUXCMD
+and }\DIFaddend numerically solving the equations with quadratic basis functions \DIFaddbegin \DIFadd{on a unit square mesh}\DIFaddend .
 The errors of the displacement approximation measured in the $\bm{L}^2$ norm and
 $\bm{H}^1$ semi-norm converged at the optimal rates of three
 and two, respectively. In time, second-order accuracy of the 

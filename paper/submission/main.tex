@@ -7,12 +7,11 @@
 
 % Title
 \title{\textbf{Characterization of coherent flow structures in brain ventricles}}
-\author[1,2,*]{Halvor Herlyng}
-\author[3]{Shawn C.~Shadden}
+\author[1,*,\textdagger]{Halvor Herlyng}
+\author[2]{Shawn C.~Shadden}
 \affil[1]{Department of Numerical Analysis and Scientific Computing, Simula Research Laboratory, Oslo, Norway}
-\affil[2]{Expert Analytics AS, Akersgata 32, 0180 Oslo, Norway}
-\affil[3]{Department of Mechanical Engineering, University of California, 6149 Etcheverry Hall, CA 94720-1740 Berkeley, USA}
-\affil[*]{\href{mailto:halvor@xal.no}{halvor@xal.no}}
+\affil[2]{Department of Mechanical Engineering, University of California, 6149 Etcheverry Hall, CA 94720-1740 Berkeley, USA}
+\affil[*]{Corresponding author}
 \date{\vspace{-2em}} % Remove space between affiliations and abstract
 
 \begin{document}
@@ -49,6 +48,12 @@
     are present in the solution to the Navier-Stokes equations,
     features that could be important to elucidating transport.
 \end{abstract}
+
+\begingroup
+  \renewcommand{\thefootnote}{\textdagger}
+  \footnotetext{Present address: Expert Analytics AS, Akersgata 32, 0180 Oslo, Norway. E-mail: \href{mailto:halvor@xal.no}{halvor@xal.no}}
+\endgroup
+
 \newpage
 \section{Introduction}
 % I1: What is the problem - from big picture to our precise topic - why is it interesting?
@@ -1305,9 +1310,10 @@ mixing and residence times in the brain ventricles.
 
 In the interventricular foramina, there are also
 clear LCS with $T=1.0$ s (\Cref{fig:FTLE_human1}),
-indicating regions of high stretching that partition flow
+indicating regions of high stretching and apparent partitioning of flow
 with different advective transport times. The lobes that develop
-have a structure that could trap fluid close to the ventricular walls.
+have a structure that could appear to potentially trap fluid
+close to the ventricular wall at this location.
 
 An interesting feature of the unsteady FTLE fields we computed
 are changes to the LCS over the cardiac cycle. After an initial emergence of LCS
@@ -1619,9 +1625,9 @@ gradient. This verified approximate periodicity,
 justifying our choice of simulating flow for two cardiac cycles.
 
 \subsection{Finite element method for the elasticity equations}\label{sec:tissue_model_verification}
-For the tissue deformation equations, verified the implementation of the
-discretized (damped) linear elasticity equations by
-numerically solving the equations with quadratic basis functions on a unit square mesh.
+For the tissue deformation equations, we verified the implementation of the
+discretized (damped) linear elasticity equations by using the Method of Manufactured Solutions~\citep{Roache2001CodeSolutions}
+and numerically solving the equations with quadratic basis functions on a unit square mesh.
 The errors of the displacement approximation measured in the $\bm{L}^2$ norm and
 $\bm{H}^1$ semi-norm converged at the optimal rates of three
 and two, respectively. In time, second-order accuracy of the 
