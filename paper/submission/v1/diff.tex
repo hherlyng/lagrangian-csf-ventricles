@@ -1,7 +1,7 @@
 \documentclass{template}
 %DIF LATEXDIFF DIFFERENCE FILE
 %DIF DEL main_v0.tex   Tue Jun 23 22:36:28 2026
-%DIF ADD main.tex      Wed Jun 24 09:25:05 2026
+%DIF ADD main.tex      Thu Jun 25 13:28:31 2026
 \usepackage[mathlines]{lineno}
 \usepackage{natbib}
 \bibliographystyle{apalike}
@@ -1940,7 +1940,7 @@ we performed two refinement studies using the three meshes of increasing
 mesh resolution mentioned above (mesh 0, 1 and 2). 
 In one study, we refine element polynomial degree on a single mesh,
 and in the other study we consider a single polynomial degree ($p=2$) for the three 
-meshes of increasing mesh resolution.
+meshes of increasing mesh resolution~(}\Cref{fig:verification}\DIFadd{).
 We look at convergence in the displacements
 $\ww(\xx, t) = (w_x(\xx, t), w_y(\xx, t), w_z(\xx, t))$
 in a point on the traction-free boundary,
@@ -1985,19 +1985,26 @@ for more than four cardiac cycles, hence justifying our choice.
     \centering
     \DIFdelbeginFL %DIFDELCMD < \includegraphics[width=0.8\textwidth]{graphics/verification_deformation_p.png}
 %DIFDELCMD <     %%%
-\DIFdelendFL \DIFaddbeginFL \includegraphics[width=\textwidth]{graphics/verification_deformation_p.png}
-    \DIFaddendFL \caption{\DIFdelbeginFL \DIFdelFL{Convergence under }\DIFdelendFL \DIFaddbeginFL \DIFaddFL{Refinement study when refining }\DIFaddendFL element degree ($p$) \DIFdelbeginFL \DIFdelFL{refinement }\DIFdelendFL for the \DIFdelbeginFL \DIFdelFL{linear elastodynamics }\DIFdelendFL \DIFaddbeginFL \DIFaddFL{tissue deformation }\DIFaddendFL model
-    on the standard mesh (mesh 1).}
-    \label{fig:verification_deformation_p}
-\end{figure}
-\begin{figure}
-    \centering
-    \DIFdelbeginFL %DIFDELCMD < \includegraphics[width=0.8\textwidth]{graphics/verification_deformation_mesh.png}
+\DIFdelendFL \DIFaddbeginFL \includegraphics[width=0.9\textwidth]{graphics/verification.png}
+    \DIFaddendFL \caption{\DIFdelbeginFL \DIFdelFL{Convergence under }\DIFdelendFL \DIFaddbeginFL \textbf{\DIFaddFL{A--D}}\DIFaddFL{. Refinement study when refining }\DIFaddendFL element degree ($p$) \DIFdelbeginFL \DIFdelFL{refinement }\DIFdelendFL for the \DIFdelbeginFL \DIFdelFL{linear elastodynamics }\DIFdelendFL \DIFaddbeginFL \DIFaddFL{tissue deformation }\DIFaddendFL model
+    on the standard mesh (mesh 1).
+    \DIFaddbeginFL \textbf{\DIFaddFL{E--H}}\DIFaddFL{. Refinement study when refining the mesh for the tissue deformation model
+    using quadratic polynomial basis functions ($p=2$). The standard mesh is mesh 1.
+    }\DIFaddendFL }
+    \DIFdelbeginFL %DIFDELCMD < \label{fig:verification_deformation_p}
+%DIFDELCMD < \end{figure}
+%DIFDELCMD < \begin{figure}
+%DIFDELCMD <     \centering
+%DIFDELCMD <     \includegraphics[width=0.8\textwidth]{graphics/verification_deformation_mesh.png}
 %DIFDELCMD <     %%%
-\DIFdelendFL \DIFaddbeginFL \includegraphics[width=\textwidth]{graphics/verification_deformation_mesh.png}
-    \DIFaddendFL \caption{\DIFdelbeginFL \DIFdelFL{Convergence under }\DIFdelendFL \DIFaddbeginFL \DIFaddFL{Refinement study when refining the }\DIFaddendFL mesh \DIFdelbeginFL \DIFdelFL{refinement }\DIFdelendFL for the \DIFdelbeginFL \DIFdelFL{linear elastodynamics }\DIFdelendFL \DIFaddbeginFL \DIFaddFL{tissue deformation }\DIFaddendFL model
-    using quadratic polynomial basis functions ($p=2$). The standard mesh is mesh 1.}
-    \label{fig:verification_deformation_mesh}
-\end{figure}
+%DIFDELCMD < \caption{%
+{%DIFAUXCMD
+\DIFdelFL{Convergence under mesh refinement for the linear elastodynamics model
+    using quadratic polynomial basis functions ($p=2$). The standard mesh is mesh 1.}}
+    %DIFAUXCMD
+%DIFDELCMD < \label{fig:verification_deformation_mesh}
+%DIFDELCMD < %%%
+\DIFdelendFL \DIFaddbeginFL \label{fig:verification}
+\DIFaddendFL \end{figure}
 
 \end{document}

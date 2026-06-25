@@ -1638,7 +1638,7 @@ we performed two refinement studies using the three meshes of increasing
 mesh resolution mentioned above (mesh 0, 1 and 2). 
 In one study, we refine element polynomial degree on a single mesh,
 and in the other study we consider a single polynomial degree ($p=2$) for the three 
-meshes of increasing mesh resolution.
+meshes of increasing mesh resolution~(\Cref{fig:verification}).
 We look at convergence in the displacements
 $\ww(\xx, t) = (w_x(\xx, t), w_y(\xx, t), w_z(\xx, t))$
 in a point on the traction-free boundary,
@@ -1674,17 +1674,13 @@ for more than four cardiac cycles, hence justifying our choice.
 
 \begin{figure}
     \centering
-    \includegraphics[width=\textwidth]{graphics/verification_deformation_p.png}
-    \caption{Refinement study when refining element degree ($p$) for the tissue deformation model
-    on the standard mesh (mesh 1).}
-    \label{fig:verification_deformation_p}
-\end{figure}
-\begin{figure}
-    \centering
-    \includegraphics[width=\textwidth]{graphics/verification_deformation_mesh.png}
-    \caption{Refinement study when refining the mesh for the tissue deformation model
-    using quadratic polynomial basis functions ($p=2$). The standard mesh is mesh 1.}
-    \label{fig:verification_deformation_mesh}
+    \includegraphics[width=0.9\textwidth]{graphics/verification.png}
+    \caption{\textbf{A--D}. Refinement study when refining element degree ($p$) for the tissue deformation model
+    on the standard mesh (mesh 1).
+    \textbf{E--H}. Refinement study when refining the mesh for the tissue deformation model
+    using quadratic polynomial basis functions ($p=2$). The standard mesh is mesh 1.
+    }
+    \label{fig:verification}
 \end{figure}
 
 \end{document}
