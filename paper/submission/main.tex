@@ -1614,11 +1614,13 @@ the Simula Berkeley Education and Research Collaboration
 \appendix
 
 \section{Model verification}
-Correctness of the zebrafish CSF flow model implementation
-was verified in previous work~\citep{Herlyng2025AdvectionDiffusion},
-thus we only present verification analysis of the human brain model here.
-Mesh and polynomial order refinement studies for the human
-model were performed both for the fluid and the tissue deformation equations.
+Correctness of the zebrafish CSF flow model implementation based on the
+unsteady Stokes equations was verified in previous work~\citep{Herlyng2025AdvectionDiffusion}.
+Therefore, we here only present verification analysis of the human brain model,
+including the Navier-Stokes CSF flow and the tissue deformation model implementations.
+Convergence properties of the discretization schemes were assessed using idealized
+geometries. We also performed mesh and polynomial order refinement studies using the human
+geometry with both the fluid and the tissue deformation model implementations.
 For the mesh refinement studies on the human brain ventricles geometry,
 we consider three versions of the ventricles mesh: Mesh 0 (coarse),
 mesh 1 (standard), and mesh 2 (fine). These consist of, respectively,
@@ -1627,8 +1629,8 @@ a total of 51 016 (maximal edge length 0.73 cm, minimal edge length 0.049 cm),
 and 3 265 024 (maximal 0.22 cm, minimal 0.010 cm) tetrahedral cells.
 
 \subsection{Finite element methods for the fluid equations}\label{sec:flow_model_verification}
-Correctness of the Navier-Stokes CSF flow model implementation, and the properties of
-the fluid discretization scheme, were assessed with two
+Correctness of the Navier-Stokes CSF flow model implementation, and the convergence properties of
+the associated fluid discretization scheme, were assessed with two
 model problems. To assess spatial convergence, we solved a channel flow
 problem, observing linear convergence in both the velocity error measured
 in the $\bm{H}^1$ semi-norm and the pressure error measured in the $L^2$ norm
