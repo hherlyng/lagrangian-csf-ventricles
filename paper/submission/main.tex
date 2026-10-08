@@ -856,11 +856,14 @@ to the boundary condition magnitudes during the first half of
 the initial cardiac cycle. Additionally, we perform a ramp-up
 of the magnitudes over the first two cardiac cycles.
 
-To ensure that the simulations were adequately converged, we performed
+To ensure that the tissue deformation simulations were adequately converged, we performed
 a convergence study for the tissue deformation model implementation. We 
 carried out a mesh refinement study and a finite element polynomial degree 
 convergence study, as well as assessing cardiac cycle periodicity. The results
-are reported in the Appendix (\Cref{sec:tissue_model_verification}).
+are reported in the Appendix (\Cref{sec:tissue_model_verification}). The
+simulations converged with respect to all variables assessed in the convergence
+study, except for the maximum tissue displacement magnitude, which did not
+convergence under mesh refinement on the brain ventricles mesh.
 
 \subsubsection{Finite element methods for the fluid equations}
 We discretize the governing equations of fluid motion,
