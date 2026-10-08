@@ -1627,9 +1627,8 @@ a total of 51 016 (maximal edge length 0.73 cm, minimal edge length 0.049 cm),
 and 3 265 024 (maximal 0.22 cm, minimal 0.010 cm) tetrahedral cells.
 
 \subsection{Finite element methods for the fluid equations}\label{sec:flow_model_verification}
-Correctness of the discretization schemes on the human brain ventricles geometry
-were verified using the Method of Manufactured Solutions~\citep{Roache2001CodeSolutions}.
-Convergence properties of the fluid discretization scheme were assessed with two
+Correctness of the Navier-Stokes CSF flow model implementation, and the properties of
+the fluid discretization scheme, were assessed with two
 model problems. To assess spatial convergence, we solved a channel flow
 problem, observing linear convergence in both the velocity error measured
 in the $\bm{H}^1$ semi-norm and the pressure error measured in the $L^2$ norm
@@ -1653,7 +1652,8 @@ justifying our choice of simulating flow for two cardiac cycles.
 
 \subsection{Finite element method for the elasticity equations}\label{sec:tissue_model_verification}
 For the tissue deformation equations, we verified the implementation of the
-discretized (damped) linear elasticity equations by using the Method of Manufactured Solutions~\citep{Roache2001CodeSolutions}
+discretized (damped) linear elasticity equations by using the
+Method of Manufactured Solutions~\citep{Roache2001CodeSolutions}
 and numerically solving the equations with quadratic basis functions on a unit square mesh.
 The errors of the displacement approximation measured in the $\bm{L}^2$ norm and
 $\bm{H}^1$ semi-norm converged at the optimal rates of three
