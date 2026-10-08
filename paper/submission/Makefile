@@ -10,7 +10,7 @@ final:
 	pdflatex $(FILE).tex
 
 diff:
-	latexdiff main_v0.tex main.tex > diff.tex
+	latexdiff main_v1.tex main.tex > diff.tex
 	pdflatex diff.tex
 	bibtex diff
 	pdflatex diff.tex
