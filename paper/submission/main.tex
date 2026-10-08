@@ -382,13 +382,14 @@ In the human brain, we consider three flow mechanisms:
 \begin{itemize}
     \item Deformation of the brain ventricles related to cardiovascular pulsatility,
     modeled by imposing a displacement velocity
-    on the ventricular walls (see~\Cref{subsubsec:deformation})
+    on the ventricular walls (see~\Cref{subsubsec:deformation}).
     \item Secretion of CSF from choroid plexus tissue,
     modeled by imposing a velocity normal to the wall
-    which reflects a total influx of CSF (see~\Cref{subsubsec:secretion})
+    which reflects a total influx of CSF (see~\Cref{subsubsec:secretion}).
     \item Ciliary beating, modeled by a tangential traction
-    acting on the fluid at the boundary (see~\Cref{subsubsec:cilia})
+    acting on the fluid at the boundary (see~\Cref{subsubsec:cilia}).
 \end{itemize}
+Of these three mechanisms, the cardiovascular pulsations is the only time-varying mechanism.
 
 In the embryonic zebrafish brain ventricles, we consider ciliary beating as
 the only flow mechanism mainly for two reasons. First, an extensive description
@@ -1517,8 +1518,8 @@ We did not directly include respiration as a mechanism partly because cardiovasc
 have in some studies been found to be the dominant pulsatile mechanisms
 in driving CSF flow~\citep{Soderstrom2025}. Meanwhile, since the experimental displacement data
 used to define the displacement boundary condition function $\bm{g}(\xx, t)$ is data from
-in vivo imaging that incorporate any mechanism that possibly deforms the brain 
-(except body motion, since the imaged subjects were at rest), brain tissue deformations
+in vivo imaging where other mechanisms were active
+(except in particular body motion, since the imaged subjects were at rest), brain tissue deformations
 linked to respiration is to some extent indirectly included in our model. However, since
 the displacement data used in the simulations were modeled as being periodic with a
 period of 1 second (a cardiac cycle), we do in some sense neglect
