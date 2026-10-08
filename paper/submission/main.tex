@@ -51,7 +51,8 @@
 
 \begingroup
   \renewcommand{\thefootnote}{\textdagger}
-  \footnotetext{Present address: Expert Analytics AS, Akersgata 32, 0180 Oslo, Norway. E-mail: \href{mailto:halvor@xal.no}{halvor@xal.no}}
+  \footnotetext{Present address: Expert Analytics AS, Akersgata 32, 0180 Oslo, Norway.
+  E-mail: \href{mailto:halvor@xal.no}{halvor@xal.no}}
 \endgroup
 
 \newpage
@@ -767,6 +768,19 @@ we compute the following quantities:
     At a given time $t$, the magnitude $u$ of the velocity vector
     $\uu(\xx, t) = (u_x(\xx, t), u_y(\xx, t), u_z(\xx, t))$ is 
     $$ u(\xx, t) = \sqrt{u_{x}^2 + u_{y}^2 + u_{z}^2}. $$
+
+    \item An estimate of the Reynolds number in the cerebral aqueduct, defined as
+    \begin{equation}
+        \mathrm{Re} = \frac{\rho uD}{\mu},
+    \end{equation}
+    where $\rho = 1000$ $\mathrm{kg/m^3}$ is the CSF density,
+    $u$ is the velocity magnitude, $D = x$ is the diameter at the
+    cerebral aqueduct entrance, and $\mu = y$ is the dynamic viscosity.
+
+    \item An estimate of the Strouhal number, defined as
+    \begin{equation}
+        \mathrm{St} = \frac{fL}{u}.
+    \end{equation}
 \end{itemize}
 
 \subsection{Numerical methods}
@@ -1265,8 +1279,9 @@ if we can observe such flow compartmentalization in the structures defined by th
 fields. As observed in \Cref{fig:FTLE_zfish}, 
 there are clear ridges in the FTLE fields defining attracting and repelling LCS.
 These repelling and attracting LCS combine to partition regions of distinct
-flow dynamics. The LCS confine CSF to respective ventricles,
-demonstrating compartmentalization of flow.
+flow dynamics. In a purely advective transport regime, these
+LCS could confine CSF to respective ventricles, potentially leading 
+to flow compartmentalization.
 The integration time $T$ required to reveal these structures is more than one
 order of magnitude larger than the $T$ values used for the human ventricles,
 a result of the lower velocities in the zebrafish brain ventricles.
@@ -1338,7 +1353,12 @@ brain ventricles~\citep{Olstad2019CiliaryDevelopment,
 Herlyng2025AdvectionDiffusion}. We note that
 in vivo CSF flow in embryonic zebrafish brain ventricles may also be impacted
 by cardiovascular pulsations and muscle contractions, and that our cilia-only model
-as such represents an aspect of in vivo flow.
+as such represents an aspect of in vivo flow. Of note,
+Olstad~\emph{et al.}~\citep{Olstad2019CiliaryDevelopment} reported that a single
+muscle contraction temporarily eliminated flow compartmentalization, after which
+it took four to 24 seconds for flow to compartmentalize again. Since the LCS 
+we observe develop over timescales of ten to hundreds of seconds, it may be the
+case that the omitted flow transients could affect our analysis.
 
 \subsection{Accounting for fluid inertia is important to resolve Lagrangian structures,
 but less important for macroscopic flow analysis}
@@ -1553,9 +1573,10 @@ deformations, choroid plexus secretion, and motile cilia, the deformations are t
 establishing Lagrangian structures in the brain ventricles. Additionally,
 we demonstrated that accounting for fluid inertia
 in flow field predictions has little importance when computing integrated flow quantities,
-but fluid inertial effects are crucial for capturing Lagrangian coherent structures and thus crucial when
-modeling advective transport in the (human) brain ventricles. Through comparison with
-Eulerian-based flow analysis of cilia-driven CSF flow in embryonic zebrafish brain ventricles, our results further
+but fluid inertial effects may be crucial for capturing Lagrangian coherent structures and
+could thus be crucial when modeling advective transport in the (human) brain ventricles.
+Through comparison with Eulerian-based flow analysis of cilia-driven CSF flow in
+embryonic zebrafish brain ventricles, our results further
 demonstrate how FTLE fields can be used to characterize prominent flow structures in brain ventricles
 and partitioning of the flow.
 An interesting path for future work would be to assess how these structures change
