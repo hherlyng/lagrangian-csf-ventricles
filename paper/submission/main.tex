@@ -775,13 +775,16 @@ we compute the following quantities:
         \mathrm{Re} = \frac{\rho uD}{\mu},
     \end{equation}
     where $\rho = 1000$ $\mathrm{kg/m^3}$ is the CSF density,
-    $u$ is the velocity magnitude, $D = x$ is the diameter at the
-    cerebral aqueduct entrance, and $\mu = y$ is the dynamic viscosity.
+    $u$ is the CSF velocity magnitude, $D = x$ is the diameter at the superior
+    entrance of the cerebral aqueduct, and $\mu = y$ is the dynamic viscosity.
 
     \item An estimate of the Strouhal number, defined as
     \begin{equation}
-        \mathrm{St} = \frac{fL}{u}.
+        \mathrm{St} = \frac{fD}{u},
     \end{equation}
+    where $f = 1$ Hz is the frequency of the modeled cardiac cycle,
+    $D = x$ is the diameter at the superior entrance of the cerebral aqueduct,
+    and $u$ is the CSF velocity magnitude.
 \end{itemize}
 
 \subsection{Numerical methods}
