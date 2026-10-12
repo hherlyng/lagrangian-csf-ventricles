@@ -380,7 +380,7 @@ zebrafish brain ventricles. Therefore, we consider different flow mechanisms
 and boundary conditions for the two applications.
 In the human brain, we consider three flow mechanisms:
 \begin{itemize}
-    \item Deformation of the brain ventricles related to cardiovascular pulsatility,
+    \item Deformation of the brain ventricles nominally related to cardiovascular pulsatility,
     modeled by imposing a displacement velocity
     on the ventricular walls (see~\Cref{subsubsec:deformation}).
     \item Secretion of CSF from choroid plexus tissue,
@@ -1526,7 +1526,9 @@ Meanwhile, since the experimental displacement data
 used to define the displacement boundary condition function $\bm{g}(\xx, t)$ is data from
 in vivo imaging where other mechanisms were active
 (except in particular body motion, since the imaged subjects were at rest), brain tissue deformations
-linked to respiration is to some extent indirectly included in our model. However, since
+linked to respiration could to some extent be indirectly included in our model. However, because
+the experimental displacement data we use are from cardiac-gated measurements, the respiratory
+effects are likely largely or completely absent. Furthermore, since
 the displacement data used in the simulations were modeled as being periodic with a
 period of 1 second (a cardiac cycle), we do in some sense neglect
 longer timescale harmonics that may be associated with respiratory dynamics.
