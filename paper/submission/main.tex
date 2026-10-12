@@ -1222,7 +1222,7 @@ with the leading edge of the previous vortex still present superior to the new v
     \label{fig:FTLE_human2}
 \end{figure}
 
-\subsection{When neglecting fluid inertia, the model fails to resolve important Lagrangian structures}
+\subsection{When neglecting fluid inertia, the model fails to resolve prominent Lagrangian coherent structures}
 When computing FTLE fields with the unsteady Stokes equations (\Cref{eq:unsteady_stokes_eq}),
 the vortex structure that propagates into the 3V vanishes (\Cref{fig:FTLE_human3}A).
 This differs greatly from the structure
@@ -1249,7 +1249,7 @@ contribute to stirring, are more extensive in the Navier-Stokes FTLE fields.
 \end{figure}
 
 \subsection{Of the considered flow mechanisms, deformations are the
-main contributor to establishing Lagrangian structures in the human brain ventricles}
+main contributor to establishing Lagrangian coherent structures in the human brain ventricles}
 The FTLE fields computed in the third ventricle with the DC and DS models
 are generally comparable to the DSC results, with the formation of
 a vortex ring (\Cref{fig:FTLE_human4}).
@@ -1307,7 +1307,7 @@ a result of the lower velocities in the zebrafish brain ventricles.
 
 \section{Discussion}
 
-\subsection{Lagrangian structures appear to be present in the ventricular system}
+\subsection{Lagrangian coherent structures appear to be present in the ventricular system}
 Both in the zebrafish brain ventricles model and the human brain ventricles model,
 we find ridges in the finite-time Lyapunov exponent fields (FTLE) that indicate the presence
 of Lagrangian coherent structures (LCS), demonstrating organization
@@ -1364,8 +1364,8 @@ it took four to 24 seconds for flow to compartmentalize again. Since the LCS
 we observe develop over timescales of ten to hundreds of seconds, it may be the
 case that the omitted flow transients could affect our findings.
 
-\subsection{Accounting for fluid inertia is important to resolve Lagrangian structures,
-but less important for macroscopic flow analysis}
+\subsection{Including fluid inertia in computational fluid dynamics
+can be important to resolving Lagrangian coherent structures}
 The results we present indicate that when simulating CSF flow
 in human brain ventricles at Reynolds numbers in the lower hundreds,
 accounting for inertial effects through
@@ -1399,7 +1399,7 @@ would also determine whether our findings still apply at mm/s scale velocities.
 In conclusion, investigating the effects on the discrepancy in the advective transport
 between the Stokes and Navier-Stokes solutions would be interesting to address further in future work.
 
-\subsection{Tissue deformations alter Lagrangian structures more significantly
+\subsection{Tissue deformations alter Lagrangian coherent structures more significantly
 than motile cilia and CSF secretion}
 Disregarding motile cilia (DS model) did not alter the flow in the human brain ventricles significantly
 in terms of macroscopic flow quantities like peak-to-nadir pressure and stroke volumes. 
@@ -1528,10 +1528,7 @@ in vivo imaging where other mechanisms were active
 (except in particular body motion, since the imaged subjects were at rest), brain tissue deformations
 linked to respiration could to some extent be indirectly included in our model. However, because
 the experimental displacement data we use are from cardiac-gated measurements, the respiratory
-effects are likely largely or completely absent. Furthermore, since
-the displacement data used in the simulations were modeled as being periodic with a
-period of 1 second (a cardiac cycle), we do in some sense neglect
-longer timescale harmonics that may be associated with respiratory dynamics.
+effects are likely largely or completely absent.
 
 Other mechanisms like absorption of CSF and neural activity were not modeled because 
 of our focus on the impact of cilia and CSF secretion on the ventricular flow and transport.
@@ -1581,14 +1578,14 @@ both $\tau$ and $\alpha$ may provide further insights on this.
 
 \section{Conclusions and outlook}
 We have presented a computational framework for using finite-time Lyapunov exponent (FTLE)
-fields to characterize Lagrangian coherent structures in brain ventricles.
+fields to characterize Lagrangian coherent structures (LCS) in brain ventricles.
 The FTLE fields are computed from velocity fields predicted with finite element simulations
 of cerebrospinal fluid (CSF) flow. Of the three flow mechanisms we considered, cardiovascular pulsation-related
 deformations, choroid plexus secretion, and motile cilia, the deformations are the main contributor to
-establishing Lagrangian structures in the brain ventricles. Additionally,
+establishing LCS in the brain ventricles. Additionally,
 we demonstrated that accounting for fluid inertia
 in flow field predictions has little importance when computing integrated flow quantities,
-but fluid inertial effects may be crucial for capturing Lagrangian coherent structures and
+but fluid inertial effects may be crucial for capturing LCS and
 could thus be crucial when modeling advective transport in the (human) brain ventricles.
 Through comparison with Eulerian-based flow analysis of cilia-driven CSF flow in
 embryonic zebrafish brain ventricles, our results further
