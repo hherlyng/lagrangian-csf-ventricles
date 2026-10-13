@@ -1,7 +1,7 @@
 \documentclass{template}
 %DIF LATEXDIFF DIFFERENCE FILE
 %DIF DEL main_v1.tex   Tue Sep  8 21:45:43 2026
-%DIF ADD main.tex      Tue Oct 13 16:55:33 2026
+%DIF ADD main.tex      Tue Oct 13 17:38:04 2026
 \usepackage[mathlines]{lineno}
 \usepackage{natbib}
 \bibliographystyle{apalike}
@@ -817,18 +817,20 @@ we compute the following quantities:
     \item \DIFadd{An estimate of the Reynolds number in the cerebral aqueduct, defined as
     }\begin{equation}
         \DIFadd{\mathrm{Re} = \frac{\rho uD}{\mu},
+        \label{eq:reynolds_number}
     }\end{equation}
     \DIFadd{where $\rho = 1000$ $\mathrm{kg/m^3}$ is the CSF density,
-    $u$ is the CSF velocity magnitude, $D = x$ is the diameter at the superior
-    entrance of the cerebral aqueduct, and $\mu = y$ is the dynamic viscosity.
+    $u$ is the CSF velocity magnitude, $D = 3.3$ mm is the diameter at the superior
+    entrance of the cerebral aqueduct, and $\mu = 0.7 \ \mathrm{mPa\cdot s}$ is the dynamic viscosity.
 }
 
-    \item \DIFadd{An estimate of the Strouhal number, defined as
+    \item \DIFadd{An estimate of the Strouhal number in the cerebral aqueduct, defined as
     }\begin{equation}
         \DIFadd{\mathrm{St} = \frac{fD}{u},
+        \label{eq:strouhal_number}
     }\end{equation}
-    \DIFadd{where $f = 1$ Hz is the frequency of the modeled cardiac cycle,
-    $D = x$ is the diameter at the superior entrance of the cerebral aqueduct,
+    \DIFadd{where $f = 1$ Hz is the modeled frequency of the cardiac cycle,
+    $D$ is again the diameter at the superior entrance of the cerebral aqueduct,
     and $u$ is the CSF velocity magnitude.
 }\DIFaddend \end{itemize}
 
@@ -1052,7 +1054,9 @@ The maximum CSF velocity magnitude of caudally directed flow is 6.8 cm/s,
 which is located in the cerebral aqueduct during systole at 26\% of the cardiac cycle.
 For cephalic flow, the minimum velocity is $-4.4$ cm/s in the aqueduct at the end of diastole
 after 94\% of the cardiac cycle. The maximum velocity magnitude corresponds to
-a Reynolds number of 319, indicating laminar flow.
+a Reynolds number of 319 \DIFaddbegin \DIFadd{(}\Cref{eq:reynolds_number}\DIFadd{)}\DIFaddend , indicating laminar flow.
+\DIFaddbegin \DIFadd{At the same velocity magnitude, the Strouhal number computes to 0.049 (}\Cref{eq:strouhal_number}\DIFadd{).
+}\DIFaddend 
 
 The gradient of the mean pressure (cross-sectional average) $\Delta\overline{p}$
 along the cerebral aqueduct varies inversely with
@@ -1448,7 +1452,13 @@ Additionally, since we compare the Navier-Stokes equations solution with a solut
 Stokes equations, which includes local acceleration, the importance of convective inertia
 relative to the local acceleration, which scales inversely with the Strouhal number,
 would also determine whether our findings still apply at mm/s scale velocities.
-In conclusion, investigating the effects on the discrepancy in the advective transport
+\DIFaddbegin \DIFadd{A ten-fold reduction in the velocity magnitude would increase the Strouhal number by a factor ten.
+At the same velocity magnitude as where we computed the Reynolds number, the Strouhal number
+would increase from the reported 0.048, which indicates a flow regime where local acceleration
+and convective acceleration of the fluid are comparable, to 0.48, a regime where local acceleration
+dominates. The latter regime would presumably exhibit weaker nonlinear effects, thus such an increase
+in the Strouhal number could make the Stokes and the Navier-Stokes solutions more similar.
+}\DIFaddend In conclusion, investigating the effects on the discrepancy in the advective transport
 between the Stokes and Navier-Stokes solutions would be interesting to address further in future work.
 
 \subsection{Tissue deformations alter Lagrangian \DIFaddbegin \DIFadd{coherent }\DIFaddend structures more significantly
