@@ -1018,7 +1018,7 @@ For cephalic flow, the minimum velocity is $-4.4$ cm/s in the aqueduct at the en
 after 94\% of the cardiac cycle. The maximum velocity magnitude corresponds to
 a Reynolds number $\mathrm{Re}=319$ (\Cref{eq:reynolds_number}), indicating laminar flow.
 At the same velocity magnitude, the Womersley number computes to $\mathrm{Wo}=9.9$ (\Cref{eq:womersley_number}).
-Combining the two numbers yields a Strouhal number $St=0.31$ (\Cref{eq:strouhal_number}).
+Combining the two numbers yields a Strouhal number $\mathrm{St}=0.31$ (\Cref{eq:strouhal_number}).
 
 The gradient of the mean pressure (cross-sectional average) $\Delta\overline{p}$
 along the cerebral aqueduct varies inversely with
@@ -1289,7 +1289,7 @@ less attached to the ventricular walls close to the aqueductal entrance
     \label{fig:FTLE_human4}
 \end{figure}
 
-\subsection{In solely cilia-driven CSF flow in embryonic zebrafish brain ventricles, FTLE fields demonstrate flow compartmentalization}
+\subsection{In solely cilia-driven CSF flow in embryonic zebrafish brain ventricles, FTLE fields indicate flow compartmentalization}
 Experimental and computational studies have demonstrated compartmentalization of
 brain ventricular flow in embryonic zebrafish ventricles~\citep{Olstad2019CiliaryDevelopment,
 Herlyng2025AdvectionDiffusion}. We therefore investigate structures in the FTLE fields
@@ -1408,13 +1408,14 @@ cm/s scale reported here and in several other works
 \citep{kim1999quantitative, nitz1992flow, Kurtcuoglu2007ComputationalSylvius}. 
 This ten-fold reduction in maximal velocity would reduce the Reynolds number
 by a factor ten, yielding for our model Reynolds numbers in the tens instead of the hundreds.
-Additionally, since we compare the Navier-Stokes equations solution with a solution to the unsteady
-Stokes equations, which includes local acceleration, the importance of convective inertia
-relative to the local acceleration, which scales inversely with the Strouhal number,
-is also important to consider when extrapolating our findings to mm/s scale velocities.
-A ten-fold reduction in the velocity magnitude would increase the Strouhal number by a factor ten.
+Meanwhile, the Womersley number would stay unaffected at the computed value of approximately ten.
+Thus, the importance of convective inertia relative to the local acceleration,
+which scales inversely with the Strouhal number,
+will change when extrapolating our findings to mm/s scale velocities.
+A ten-fold reduction in the velocity magnitude and thus the Reynolds number
+would increase the Strouhal number by a factor ten.
 At the same velocity magnitude as where we computed the Reynolds number, the Strouhal number
-would increase from the reported 0.31, where convective inertial forces are estimated to be greater than
+would thus increase from the reported 0.31, where convective inertial forces are estimated to be greater than
 transient inertial forces, to a value of 3.1, where, on the other hand, transient inertial forces are estimated
 to be greater than convective inertial forces. The fact that the estimated Strouhal numbers
 are neither much less than nor much greater than unity indicates that the flow is in a regime
