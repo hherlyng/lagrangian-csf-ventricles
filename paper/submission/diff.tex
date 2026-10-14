@@ -1,7 +1,7 @@
 \documentclass{template}
 %DIF LATEXDIFF DIFFERENCE FILE
 %DIF DEL main_v1.tex   Tue Sep  8 21:45:43 2026
-%DIF ADD main.tex      Tue Oct 13 17:38:04 2026
+%DIF ADD main.tex      Wed Oct 14 21:39:11 2026
 \usepackage[mathlines]{lineno}
 \usepackage{natbib}
 \bibliographystyle{apalike}
@@ -83,9 +83,9 @@
     These coherent structures demonstrate prominent flow features in the brain ventricles
     congruent with findings in experimental research. In the human brain ventricles, we also 
     investigate the role of inertia by comparing flow models governed by 
-    the Navier-Stokes and the Stokes equations. Comparisons show that
-    solving the Stokes equations is adequate to compute integrated flow
-    variables like stroke volumes, but that the Stokes approximation fails 
+    the Navier-Stokes and the \DIFaddbegin \DIFadd{unsteady }\DIFaddend Stokes equations. Comparisons show that
+    solving the \DIFaddbegin \DIFadd{unsteady }\DIFaddend Stokes equations is adequate to compute integrated flow
+    variables like stroke volumes, but that the \DIFaddbegin \DIFadd{unsteady }\DIFaddend Stokes approximation fails 
     to resolve intricate features of flow and advective transport that
     are present in the solution to the Navier-Stokes equations,
     features that could be important to elucidating transport.
@@ -93,8 +93,8 @@
 
 \begingroup
   \renewcommand{\thefootnote}{\textdagger}
-  \footnotetext{Present address: Expert Analytics AS, Akersgata 32, 0180 Oslo, Norway.
-  E-mail: \href{mailto:halvor@xal.no}{halvor@xal.no}}
+  \footnotetext{\DIFdelbegin \DIFdel{Present address: Expert Analytics AS, Akersgata 32, 0180 Oslo, Norway. }\DIFdelend E-mail: \DIFdelbegin \href{mailto:halvor@xal.no}{\DIFdel{halvor@xal.no}}%DIFAUXCMD
+\DIFdelend \DIFaddbegin \href{mailto:hherlyng@gmail.com}{\DIFadd{hherlyng@gmail.com}}\DIFaddend }
 \endgroup
 
 \newpage
@@ -591,10 +591,16 @@ ho2023choroid, narita2015cilia}, although these latter areas
 may exhibit immotile cilia. 
 Based on experimental research, we model cilia everywhere in the 
 human brain ventricles, except for in the caudal third of the third
-ventricle and on choroid plexus~\citep{doetsch1997cellular,
+ventricle and on choroid plexus~\DIFdelbegin \DIFdel{\mbox{%DIFAUXCMD
+\citep{doetsch1997cellular,
 scott1973scanning, coletti2018characterization, worthington1963ependymal,
 scott1972comparative, bruni1972scanning, sanchez2024exploring,
-scott1972comparative, ho2023choroid, narita2015cilia}.
+scott1972comparative, ho2023choroid, narita2015cilia}}\hskip0pt%DIFAUXCMD
+}\DIFdelend \DIFaddbegin \DIFadd{\mbox{%DIFAUXCMD
+\citep{doetsch1997cellular,
+scott1973scanning, coletti2018characterization, worthington1963ependymal,
+scott1972comparative, bruni1972scanning, sanchez2024exploring, ho2023choroid, narita2015cilia}}\hskip0pt%DIFAUXCMD
+}\DIFaddend .
 
 The cilia are modeled by imposing on the fluid a
 tangential traction $\btau(\xx, t) = \tau P_{\nn}(\rr(\xx, t))$
@@ -814,7 +820,8 @@ we compute the following quantities:
     $$ u(\xx, t) = \sqrt{u_{x}^2 + u_{y}^2 + u_{z}^2}. $$
 \DIFaddbegin 
 
-    \item \DIFadd{An estimate of the Reynolds number in the cerebral aqueduct, defined as
+    \item \DIFadd{An estimate of the Reynolds number Re---the ratio of convective inertial forces and
+    viscous forces in the fluid---in the cerebral aqueduct. We define the Reynolds number as
     }\begin{equation}
         \DIFadd{\mathrm{Re} = \frac{\rho uD}{\mu},
         \label{eq:reynolds_number}
@@ -824,15 +831,25 @@ we compute the following quantities:
     entrance of the cerebral aqueduct, and $\mu = 0.7 \ \mathrm{mPa\cdot s}$ is the dynamic viscosity.
 }
 
-    \item \DIFadd{An estimate of the Strouhal number in the cerebral aqueduct, defined as
+    \item \DIFadd{An estimate of the Womersley number Wo---whose square is the ratio of
+    unsteady inertial forces and viscous forces---in the cerebral aqueduct, defined as
     }\begin{equation}
-        \DIFadd{\mathrm{St} = \frac{fD}{u},
+        \DIFadd{\mathrm{Wo}^2 = \frac{2\pi f\rho D^2}{\mu},
+        \label{eq:womersley_number}
+    }\end{equation}
+    \DIFadd{where $\rho$, $\mu$ and $D$ are again the fluid density, fluid dynamic viscosity
+    and aqueduct diameter, respectively, while $f = 1$ Hz is
+    the modeled frequency of the cardiac cycle.
+}
+
+    \item \DIFadd{An estimate of the Strouhal number St---the ratio of unsteady inertial forces
+    and convective inertial forces---in the cerebral aqueduct, which can be 
+    expressed in terms of the two above defined dimensionless numbers:
+    }\begin{equation}
+        \DIFadd{\mathrm{St} = \frac{\mathrm{Wo}^2}{\mathrm{Re}}.
         \label{eq:strouhal_number}
     }\end{equation}
-    \DIFadd{where $f = 1$ Hz is the modeled frequency of the cardiac cycle,
-    $D$ is again the diameter at the superior entrance of the cerebral aqueduct,
-    and $u$ is the CSF velocity magnitude.
-}\DIFaddend \end{itemize}
+\DIFaddend \end{itemize}
 
 \subsection{Numerical methods}
 \label{sec:numerical_methods}
@@ -914,7 +931,7 @@ convergence study, as well as assessing cardiac cycle periodicity. The results
 are reported in the Appendix (\Cref{sec:tissue_model_verification}). \DIFaddbegin \DIFadd{The
 simulations converged with respect to all variables assessed in the convergence
 study, except for the maximum tissue displacement magnitude, which did not
-convergence under mesh refinement on the brain ventricles mesh.
+reach convergence under mesh refinement on the brain ventricles mesh.
 }\DIFaddend 
 
 \subsubsection{Finite element methods for the fluid equations}
@@ -1054,8 +1071,9 @@ The maximum CSF velocity magnitude of caudally directed flow is 6.8 cm/s,
 which is located in the cerebral aqueduct during systole at 26\% of the cardiac cycle.
 For cephalic flow, the minimum velocity is $-4.4$ cm/s in the aqueduct at the end of diastole
 after 94\% of the cardiac cycle. The maximum velocity magnitude corresponds to
-a Reynolds number of 319 \DIFaddbegin \DIFadd{(}\Cref{eq:reynolds_number}\DIFadd{)}\DIFaddend , indicating laminar flow.
-\DIFaddbegin \DIFadd{At the same velocity magnitude, the Strouhal number computes to 0.049 (}\Cref{eq:strouhal_number}\DIFadd{).
+a Reynolds number \DIFdelbegin \DIFdel{of 319}\DIFdelend \DIFaddbegin \DIFadd{$\mathrm{Re}=319$ (}\Cref{eq:reynolds_number}\DIFadd{)}\DIFaddend , indicating laminar flow.
+\DIFaddbegin \DIFadd{At the same velocity magnitude, the Womersley number computes to $\mathrm{Wo}=9.9$ (}\Cref{eq:womersley_number}\DIFadd{).
+Combining the two numbers yields a Strouhal number $St=0.31$ (}\Cref{eq:strouhal_number}\DIFadd{).
 }\DIFaddend 
 
 The gradient of the mean pressure (cross-sectional average) $\Delta\overline{p}$
@@ -1275,7 +1293,7 @@ with the leading edge of the previous vortex still present superior to the new v
     \label{fig:FTLE_human2}
 \end{figure}
 
-\subsection{When neglecting fluid inertia, the model fails to resolve \DIFdelbegin \DIFdel{important }\DIFdelend \DIFaddbegin \DIFadd{prominent }\DIFaddend Lagrangian \DIFaddbegin \DIFadd{coherent }\DIFaddend structures}
+\subsection{\DIFdelbegin \DIFdel{When neglecting fluid inertia, the model fails }\DIFdelend \DIFaddbegin \DIFadd{Unsteady Stokes equations fail }\DIFaddend to resolve \DIFdelbegin \DIFdel{important }\DIFdelend \DIFaddbegin \DIFadd{prominent }\DIFaddend Lagrangian \DIFaddbegin \DIFadd{coherent }\DIFaddend structures}
 When computing FTLE fields with the unsteady Stokes equations (\Cref{eq:unsteady_stokes_eq}),
 the vortex structure that propagates into the 3V vanishes (\Cref{fig:FTLE_human3}A).
 This differs greatly from the structure
@@ -1423,24 +1441,27 @@ case that the omitted flow transients could affect our findings.
 \subsection{\DIFdelbegin \DIFdel{Accounting for fluid inertia is }\DIFdelend \DIFaddbegin \DIFadd{Unsteady Stokes assumption can have }\DIFaddend important \DIFaddbegin \DIFadd{impact }\DIFaddend to \DIFdelbegin \DIFdel{resolve }\DIFdelend \DIFaddbegin \DIFadd{derived }\DIFaddend Lagrangian \DIFaddbegin \DIFadd{coherent }\DIFaddend structures\DIFdelbegin \DIFdel{,
 but less important for macroscopic flow analysis}\DIFdelend }
 The results we present indicate that when simulating CSF flow
-in human brain ventricles at Reynolds numbers in the lower hundreds,
-accounting for inertial effects through
+in human brain ventricles at Reynolds numbers in the lower hundreds
+\DIFaddbegin \DIFadd{and Womersley numbers in the tens}\DIFaddend ,
+accounting for \DIFdelbegin \DIFdel{inertial effects }\DIFdelend \DIFaddbegin \DIFadd{convective inertia }\DIFaddend through
 solving the full Navier-Stokes equations is important when investigating
 advective transport by the CSF flow and analyzing local flow features.
 This is indicated by the significant differences in the structures
 present in the FTLE fields (\Cref{fig:FTLE_human3}) and the
 differences observed in local flow features (\Cref{fig:3d_flow_results})
-between the Navier-Stokes and Stokes solutions. The lobe structures and
+between the \DIFaddbegin \DIFadd{solutions to the }\DIFaddend Navier-Stokes and \DIFdelbegin \DIFdel{Stokes solutions}\DIFdelend \DIFaddbegin \DIFadd{unsteady Stokes equations}\DIFaddend . The lobe structures and
 vortex rings that form in the Navier-Stokes FTLE fields
 indicate stronger stirring and mixing of
 CSF than in the CSF flow approximated with the unsteady Stokes equations.
 
 In terms of computing macroscopic or integrated quantities like peak-to-nadir pressure (cross-sectional averaged),
 however, the unsteady Stokes equations seem sufficiently accurate, showing little discrepancy with
-the Navier-Stokes solution. As such, the Stokes equations can be
+the \DIFaddbegin \DIFadd{similar quantities computed with the }\DIFaddend Navier-Stokes solution. As such, the Stokes equations can be
 utilized as a low-cost alternative for fast predictions
 in computational frameworks where integrated quantities are needed.
-We note that several previous computational studies report maximal aqueductal
+\DIFaddbegin 
+
+\DIFaddend We note that several previous computational studies report maximal aqueductal
 CSF velocities on a mm/s scale~\citep{enzmann1993cerebrospinal, enzmann1991normal,
 Causemann2022HumanFramework, Sweetman2011ThreeDimensional, howden2008three, wagshul2011pulsating,
 greitz1993pulsatile, sweetman2011cerebrospinal}, which is ten times lower than the
@@ -1451,15 +1472,18 @@ by a factor ten, yielding for our model Reynolds numbers in the tens instead of 
 Additionally, since we compare the Navier-Stokes equations solution with a solution to the unsteady
 Stokes equations, which includes local acceleration, the importance of convective inertia
 relative to the local acceleration, which scales inversely with the Strouhal number,
-would also determine whether our findings still apply at mm/s scale velocities.
+\DIFdelbegin \DIFdel{would also determine whether our findings still apply at }\DIFdelend \DIFaddbegin \DIFadd{is also important to consider when extrapolating our findings to }\DIFaddend mm/s scale velocities.
 \DIFaddbegin \DIFadd{A ten-fold reduction in the velocity magnitude would increase the Strouhal number by a factor ten.
 At the same velocity magnitude as where we computed the Reynolds number, the Strouhal number
-would increase from the reported 0.048, which indicates a flow regime where local acceleration
-and convective acceleration of the fluid are comparable, to 0.48, a regime where local acceleration
-dominates. The latter regime would presumably exhibit weaker nonlinear effects, thus such an increase
-in the Strouhal number could make the Stokes and the Navier-Stokes solutions more similar.
+would increase from the reported 0.31, where convective inertial forces are estimated to be greater than
+transient inertial forces, to a value of 3.1, where, on the other hand, transient inertial forces are estimated
+to be greater than convective inertial forces. The fact that the estimated Strouhal numbers
+are neither much less than nor much greater than unity indicates that the flow is in a regime
+where it is hard to justify dropping the convective term from the Navier-Stokes equations.
+This further strengthens our interpretation that the unsteady Stokes equations fail
+to represent local flow features that are important to studying Lagrangian coherent structures.
 }\DIFaddend In conclusion, investigating the effects on the discrepancy in the advective transport
-between the Stokes and Navier-Stokes solutions would be interesting to address further in future work.
+between the \DIFaddbegin \DIFadd{unsteady }\DIFaddend Stokes and Navier-Stokes solutions would be interesting to address further in future work.
 
 \subsection{Tissue deformations alter Lagrangian \DIFaddbegin \DIFadd{coherent }\DIFaddend structures more significantly
 than motile cilia and CSF secretion}
@@ -1597,7 +1621,7 @@ the respiratory cycle}\DIFaddend .
 Meanwhile, since the experimental displacement data
 used to define the displacement boundary condition function $\bm{g}(\xx, t)$ is data from
 in vivo imaging \DIFdelbegin \DIFdel{that incorporate any mechanism that possibly deforms the brain 
-(except }\DIFdelend \DIFaddbegin \DIFadd{where other mechanisms were active
+(except }\DIFdelend \DIFaddbegin \DIFadd{where other mechanisms may be active
 (except in particular }\DIFaddend body motion, since the imaged subjects were at rest), brain tissue deformations
 linked to respiration \DIFdelbegin \DIFdel{is }\DIFdelend \DIFaddbegin \DIFadd{could }\DIFaddend to some extent \DIFaddbegin \DIFadd{be }\DIFaddend indirectly included in our model. However, \DIFdelbegin \DIFdel{since
 the displacement data used in the simulations were modeled as being periodic with a
