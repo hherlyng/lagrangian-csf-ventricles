@@ -51,8 +51,7 @@
 
 \begingroup
   \renewcommand{\thefootnote}{\textdagger}
-  \footnotetext{Present address: Expert Analytics AS, Akersgata 32, 0180 Oslo, Norway.
-  E-mail: \href{mailto:halvor@xal.no}{halvor@xal.no}}
+  \footnotetext{E-mail: \href{mailto:hherlyng@gmail.com}{hherlyng@gmail.com}}
 \endgroup
 
 \newpage
@@ -769,7 +768,8 @@ we compute the following quantities:
     $\uu(\xx, t) = (u_x(\xx, t), u_y(\xx, t), u_z(\xx, t))$ is 
     $$ u(\xx, t) = \sqrt{u_{x}^2 + u_{y}^2 + u_{z}^2}. $$
 
-    \item An estimate of the Reynolds number in the cerebral aqueduct, defined as
+    \item An estimate of the Reynolds number Re---the ratio of convective inertial and
+    viscous forces in the fluid---in the cerebral aqueduct. We define the Reynolds number as
     \begin{equation}
         \mathrm{Re} = \frac{\rho uD}{\mu},
         \label{eq:reynolds_number}
@@ -778,14 +778,23 @@ we compute the following quantities:
     $u$ is the CSF velocity magnitude, $D = 3.3$ mm is the diameter at the superior
     entrance of the cerebral aqueduct, and $\mu = 0.7 \ \mathrm{mPa\cdot s}$ is the dynamic viscosity.
 
-    \item An estimate of the Strouhal number in the cerebral aqueduct, defined as
+    \item An estimate of the Womersley number Wo---whose square is the ratio of
+    unsteady inertial and viscous forces---in the cerebral aqueduct, defined as
     \begin{equation}
-        \mathrm{St} = \frac{fD}{u},
+        \mathrm{Wo}^2 = \frac{2\pi f\rho D^2}{\mu},
+        \label{eq:womersley_number}
+    \end{equation}
+    where $\rho$, $\mu$ and $D$ are again the fluid density, fluid dynamic viscosity
+    and aqueduct diameter, respectively, while $f = 1$ Hz is
+    the modeled frequency of the cardiac cycle.
+
+    \item An estimate of the Strouhal number St---the ratio of unsteady inertial
+    and convective inertial forces---in the cerebral aqueduct, which is the ratio
+    of the two above defined dimensionless numbers:
+    \begin{equation}
+        \mathrm{St} = \frac{\mathrm{Wo}^2}{\mathrm{Re}}.
         \label{eq:strouhal_number}
     \end{equation}
-    where $f = 1$ Hz is the modeled frequency of the cardiac cycle,
-    $D$ is again the diameter at the superior entrance of the cerebral aqueduct,
-    and $u$ is the CSF velocity magnitude.
 \end{itemize}
 
 \subsection{Numerical methods}
