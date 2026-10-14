@@ -41,9 +41,9 @@
     These coherent structures demonstrate prominent flow features in the brain ventricles
     congruent with findings in experimental research. In the human brain ventricles, we also 
     investigate the role of inertia by comparing flow models governed by 
-    the Navier-Stokes and the Stokes equations. Comparisons show that
-    solving the Stokes equations is adequate to compute integrated flow
-    variables like stroke volumes, but that the Stokes approximation fails 
+    the Navier-Stokes and the unsteady Stokes equations. Comparisons show that
+    solving the unsteady Stokes equations is adequate to compute integrated flow
+    variables like stroke volumes, but that the unsteady Stokes approximation fails 
     to resolve intricate features of flow and advective transport that
     are present in the solution to the Navier-Stokes equations,
     features that could be important to elucidating transport.
@@ -550,8 +550,7 @@ Based on experimental research, we model cilia everywhere in the
 human brain ventricles, except for in the caudal third of the third
 ventricle and on choroid plexus~\citep{doetsch1997cellular,
 scott1973scanning, coletti2018characterization, worthington1963ependymal,
-scott1972comparative, bruni1972scanning, sanchez2024exploring,
-scott1972comparative, ho2023choroid, narita2015cilia}.
+scott1972comparative, bruni1972scanning, sanchez2024exploring, ho2023choroid, narita2015cilia}.
 
 The cilia are modeled by imposing on the fluid a
 tangential traction $\btau(\xx, t) = \tau P_{\nn}(\rr(\xx, t))$
@@ -869,7 +868,7 @@ convergence study, as well as assessing cardiac cycle periodicity. The results
 are reported in the Appendix (\Cref{sec:tissue_model_verification}). The
 simulations converged with respect to all variables assessed in the convergence
 study, except for the maximum tissue displacement magnitude, which did not
-convergence under mesh refinement on the brain ventricles mesh.
+reach convergence under mesh refinement on the brain ventricles mesh.
 
 \subsubsection{Finite element methods for the fluid equations}
 We discretize the governing equations of fluid motion,
@@ -1228,7 +1227,7 @@ with the leading edge of the previous vortex still present superior to the new v
     \label{fig:FTLE_human2}
 \end{figure}
 
-\subsection{When neglecting fluid inertia, the model fails to resolve prominent Lagrangian coherent structures}
+\subsection{Unsteady Stokes equations fail to resolve prominent Lagrangian coherent structures}
 When computing FTLE fields with the unsteady Stokes equations (\Cref{eq:unsteady_stokes_eq}),
 the vortex structure that propagates into the 3V vanishes (\Cref{fig:FTLE_human3}A).
 This differs greatly from the structure
@@ -1535,7 +1534,7 @@ magnum CSF velocities to the cardiac component than to the respiratory component
 the respiratory cycle.
 Meanwhile, since the experimental displacement data
 used to define the displacement boundary condition function $\bm{g}(\xx, t)$ is data from
-in vivo imaging where other mechanisms were active
+in vivo imaging where other mechanisms may be active
 (except in particular body motion, since the imaged subjects were at rest), brain tissue deformations
 linked to respiration could to some extent be indirectly included in our model. However, because
 the experimental displacement data we use are from cardiac-gated measurements, the respiratory
