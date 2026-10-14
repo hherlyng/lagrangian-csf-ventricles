@@ -768,7 +768,7 @@ we compute the following quantities:
     $\uu(\xx, t) = (u_x(\xx, t), u_y(\xx, t), u_z(\xx, t))$ is 
     $$ u(\xx, t) = \sqrt{u_{x}^2 + u_{y}^2 + u_{z}^2}. $$
 
-    \item An estimate of the Reynolds number Re---the ratio of convective inertial and
+    \item An estimate of the Reynolds number Re---the ratio of convective inertial forces and
     viscous forces in the fluid---in the cerebral aqueduct. We define the Reynolds number as
     \begin{equation}
         \mathrm{Re} = \frac{\rho uD}{\mu},
@@ -779,7 +779,7 @@ we compute the following quantities:
     entrance of the cerebral aqueduct, and $\mu = 0.7 \ \mathrm{mPa\cdot s}$ is the dynamic viscosity.
 
     \item An estimate of the Womersley number Wo---whose square is the ratio of
-    unsteady inertial and viscous forces---in the cerebral aqueduct, defined as
+    unsteady inertial forces and viscous forces---in the cerebral aqueduct, defined as
     \begin{equation}
         \mathrm{Wo}^2 = \frac{2\pi f\rho D^2}{\mu},
         \label{eq:womersley_number}
@@ -788,9 +788,9 @@ we compute the following quantities:
     and aqueduct diameter, respectively, while $f = 1$ Hz is
     the modeled frequency of the cardiac cycle.
 
-    \item An estimate of the Strouhal number St---the ratio of unsteady inertial
-    and convective inertial forces---in the cerebral aqueduct, which is the ratio
-    of the two above defined dimensionless numbers:
+    \item An estimate of the Strouhal number St---the ratio of unsteady inertial forces
+    and convective inertial forces---in the cerebral aqueduct, which can be 
+    expressed in terms of the two above defined dimensionless numbers:
     \begin{equation}
         \mathrm{St} = \frac{\mathrm{Wo}^2}{\mathrm{Re}}.
         \label{eq:strouhal_number}
@@ -1016,8 +1016,9 @@ The maximum CSF velocity magnitude of caudally directed flow is 6.8 cm/s,
 which is located in the cerebral aqueduct during systole at 26\% of the cardiac cycle.
 For cephalic flow, the minimum velocity is $-4.4$ cm/s in the aqueduct at the end of diastole
 after 94\% of the cardiac cycle. The maximum velocity magnitude corresponds to
-a Reynolds number of 319 (\Cref{eq:reynolds_number}), indicating laminar flow.
-At the same velocity magnitude, the Strouhal number computes to 0.049 (\Cref{eq:strouhal_number}).
+a Reynolds number $\mathrm{Re}=319$ (\Cref{eq:reynolds_number}), indicating laminar flow.
+At the same velocity magnitude, the Womersley number computes to $\mathrm{Wo}=9.9$ (\Cref{eq:womersley_number}).
+Combining the two numbers yields a Strouhal number $St=0.31$ (\Cref{eq:strouhal_number}).
 
 The gradient of the mean pressure (cross-sectional average) $\Delta\overline{p}$
 along the cerebral aqueduct varies inversely with
@@ -1380,23 +1381,25 @@ case that the omitted flow transients could affect our findings.
 
 \subsection{Unsteady Stokes assumption can have important impact to derived Lagrangian coherent structures}
 The results we present indicate that when simulating CSF flow
-in human brain ventricles at Reynolds numbers in the lower hundreds,
-accounting for inertial effects through
+in human brain ventricles at Reynolds numbers in the lower hundreds
+and Womersley numbers in the tens,
+accounting for convective inertia through
 solving the full Navier-Stokes equations is important when investigating
 advective transport by the CSF flow and analyzing local flow features.
 This is indicated by the significant differences in the structures
 present in the FTLE fields (\Cref{fig:FTLE_human3}) and the
 differences observed in local flow features (\Cref{fig:3d_flow_results})
-between the Navier-Stokes and Stokes solutions. The lobe structures and
+between the solutions to the Navier-Stokes and unsteady Stokes equations. The lobe structures and
 vortex rings that form in the Navier-Stokes FTLE fields
 indicate stronger stirring and mixing of
 CSF than in the CSF flow approximated with the unsteady Stokes equations.
 
 In terms of computing macroscopic or integrated quantities like peak-to-nadir pressure (cross-sectional averaged),
 however, the unsteady Stokes equations seem sufficiently accurate, showing little discrepancy with
-the Navier-Stokes solution. As such, the Stokes equations can be
+the similar quantities computed with the Navier-Stokes solution. As such, the Stokes equations can be
 utilized as a low-cost alternative for fast predictions
 in computational frameworks where integrated quantities are needed.
+
 We note that several previous computational studies report maximal aqueductal
 CSF velocities on a mm/s scale~\citep{enzmann1993cerebrospinal, enzmann1991normal,
 Causemann2022HumanFramework, Sweetman2011ThreeDimensional, howden2008three, wagshul2011pulsating,
@@ -1408,13 +1411,16 @@ by a factor ten, yielding for our model Reynolds numbers in the tens instead of 
 Additionally, since we compare the Navier-Stokes equations solution with a solution to the unsteady
 Stokes equations, which includes local acceleration, the importance of convective inertia
 relative to the local acceleration, which scales inversely with the Strouhal number,
-would also determine whether our findings still apply at mm/s scale velocities.
+would also be important to consider when extrapolating our findings to mm/s scale velocities.
 A ten-fold reduction in the velocity magnitude would increase the Strouhal number by a factor ten.
 At the same velocity magnitude as where we computed the Reynolds number, the Strouhal number
-would increase from the reported 0.048, which indicates a flow regime where local acceleration
-and convective acceleration of the fluid are comparable, to 0.48, a regime where local acceleration
-dominates. The latter regime would presumably exhibit weaker nonlinear effects, thus such an increase
-in the Strouhal number could make the Stokes and the Navier-Stokes solutions more similar.
+would increase from the reported 0.31, where convective inertial forces are estimated to be greater than
+transient inertial forces, to a value of 3.1, where transient inertial forces are estimated
+to be greater than convective inertial forces. The fact that the estimated Strouhal numbers
+are neither much less than nor much greater than unity, indicates that the flow is in a regime
+where it is hard to justify dropping the convective term from the Navier-Stokes equations.
+This further strengthens our interpretation that the unsteady Stokes equations fail
+to represent local flow features that are important to studying Lagrangian coherent structures.
 In conclusion, investigating the effects on the discrepancy in the advective transport
 between the Stokes and Navier-Stokes solutions would be interesting to address further in future work.
 
