@@ -1,7 +1,7 @@
 \documentclass{template}
 %DIF LATEXDIFF DIFFERENCE FILE
 %DIF DEL main_v1.tex   Tue Sep  8 21:45:43 2026
-%DIF ADD main.tex      Wed Oct 14 22:03:17 2026
+%DIF ADD main.tex      Fri Oct 23 19:12:47 2026
 \usepackage[mathlines]{lineno}
 \usepackage{natbib}
 \bibliographystyle{apalike}
@@ -12,7 +12,11 @@
 \title{\textbf{Characterization of coherent flow structures in brain ventricles}}
 \author[1,*,\textdagger]{Halvor Herlyng}
 \author[2]{Shawn C.~Shadden}
-\affil[1]{Department of Numerical Analysis and Scientific Computing, Simula Research Laboratory, Oslo, Norway}
+%DIF 12c12
+%DIF < \affil[1]{Department of Numerical Analysis and Scientific Computing, Simula Research Laboratory, Oslo, Norway}
+%DIF -------
+\affil[1]{Department of Numerical Analysis and Scientific Computing, Simula Research Laboratory, Kristian Augusts gate 23, 0164 Oslo, Norway} %DIF > 
+%DIF -------
 \affil[2]{Department of Mechanical Engineering, University of California, 6149 Etcheverry Hall, CA 94720-1740 Berkeley, USA}
 \affil[*]{Corresponding author}
 \date{\vspace{-2em}} % Remove space between affiliations and abstract
@@ -1686,9 +1690,9 @@ The FTLE fields are computed from velocity fields predicted with finite element 
 of cerebrospinal fluid (CSF) flow. Of the three flow mechanisms we considered, cardiovascular pulsation-related
 deformations, choroid plexus secretion, and motile cilia, the deformations are the main contributor to
 establishing \DIFdelbegin \DIFdel{Lagrangian structures }\DIFdelend \DIFaddbegin \DIFadd{LCS }\DIFaddend in the brain ventricles. Additionally,
-we demonstrated that accounting for fluid inertia
+we demonstrated that accounting for \DIFaddbegin \DIFadd{convective }\DIFaddend fluid inertia
 in flow field predictions has little importance when computing integrated flow quantities,
-but fluid inertial effects \DIFdelbegin \DIFdel{are }\DIFdelend \DIFaddbegin \DIFadd{may be }\DIFaddend crucial for capturing \DIFdelbegin \DIFdel{Lagrangian coherent structures and
+but \DIFaddbegin \DIFadd{convective }\DIFaddend fluid inertial effects \DIFdelbegin \DIFdel{are }\DIFdelend \DIFaddbegin \DIFadd{may be }\DIFaddend crucial for capturing \DIFdelbegin \DIFdel{Lagrangian coherent structures and
 thus }\DIFdelend \DIFaddbegin \DIFadd{LCS and
 could thus be }\DIFaddend crucial when modeling \DIFdelbegin \DIFdel{transport and mixing }\DIFdelend \DIFaddbegin \DIFadd{advective transport }\DIFaddend in the (human) brain ventricles.
 Through comparison with Eulerian-based flow analysis of cilia-driven CSF flow in
